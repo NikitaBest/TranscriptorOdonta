@@ -11,6 +11,7 @@ import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { ru } from 'date-fns/locale';
 
 export default function Dashboard() {
   const [search, setSearch] = useState('');
@@ -38,7 +39,7 @@ export default function Dashboard() {
       lastName: newLastName,
       phone: newPhone,
       lastVisit: new Date().toISOString(),
-      summary: "New patient registration",
+      summary: "Регистрация нового пациента",
       avatar: `${newFirstName[0]}${newLastName[0]}`.toUpperCase()
     };
 
@@ -49,8 +50,8 @@ export default function Dashboard() {
     setNewPhone('');
     
     toast({
-      title: "Patient Added",
-      description: `${newFirstName} ${newLastName} has been added to your list.`,
+      title: "Пациент добавлен",
+      description: `${newFirstName} ${newLastName} добавлен в ваш список.`,
     });
   };
 
@@ -60,14 +61,14 @@ export default function Dashboard() {
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-display font-bold tracking-tight">Patients</h1>
-            <p className="text-muted-foreground mt-1">Manage your patient records and consultations.</p>
+            <h1 className="text-3xl font-display font-bold tracking-tight">Пациенты</h1>
+            <p className="text-muted-foreground mt-1">Управление записями пациентов и консультациями.</p>
           </div>
           <div className="flex gap-3">
              <Link href="/record">
               <Button variant="secondary" className="h-12 rounded-xl px-6 gap-2 font-medium">
                 <Mic className="w-4 h-4" />
-                Quick Note
+                Быстрая заметка
               </Button>
             </Link>
             
@@ -75,29 +76,29 @@ export default function Dashboard() {
               <DialogTrigger asChild>
                 <Button className="h-12 rounded-xl px-6 gap-2 font-medium shadow-lg shadow-primary/20">
                   <Plus className="w-4 h-4" />
-                  Add Patient
+                  Добавить пациента
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[425px] rounded-3xl">
                 <DialogHeader>
-                  <DialogTitle className="text-2xl font-display">New Patient</DialogTitle>
+                  <DialogTitle className="text-2xl font-display">Новый пациент</DialogTitle>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="firstName">First Name</Label>
+                    <Label htmlFor="firstName">Имя</Label>
                     <Input id="firstName" value={newFirstName} onChange={e => setNewFirstName(e.target.value)} className="rounded-xl" />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="lastName">Last Name</Label>
+                    <Label htmlFor="lastName">Фамилия</Label>
                     <Input id="lastName" value={newLastName} onChange={e => setNewLastName(e.target.value)} className="rounded-xl" />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="phone">Phone</Label>
-                    <Input id="phone" value={newPhone} onChange={e => setNewPhone(e.target.value)} className="rounded-xl" placeholder="+1 ..." />
+                    <Label htmlFor="phone">Телефон</Label>
+                    <Input id="phone" value={newPhone} onChange={e => setNewPhone(e.target.value)} className="rounded-xl" placeholder="+7 ..." />
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button onClick={handleAddPatient} className="w-full rounded-xl h-12">Create Patient Profile</Button>
+                  <Button onClick={handleAddPatient} className="w-full rounded-xl h-12">Создать профиль</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -108,7 +109,7 @@ export default function Dashboard() {
         <div className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
           <Input 
-            placeholder="Search by name or phone..." 
+            placeholder="Поиск по имени или телефону..." 
             className="h-14 pl-12 rounded-2xl bg-white border-border/50 shadow-sm text-lg"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -142,13 +143,13 @@ export default function Dashboard() {
                   <div className="space-y-4">
                     <div className="bg-secondary/30 p-3 rounded-xl">
                       <p className="text-sm line-clamp-2 text-muted-foreground leading-relaxed">
-                        <span className="font-medium text-foreground mr-1">Last Visit:</span> 
+                        <span className="font-medium text-foreground mr-1">Последний визит:</span> 
                         {patient.summary}
                       </p>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <Calendar className="w-3 h-3" />
-                      {format(new Date(patient.lastVisit), 'MMM d, yyyy')}
+                      {format(new Date(patient.lastVisit), 'd MMM yyyy', { locale: ru })}
                     </div>
                   </div>
                 </CardContent>

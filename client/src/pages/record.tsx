@@ -75,7 +75,7 @@ export default function RecordPage() {
           
           <div className="space-y-2">
             <h2 className="text-sm uppercase tracking-widest text-muted-foreground font-bold">
-              {patient ? `Consultation with ${patient.firstName} ${patient.lastName}` : 'Quick Note (No Patient Selected)'}
+              {patient ? `Консультация: ${patient.firstName} ${patient.lastName}` : 'Быстрая заметка (Без пациента)'}
             </h2>
             <h1 className="text-6xl font-display font-bold tabular-nums tracking-tight">
               {formatTime(duration)}
@@ -104,9 +104,9 @@ export default function RecordPage() {
             <div className="flex flex-col items-center gap-3 animate-in fade-in slide-in-from-bottom-4">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
               <p className="text-lg font-medium">
-                {status === 'uploading' && 'Uploading audio...'}
-                {status === 'transcribing' && 'Transcribing speech...'}
-                {status === 'processing' && 'Generating medical report...'}
+                {status === 'uploading' && 'Загрузка аудио...'}
+                {status === 'transcribing' && 'Распознавание речи...'}
+                {status === 'processing' && 'Формирование медицинского отчета...'}
               </p>
             </div>
           )}
@@ -157,7 +157,7 @@ export default function RecordPage() {
           )}
           
           {status === 'recording' && (
-             <p className="text-muted-foreground animate-pulse">Listening...</p>
+             <p className="text-muted-foreground animate-pulse">Слушаю...</p>
           )}
         </div>
       </div>

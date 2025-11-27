@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { MOCK_PATIENTS, MOCK_CONSULTATIONS } from '@/lib/mock-data';
 import { Mic, ArrowLeft, Phone, Calendar, FileText, Play, Edit } from 'lucide-react';
 import { format } from 'date-fns';
+import { ru } from 'date-fns/locale';
 import { Textarea } from '@/components/ui/textarea';
 
 export default function PatientProfile() {
@@ -13,7 +14,7 @@ export default function PatientProfile() {
   const patient = MOCK_PATIENTS.find(p => p.id === id);
   const consultations = MOCK_CONSULTATIONS.filter(c => c.patientId === id);
 
-  if (!patient) return <div>Patient not found</div>;
+  if (!patient) return <div>Пациент не найден</div>;
 
   return (
     <Layout>
@@ -23,7 +24,7 @@ export default function PatientProfile() {
           <Link href="/dashboard">
             <Button variant="ghost" className="pl-0 hover:bg-transparent hover:text-primary mb-4 gap-2 text-muted-foreground">
               <ArrowLeft className="w-4 h-4" />
-              Back to Patients
+              К списку пациентов
             </Button>
           </Link>
           
@@ -39,19 +40,19 @@ export default function PatientProfile() {
                     <Phone className="w-3 h-3" /> {patient.phone}
                   </span>
                   <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary/50 border border-border/50">
-                    <Calendar className="w-3 h-3" /> Since {format(new Date(patient.lastVisit), 'MMM yyyy')}
+                    <Calendar className="w-3 h-3" /> С {format(new Date(patient.lastVisit), 'MMM yyyy', { locale: ru })}
                   </span>
                 </div>
               </div>
             </div>
             <div className="flex gap-3 w-full md:w-auto">
                <Button variant="outline" className="flex-1 md:flex-none rounded-xl h-12 border-border/50">
-                Edit Profile
+                Редактировать
               </Button>
               <Link href={`/record?patientId=${patient.id}`}>
                 <Button className="flex-1 md:flex-none rounded-xl h-12 gap-2 shadow-lg shadow-primary/20">
                   <Mic className="w-4 h-4" />
-                  New Consultation
+                  Новая консультация
                 </Button>
               </Link>
             </div>
@@ -61,7 +62,7 @@ export default function PatientProfile() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content - History */}
           <div className="lg:col-span-2 space-y-6">
-            <h2 className="text-xl font-display font-bold">Consultation History</h2>
+            <h2 className="text-xl font-display font-bold">История консультаций</h2>
             <div className="space-y-4">
               {consultations.map(consultation => (
                 <Link key={consultation.id} href={`/consultation/${consultation.id}`}>
@@ -73,9 +74,9 @@ export default function PatientProfile() {
                             <FileText className="w-5 h-5" />
                           </div>
                           <div>
-                            <div className="font-bold">Consultation</div>
+                            <div className="font-bold">Консультация</div>
                             <div className="text-xs text-muted-foreground">
-                              {format(new Date(consultation.date), 'MMMM d, yyyy • HH:mm')}
+                              {format(new Date(consultation.date), 'd MMMM yyyy • HH:mm', { locale: ru })}
                             </div>
                           </div>
                         </div>
@@ -88,7 +89,7 @@ export default function PatientProfile() {
                       </p>
                       <div className="pl-[3.25rem]">
                          <Button variant="link" className="p-0 h-auto text-primary gap-1 group-hover:underline">
-                           View Report <ArrowLeft className="w-3 h-3 rotate-180" />
+                           Открыть отчет <ArrowLeft className="w-3 h-3 rotate-180" />
                          </Button>
                       </div>
                     </CardContent>
@@ -98,9 +99,9 @@ export default function PatientProfile() {
               
               {consultations.length === 0 && (
                 <div className="text-center py-12 bg-secondary/20 rounded-3xl border border-dashed border-border">
-                  <p className="text-muted-foreground">No consultations recorded yet.</p>
+                  <p className="text-muted-foreground">Консультаций пока нет.</p>
                   <Link href={`/record?patientId=${patient.id}`}>
-                    <Button variant="link" className="mt-2">Start first consultation</Button>
+                    <Button variant="link" className="mt-2">Начать первую консультацию</Button>
                   </Link>
                 </div>
               )}
@@ -109,18 +110,18 @@ export default function PatientProfile() {
 
           {/* Sidebar - Notes */}
           <div className="space-y-6">
-            <h2 className="text-xl font-display font-bold">Doctor's Notes</h2>
+            <h2 className="text-xl font-display font-bold">Заметки врача</h2>
             <Card className="border-border/50 rounded-3xl shadow-sm">
               <CardContent className="p-4">
                 <Textarea 
-                  placeholder="Add private notes about this patient..." 
+                  placeholder="Добавить личные заметки о пациенте..." 
                   className="min-h-[200px] border-none resize-none focus-visible:ring-0 bg-transparent p-0 text-sm leading-relaxed"
-                  defaultValue="Patient has high anxiety regarding dental procedures. Prefers detailed explanations before any action. Allergic to Penicillin."
+                  defaultValue="У пациента высокая тревожность перед стоматологическими процедурами. Предпочитает подробные объяснения перед любыми действиями. Аллергия на пенициллин."
                 />
               </CardContent>
               <div className="p-4 border-t border-border/50 bg-secondary/20 flex justify-end">
                 <Button size="sm" variant="ghost" className="gap-2 text-xs">
-                  <Edit className="w-3 h-3" /> Save Notes
+                  <Edit className="w-3 h-3" /> Сохранить
                 </Button>
               </div>
             </Card>

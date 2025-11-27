@@ -24,16 +24,16 @@ export function Layout({ children }: LayoutProps) {
   const isMobile = useIsMobile();
 
   const navItems = [
-    { href: '/dashboard', icon: Users, label: 'Patients' },
-    { href: '/history', icon: History, label: 'History' },
-    { href: '/record', icon: Mic, label: 'Quick Record', variant: 'accent' },
+    { href: '/dashboard', icon: Users, label: 'Пациенты' },
+    { href: '/history', icon: History, label: 'История' },
+    { href: '/record', icon: Mic, label: 'Быстрая запись', variant: 'accent' },
   ];
 
   const NavContent = () => (
     <div className="flex flex-col h-full">
       <div className="p-6 mb-8">
         <h1 className="text-2xl font-display font-bold tracking-tighter">Transcriptor</h1>
-        <p className="text-xs text-muted-foreground mt-1">Dental AI Assistant</p>
+        <p className="text-xs text-muted-foreground mt-1">ИИ-ассистент стоматолога</p>
       </div>
 
       <nav className="flex-1 px-4 space-y-2">
@@ -61,13 +61,13 @@ export function Layout({ children }: LayoutProps) {
             location === '/profile' && "bg-secondary"
           )}>
             <Settings className="w-4 h-4" />
-            <span>Settings</span>
+            <span>Настройки</span>
           </div>
         </Link>
         <Link href="/auth">
           <div className="flex items-center gap-3 px-4 py-3 rounded-2xl transition-all hover:bg-destructive/10 hover:text-destructive cursor-pointer text-sm">
             <LogOut className="w-4 h-4" />
-            <span>Log Out</span>
+            <span>Выйти</span>
           </div>
         </Link>
       </div>

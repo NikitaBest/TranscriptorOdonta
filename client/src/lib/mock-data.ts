@@ -28,39 +28,39 @@ export interface Consultation {
 export const MOCK_PATIENTS: Patient[] = [
   {
     id: "1",
-    firstName: "Elena",
-    lastName: "Volkova",
+    firstName: "Елена",
+    lastName: "Волкова",
     phone: "+7 (999) 123-45-67",
     lastVisit: "2023-10-25T14:30:00",
-    summary: "Caries treatment on tooth 46. Recommended hygiene.",
-    avatar: "EV"
+    summary: "Лечение кариеса 46 зуба. Рекомендована гигиена.",
+    avatar: "ЕВ"
   },
   {
     id: "2",
-    firstName: "Alexander",
-    lastName: "Petrov",
+    firstName: "Александр",
+    lastName: "Петров",
     phone: "+7 (999) 987-65-43",
     lastVisit: "2023-11-12T10:00:00",
-    summary: "Implant consultation. CT scan analysis.",
-    avatar: "AP"
+    summary: "Консультация по имплантации. Анализ КТ.",
+    avatar: "АП"
   },
   {
     id: "3",
-    firstName: "Maria",
-    lastName: "Sokolova",
+    firstName: "Мария",
+    lastName: "Соколова",
     phone: "+7 (999) 555-01-23",
     lastVisit: "2023-11-20T16:45:00",
-    summary: "Routine checkup. No issues found.",
-    avatar: "MS"
+    summary: "Плановый осмотр. Проблем не выявлено.",
+    avatar: "МС"
   },
   {
     id: "4",
-    firstName: "Dmitry",
-    lastName: "Ivanov",
+    firstName: "Дмитрий",
+    lastName: "Иванов",
     phone: "+7 (999) 111-22-33",
     lastVisit: "2023-10-05T09:15:00",
-    summary: "Pulpitis treatment. Tooth 24.",
-    avatar: "DI"
+    summary: "Лечение пульпита. Зуб 24.",
+    avatar: "ДИ"
   }
 ];
 
@@ -68,30 +68,30 @@ export const MOCK_CONSULTATIONS: Consultation[] = [
   {
     id: "c1",
     patientId: "1",
-    patientName: "Elena Volkova",
+    patientName: "Елена Волкова",
     date: "2023-10-25T14:30:00",
     duration: "45:12",
     status: "ready",
-    summary: "Patient complained of sensitivity to cold in the lower right jaw. Examination revealed deep caries in tooth 46. Local anesthesia administered. Cavity preparation and composite filling placed. Bite checked and polished.",
-    complaints: "Sharp pain when drinking cold water, lingering for a few seconds. Located in lower right back tooth.",
-    objective: "Tooth 46: Deep carious lesion on occlusal surface. Percussion negative. Thermal test positive (hypersensitivity). No mobility.",
-    plan: "1. Infiltration anesthesia (Articaine 4%).\n2. Removal of carious tissue.\n3. Restoration with light-cured composite.\n4. Polishing.\n5. Recommendation: Avoid hard food for 2 hours.",
-    comments: "Patient was anxious, handled well. Check contacts next visit.",
-    transcript: "Doctor: Hello Elena, how are you feeling today? \nPatient: Hi Doctor, I have this sharp pain when I drink cold water. \nDoctor: Show me where exactly. \nPatient: Here, bottom right. \nDoctor: Okay, let's take a look. Open wide please. \n... [Transcript continues] ... \nDoctor: It looks like deep caries on tooth 46. We need to treat it today to avoid root canal. \nPatient: Is it going to hurt? \nDoctor: Not at all, I'll give you strong anesthesia."
+    summary: "Пациентка жаловалась на реакцию на холодное в нижней правой челюсти. При осмотре выявлен глубокий кариес 46 зуба. Проведена анестезия, препарирование и пломбирование композитом. Прикус скорректирован.",
+    complaints: "Острая боль при употреблении холодной воды, длится несколько секунд. Локализуется в нижнем правом заднем зубе.",
+    objective: "Зуб 46: Глубокая кариозная полость на окклюзионной поверхности. Перкуссия отрицательная. Термопроба положительная (гиперчувствительность). Подвижности нет.",
+    plan: "1. Инфильтрационная анестезия (Артикаин 4%).\n2. Удаление кариозных тканей.\n3. Реставрация светоотверждаемым композитом.\n4. Полировка.\n5. Рекомендация: Не есть твердую пищу 2 часа.",
+    comments: "Пациентка тревожная, но перенесла хорошо. Проверить контакты на следующем визите.",
+    transcript: "Врач: Здравствуйте, Елена, как самочувствие сегодня? \nПациент: Здравствуйте, доктор, у меня острая боль, когда пью холодную воду. \nВрач: Покажите, где именно. \nПациент: Вот здесь, внизу справа. \nВрач: Хорошо, давайте посмотрим. Откройте шире, пожалуйста. \n... [Транскрипция продолжается] ... \nВрач: Похоже на глубокий кариес 46 зуба. Нужно лечить сегодня, чтобы не дошло до пульпита. \nПациент: Больно будет? \nВрач: Совсем нет, сделаем хорошую анестезию."
   },
   {
     id: "c2",
     patientId: "2",
-    patientName: "Alexander Petrov",
+    patientName: "Александр Петров",
     date: "2023-11-12T10:00:00",
     duration: "30:00",
     status: "ready",
-    summary: "Consultation regarding missing tooth 36. Discussed implant options vs bridge.",
-    complaints: "Missing tooth on lower left. Difficulty chewing.",
-    objective: "Edentulous space in region 36. Bone width appears sufficient on palpation. Adjacent teeth 35 and 37 are intact.",
-    plan: "1. CBCT referral.\n2. Next visit: Treatment planning based on 3D image.\n3. Preliminary cost estimation provided.",
-    comments: "Patient prefers implant over bridge.",
-    transcript: "Doctor: Good morning Alexander. What brings you in? \nPatient: I lost this tooth a year ago and I want to fix it. \nDoctor: Okay, region 36. Have you thought about an implant? \nPatient: Yes, but I'm worried about the surgery."
+    summary: "Консультация по поводу отсутствующего зуба 36. Обсуждение вариантов: имплантация vs мост.",
+    complaints: "Отсутствует зуб снизу слева. Трудно жевать.",
+    objective: "Отсутствует зуб 36. Ширина кости при пальпации кажется достаточной. Соседние зубы 35 и 37 интактны.",
+    plan: "1. Направление на КЛКТ.\n2. Следующий визит: Планирование лечения по 3D-снимку.\n3. Предоставлена предварительная смета.",
+    comments: "Пациент предпочитает имплант, а не мост.",
+    transcript: "Врач: Доброе утро, Александр. Что привело вас? \nПациент: Я потерял этот зуб год назад и хочу его восстановить. \nВрач: Так, 36-й. Думали об имплантации? \nПациент: Да, но переживаю насчет операции."
   },
   {
     id: "c3",
@@ -100,11 +100,11 @@ export const MOCK_CONSULTATIONS: Consultation[] = [
     date: "2023-11-27T08:30:00",
     duration: "05:23",
     status: "processing",
-    summary: "Processing...",
-    complaints: "Processing...",
-    objective: "Processing...",
-    plan: "Processing...",
-    comments: "Processing...",
-    transcript: "Processing..."
+    summary: "Обработка...",
+    complaints: "Обработка...",
+    objective: "Обработка...",
+    plan: "Обработка...",
+    comments: "Обработка...",
+    transcript: "Обработка..."
   }
 ];
