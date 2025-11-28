@@ -4,14 +4,14 @@ import { Layout } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Mic, Square, Pause, Play, Loader2, Save, X } from 'lucide-react';
-import { MOCK_PATIENTS } from '@/lib/mock-data';
+import { getPatientById } from '@/lib/mock-data';
 import { cn } from '@/lib/utils';
 
 export default function RecordPage() {
   const [location, setLocation] = useLocation();
   const searchParams = new URLSearchParams(window.location.search);
   const patientId = searchParams.get('patientId');
-  const patient = MOCK_PATIENTS.find(p => p.id === patientId);
+  const patient = getPatientById(patientId);
 
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);

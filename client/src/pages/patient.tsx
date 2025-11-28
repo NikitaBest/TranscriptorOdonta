@@ -3,7 +3,7 @@ import { Layout } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { MOCK_PATIENTS, MOCK_CONSULTATIONS } from '@/lib/mock-data';
+import { getConsultationsByPatient, getPatientById } from '@/lib/mock-data';
 import { Mic, ArrowLeft, Phone, Calendar, FileText, Play, Edit } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -11,8 +11,8 @@ import { Textarea } from '@/components/ui/textarea';
 
 export default function PatientProfile() {
   const { id } = useParams();
-  const patient = MOCK_PATIENTS.find(p => p.id === id);
-  const consultations = MOCK_CONSULTATIONS.filter(c => c.patientId === id);
+  const patient = getPatientById(id);
+  const consultations = getConsultationsByPatient(id);
 
   if (!patient) return <div>Пациент не найден</div>;
 

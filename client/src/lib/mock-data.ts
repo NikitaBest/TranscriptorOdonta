@@ -25,6 +25,11 @@ export interface Consultation {
   audioUrl?: string;
 }
 
+/**
+ * Централизованные мок-данные приложения.
+ * При появлении реального API достаточно заменить эти структуры
+ * на вызовы бэкенда или загрузку из локального стора.
+ */
 export const MOCK_PATIENTS: Patient[] = [
   {
     id: "1",
@@ -33,7 +38,8 @@ export const MOCK_PATIENTS: Patient[] = [
     phone: "+7 (999) 123-45-67",
     lastVisit: "2023-10-25T14:30:00",
     summary: "Лечение кариеса 46 зуба. Рекомендована гигиена.",
-    avatar: "ЕВ"
+    avatar: "ЕВ",
+    email: "volkova.elena@clinic.com",
   },
   {
     id: "2",
@@ -42,7 +48,8 @@ export const MOCK_PATIENTS: Patient[] = [
     phone: "+7 (999) 987-65-43",
     lastVisit: "2023-11-12T10:00:00",
     summary: "Консультация по имплантации. Анализ КТ.",
-    avatar: "АП"
+    avatar: "АП",
+    email: "a.petrov@clinic.com",
   },
   {
     id: "3",
@@ -51,7 +58,8 @@ export const MOCK_PATIENTS: Patient[] = [
     phone: "+7 (999) 555-01-23",
     lastVisit: "2023-11-20T16:45:00",
     summary: "Плановый осмотр. Проблем не выявлено.",
-    avatar: "МС"
+    avatar: "МС",
+    email: "m.sokolova@clinic.com",
   },
   {
     id: "4",
@@ -60,8 +68,19 @@ export const MOCK_PATIENTS: Patient[] = [
     phone: "+7 (999) 111-22-33",
     lastVisit: "2023-10-05T09:15:00",
     summary: "Лечение пульпита. Зуб 24.",
-    avatar: "ДИ"
-  }
+    avatar: "ДИ",
+    email: "d.ivanov@clinic.com",
+  },
+  {
+    id: "5",
+    firstName: "Светлана",
+    lastName: "Никифорова",
+    phone: "+7 (999) 222-44-55",
+    lastVisit: "2023-09-18T11:20:00",
+    summary: "Профессиональная гигиена и отбеливание.",
+    avatar: "СН",
+    email: "svetlana@healthy-smile.ru",
+  },
 ];
 
 export const MOCK_CONSULTATIONS: Consultation[] = [
@@ -106,5 +125,50 @@ export const MOCK_CONSULTATIONS: Consultation[] = [
     plan: "Обработка...",
     comments: "Обработка...",
     transcript: "Обработка..."
-  }
+  },
+  {
+    id: "c4",
+    patientId: "4",
+    patientName: "Дмитрий Иванов",
+    date: "2023-09-30T09:00:00",
+    duration: "38:45",
+    status: "ready",
+    summary: "Пациент жаловался на ночные боли верхнего премоляра. Проведено лечение пульпита 24 зуба с постановкой временной пломбы.",
+    complaints: "Ноющие боли вечером и ночью, усиливающиеся при накусывании.",
+    objective: "Зуб 24: глубокий кариес, положительная реакция на перкуссию, отек слизистой отсутствует.",
+    plan: "1. Проводниковая анестезия.\n2. Раскрытие полости зуба и удаление пульпы.\n3. Прохождение и пломбирование каналов.\n4. Временная пломба. Контроль через 7 дней.",
+    comments: "Напоминание: проверить ответ на антибактериальную терапию.",
+    transcript: "Врач: Дмитрий, я вижу воспаление нерва. Нужно пролечить каналы...\nПациент: Давайте попробуем.",
+  },
+  {
+    id: "c5",
+    patientId: "5",
+    patientName: "Светлана Никифорова",
+    date: "2023-09-18T11:20:00",
+    duration: "25:17",
+    status: "ready",
+    summary: "Комплексная чистка ультразвуком и AirFlow, рекомендации по домашнему уходу.",
+    complaints: "Пожелтевшая эмаль, чувствительность при сладком.",
+    objective: "Значительные мягкие отложения, кровоточивость десен при зондировании.",
+    plan: "1. Снятие зубного камня ультразвуком.\n2. Полировка пастой.\n3. Рекомендована щетка soft и паста для чувствительных зубов.",
+    comments: "Планируется домашнее отбеливание при повторном визите.",
+    transcript: "Врач: Светлана, начинаем с ультразвуковой чистки...\nПациент: Хорошо.",
+  },
 ];
+
+export const MOCK_DB = {
+  patients: MOCK_PATIENTS,
+  consultations: MOCK_CONSULTATIONS,
+};
+
+export function getPatientById(id?: string | null) {
+  if (!id) return undefined;
+  return MOCK_PATIENTS.find((patient) => patient.id === id);
+}
+
+export function getConsultationsByPatient(patientId?: string | null) {
+  if (!patientId) return [];
+  return MOCK_CONSULTATIONS.filter(
+    (consultation) => consultation.patientId === patientId,
+  );
+}
