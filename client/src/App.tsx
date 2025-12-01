@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 
 import AuthPage from "@/pages/auth";
+import RegisterPage from "@/pages/register";
 import Dashboard from "@/pages/dashboard";
 import PatientProfile from "@/pages/patient";
 import RecordPage from "@/pages/record";
@@ -17,6 +18,7 @@ function Router() {
     <Switch>
       <Route path="/" component={AuthPage} />
       <Route path="/auth" component={AuthPage} />
+      <Route path="/register" component={RegisterPage} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/patient/:id" component={PatientProfile} />
       <Route path="/record" component={RecordPage} />

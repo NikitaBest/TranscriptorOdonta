@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useLocation } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -62,7 +62,7 @@ export default function AuthPage() {
         
         <div className="text-center text-sm">
           <span className="text-muted-foreground">Нет аккаунта? </span>
-          <a href="#" className="font-medium hover:underline">Регистрация</a>
+          <Link href="/register" className="font-medium hover:underline">Регистрация</Link>
         </div>
       </div>
     </div>
