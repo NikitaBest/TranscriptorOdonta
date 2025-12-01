@@ -80,7 +80,7 @@ export default function Dashboard() {
                   Добавить пациента
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px] rounded-3xl mx-4">
+              <DialogContent className="sm:max-w-[425px] rounded-3xl pb-8 md:pb-6">
                 <DialogHeader>
                   <DialogTitle className="text-xl md:text-2xl font-display">Новый пациент</DialogTitle>
                 </DialogHeader>
