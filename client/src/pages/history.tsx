@@ -28,34 +28,35 @@ export default function HistoryPage() {
   return (
     <Layout>
       <div className="flex flex-col gap-8 max-w-5xl mx-auto">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col gap-4">
           <div>
-            <h1 className="text-3xl font-display font-bold tracking-tight">История консультаций</h1>
-            <p className="text-muted-foreground mt-1">Архив всех записанных сессий и отчетов.</p>
+            <h1 className="text-2xl md:text-3xl font-display font-bold tracking-tight">История консультаций</h1>
+            <p className="text-sm md:text-base text-muted-foreground mt-1">Архив всех записанных сессий и отчетов.</p>
           </div>
           <div className="flex gap-2">
              <Button 
                variant={filter === 'all' ? "default" : "outline"} 
                onClick={() => setFilter('all')}
-               className="rounded-xl"
+               className="flex-1 md:flex-none rounded-xl h-10 md:h-11 text-sm md:text-base"
              >
                Все
              </Button>
              <Button 
                variant={filter === 'unassigned' ? "default" : "outline"} 
                onClick={() => setFilter('unassigned')}
-               className="rounded-xl"
+               className="flex-1 md:flex-none rounded-xl h-10 md:h-11 text-sm md:text-base"
              >
-               Только непривязанные
+               <span className="hidden sm:inline">Только непривязанные</span>
+               <span className="sm:hidden">Непривязанные</span>
              </Button>
           </div>
         </div>
 
         <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-muted-foreground" />
           <Input 
             placeholder="Поиск по транскрипциям, выжимкам или именам..." 
-            className="h-14 pl-12 rounded-2xl bg-white border-border/50 shadow-sm text-lg"
+            className="h-12 md:h-14 pl-10 md:pl-12 rounded-2xl bg-white border-border/50 shadow-sm text-base md:text-lg"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />

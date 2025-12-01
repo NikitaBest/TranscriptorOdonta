@@ -28,41 +28,42 @@ export default function PatientProfile() {
             </Button>
           </Link>
           
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-card p-6 md:p-8 rounded-[2rem] border border-border/50 shadow-sm">
-            <div className="flex items-center gap-6">
-              <Avatar className="w-20 h-20 rounded-[1.5rem] text-2xl font-bold bg-secondary">
-                <AvatarFallback className="rounded-[1.5rem]">{patient.avatar}</AvatarFallback>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6 bg-card p-4 md:p-6 lg:p-8 rounded-2xl md:rounded-[2rem] border border-border/50 shadow-sm">
+            <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto">
+              <Avatar className="w-16 h-16 md:w-20 md:h-20 rounded-2xl md:rounded-[1.5rem] text-xl md:text-2xl font-bold bg-secondary shrink-0">
+                <AvatarFallback className="rounded-2xl md:rounded-[1.5rem]">{patient.avatar}</AvatarFallback>
               </Avatar>
-              <div>
-                <h1 className="text-3xl font-display font-bold tracking-tight mb-2">{patient.firstName} {patient.lastName}</h1>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary/50 border border-border/50">
-                    <Phone className="w-3 h-3" /> {patient.phone}
+              <div className="flex-1 min-w-0">
+                <h1 className="text-2xl md:text-3xl font-display font-bold tracking-tight mb-2 truncate">{patient.firstName} {patient.lastName}</h1>
+                <div className="flex flex-wrap items-center gap-2 md:gap-4 text-xs md:text-sm text-muted-foreground">
+                  <span className="flex items-center gap-1.5 px-2 md:px-3 py-1 rounded-full bg-secondary/50 border border-border/50 whitespace-nowrap">
+                    <Phone className="w-3 h-3" /> <span className="truncate">{patient.phone}</span>
                   </span>
-                  <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary/50 border border-border/50">
+                  <span className="flex items-center gap-1.5 px-2 md:px-3 py-1 rounded-full bg-secondary/50 border border-border/50 whitespace-nowrap">
                     <Calendar className="w-3 h-3" /> С {format(new Date(patient.lastVisit), 'MMM yyyy', { locale: ru })}
                   </span>
                 </div>
               </div>
             </div>
-            <div className="flex gap-3 w-full md:w-auto">
-               <Button variant="outline" className="flex-1 md:flex-none rounded-xl h-12 border-border/50">
+            <div className="flex gap-2 md:gap-3 w-full md:w-auto">
+               <Button variant="outline" className="flex-1 md:flex-none rounded-xl h-11 md:h-12 border-border/50 text-sm md:text-base">
                 Редактировать
               </Button>
-              <Link href={`/record?patientId=${patient.id}`}>
-                <Button className="flex-1 md:flex-none rounded-xl h-12 gap-2 shadow-lg shadow-primary/20">
+              <Link href={`/record?patientId=${patient.id}`} className="flex-1 md:flex-none">
+                <Button className="w-full md:w-auto rounded-xl h-11 md:h-12 gap-2 shadow-lg shadow-primary/20 text-sm md:text-base">
                   <Mic className="w-4 h-4" />
-                  Новая консультация
+                  <span className="hidden sm:inline">Новая консультация</span>
+                  <span className="sm:hidden">Консультация</span>
                 </Button>
               </Link>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
           {/* Main Content - History */}
-          <div className="lg:col-span-2 space-y-6">
-            <h2 className="text-xl font-display font-bold">История консультаций</h2>
+          <div className="lg:col-span-2 space-y-4 md:space-y-6">
+            <h2 className="text-lg md:text-xl font-display font-bold">История консультаций</h2>
             <div className="space-y-4">
               {consultations.map(consultation => (
                 <Link key={consultation.id} href={`/consultation/${consultation.id}`}>
@@ -109,8 +110,8 @@ export default function PatientProfile() {
           </div>
 
           {/* Sidebar - Notes */}
-          <div className="space-y-6">
-            <h2 className="text-xl font-display font-bold">Заметки врача</h2>
+          <div className="space-y-4 md:space-y-6">
+            <h2 className="text-lg md:text-xl font-display font-bold">Заметки врача</h2>
             <Card className="border-border/50 rounded-3xl shadow-sm">
               <CardContent className="p-4">
                 <Textarea 

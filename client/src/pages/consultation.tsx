@@ -35,27 +35,27 @@ export default function ConsultationPage() {
     <Layout>
       <div className="max-w-5xl mx-auto flex flex-col gap-6">
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex flex-col gap-4">
           <div>
             <Link href={consultation.patientId ? `/patient/${consultation.patientId}` : '/dashboard'}>
-              <Button variant="ghost" className="pl-0 mb-2 hover:bg-transparent hover:text-primary gap-2 text-muted-foreground">
+              <Button variant="ghost" className="pl-0 mb-2 hover:bg-transparent hover:text-primary gap-2 text-muted-foreground text-sm md:text-base">
                 <ArrowLeft className="w-4 h-4" />
                 Назад
               </Button>
             </Link>
-            <h1 className="text-3xl font-display font-bold tracking-tight">
+            <h1 className="text-2xl md:text-3xl font-display font-bold tracking-tight">
               Отчет о консультации
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-sm md:text-base text-muted-foreground mt-1">
               {format(new Date(consultation.date), 'd MMMM yyyy', { locale: ru })} • {consultation.duration} • {consultation.patientName || "Пациент не назначен"}
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" className="rounded-xl gap-2" onClick={handleShare}>
-              <Share2 className="w-4 h-4" /> Поделиться
+            <Button variant="outline" className="flex-1 md:flex-none rounded-xl gap-2 h-11 md:h-12 text-sm md:text-base" onClick={handleShare}>
+              <Share2 className="w-4 h-4" /> <span className="hidden sm:inline">Поделиться</span>
             </Button>
-            <Button variant="outline" className="rounded-xl gap-2">
-              <Download className="w-4 h-4" /> PDF
+            <Button variant="outline" className="flex-1 md:flex-none rounded-xl gap-2 h-11 md:h-12 text-sm md:text-base">
+              <Download className="w-4 h-4" /> <span className="hidden sm:inline">PDF</span>
             </Button>
           </div>
         </div>
@@ -86,11 +86,11 @@ export default function ConsultationPage() {
           </div>
         </Card>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
           {/* Main Report */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-4 md:space-y-6">
             <Tabs defaultValue="report" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6 h-12 p-1 bg-secondary/50 rounded-2xl">
+              <TabsList className="grid w-full grid-cols-2 mb-4 md:mb-6 h-10 md:h-12 p-1 bg-secondary/50 rounded-2xl">
                 <TabsTrigger value="report" className="rounded-xl">Медицинский отчет</TabsTrigger>
                 <TabsTrigger value="transcript" className="rounded-xl">Транскрипция</TabsTrigger>
               </TabsList>
@@ -121,7 +121,7 @@ export default function ConsultationPage() {
           </div>
 
           {/* Actions Sidebar */}
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             <Card className="rounded-3xl border-border/50">
               <CardHeader>
                 <CardTitle className="text-lg">Действия ИИ</CardTitle>

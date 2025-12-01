@@ -59,46 +59,47 @@ export default function Dashboard() {
     <Layout>
       <div className="flex flex-col gap-8">
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col gap-4">
           <div>
-            <h1 className="text-3xl font-display font-bold tracking-tight">Пациенты</h1>
-            <p className="text-muted-foreground mt-1">Управление записями пациентов и консультациями.</p>
+            <h1 className="text-2xl md:text-3xl font-display font-bold tracking-tight">Пациенты</h1>
+            <p className="text-sm md:text-base text-muted-foreground mt-1">Управление записями пациентов и консультациями.</p>
           </div>
-          <div className="flex gap-3">
-             <Link href="/record">
-              <Button variant="secondary" className="h-12 rounded-xl px-6 gap-2 font-medium">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+             <Link href="/record" className="flex-1 sm:flex-none">
+              <Button variant="secondary" className="w-full sm:w-auto h-11 md:h-12 rounded-xl px-4 md:px-6 gap-2 font-medium text-sm md:text-base">
                 <Mic className="w-4 h-4" />
-                Быстрая заметка
+                <span className="hidden sm:inline">Быстрая заметка</span>
+                <span className="sm:hidden">Заметка</span>
               </Button>
             </Link>
             
             <Dialog open={newPatientOpen} onOpenChange={setNewPatientOpen}>
               <DialogTrigger asChild>
-                <Button className="h-12 rounded-xl px-6 gap-2 font-medium shadow-lg shadow-primary/20">
+                <Button className="flex-1 sm:flex-none w-full sm:w-auto h-11 md:h-12 rounded-xl px-4 md:px-6 gap-2 font-medium shadow-lg shadow-primary/20 text-sm md:text-base">
                   <Plus className="w-4 h-4" />
                   Добавить пациента
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px] rounded-3xl">
+              <DialogContent className="sm:max-w-[425px] rounded-3xl mx-4">
                 <DialogHeader>
-                  <DialogTitle className="text-2xl font-display">Новый пациент</DialogTitle>
+                  <DialogTitle className="text-xl md:text-2xl font-display">Новый пациент</DialogTitle>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="grid gap-2">
                     <Label htmlFor="firstName">Имя</Label>
-                    <Input id="firstName" value={newFirstName} onChange={e => setNewFirstName(e.target.value)} className="rounded-xl" />
+                    <Input id="firstName" value={newFirstName} onChange={e => setNewFirstName(e.target.value)} className="rounded-xl h-11" />
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="lastName">Фамилия</Label>
-                    <Input id="lastName" value={newLastName} onChange={e => setNewLastName(e.target.value)} className="rounded-xl" />
+                    <Input id="lastName" value={newLastName} onChange={e => setNewLastName(e.target.value)} className="rounded-xl h-11" />
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="phone">Телефон</Label>
-                    <Input id="phone" value={newPhone} onChange={e => setNewPhone(e.target.value)} className="rounded-xl" placeholder="+7 ..." />
+                    <Input id="phone" value={newPhone} onChange={e => setNewPhone(e.target.value)} className="rounded-xl h-11" placeholder="+7 ..." />
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button onClick={handleAddPatient} className="w-full rounded-xl h-12">Создать профиль</Button>
+                  <Button onClick={handleAddPatient} className="w-full rounded-xl h-11 md:h-12">Создать профиль</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -107,10 +108,10 @@ export default function Dashboard() {
 
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-muted-foreground" />
           <Input 
             placeholder="Поиск по имени или телефону..." 
-            className="h-14 pl-12 rounded-2xl bg-white border-border/50 shadow-sm text-lg"
+            className="h-12 md:h-14 pl-10 md:pl-12 rounded-2xl bg-white border-border/50 shadow-sm text-base md:text-lg"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
