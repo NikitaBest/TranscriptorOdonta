@@ -62,9 +62,9 @@ export default function HistoryPage() {
           />
         </div>
 
-        <div className="space-y-4">
+        <div>
           {filteredConsultations.map((consultation) => (
-            <Link key={consultation.id} href={`/consultation/${consultation.id}`}>
+            <Link key={consultation.id} href={`/consultation/${consultation.id}`} className="block mb-6 last:mb-0">
               <Card className="group cursor-pointer hover:shadow-md transition-all duration-300 border-border/50 rounded-3xl overflow-hidden hover:border-primary/20">
                 <CardContent className="p-6 flex flex-col md:flex-row md:items-center gap-6">
                   {/* Date Box */}
