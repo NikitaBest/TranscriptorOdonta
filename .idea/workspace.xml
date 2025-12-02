@@ -4,30 +4,35 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="" />
+    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="на моб адаптация новый пациент блок" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="main" />
+      </map>
+    </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "NikitaBest"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;NikitaBest&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/NikitaBest/TranscriptorOdonta.git",
-    "accountId": "b0766a25-c046-40fd-940e-955f04e25e3e"
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/NikitaBest/TranscriptorOdonta.git&quot;,
+    &quot;accountId&quot;: &quot;b0766a25-c046-40fd-940e-955f04e25e3e&quot;
   }
-}]]></component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 7
-}]]></component>
+}</component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 7
+}</component>
   <component name="ProjectId" id="3671tsGVUP3zS1wHyDuPsN6MD2W" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -37,6 +42,11 @@
   "keyToString": {
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "nikita",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
     "settings.editor.selected.configurable": "web.server",
     "vue.rearranger.settings.migration": "true"
@@ -58,10 +68,60 @@
       <option name="presentableId" value="Default" />
       <updated>1764343014515</updated>
       <workItem from="1764343016372" duration="199000" />
+      <workItem from="1764343218794" duration="1953000" />
     </task>
+    <task id="LOCAL-00001" summary="новая ветка">
+      <option name="closed" value="true" />
+      <created>1764343302387</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1764343302387</updated>
+    </task>
+    <task id="LOCAL-00002" summary="убрана на странице авторизации , вход по тедеграмм">
+      <option name="closed" value="true" />
+      <created>1764582012765</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1764582012765</updated>
+    </task>
+    <task id="LOCAL-00003" summary="добавлена страница регистрации">
+      <option name="closed" value="true" />
+      <created>1764582499444</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1764582499444</updated>
+    </task>
+    <task id="LOCAL-00004" summary="на моб нижнее нав меню , адаптация">
+      <option name="closed" value="true" />
+      <created>1764593119372</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1764593119372</updated>
+    </task>
+    <task id="LOCAL-00005" summary="на моб адаптация новый пациент блок">
+      <option name="closed" value="true" />
+      <created>1764593607245</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1764593607245</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="новая ветка" />
+    <MESSAGE value="убрана на странице авторизации , вход по тедеграмм" />
+    <MESSAGE value="добавлена страница регистрации" />
+    <MESSAGE value="на моб нижнее нав меню , адаптация" />
+    <MESSAGE value="на моб адаптация новый пациент блок" />
+    <option name="LAST_COMMIT_MESSAGE" value="на моб адаптация новый пациент блок" />
   </component>
 </project>
