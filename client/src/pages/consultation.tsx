@@ -156,19 +156,17 @@ export default function ConsultationPage() {
 
 function ReportSection({ title, content, isPrivate = false }: { title: string, content: string, isPrivate?: boolean }) {
   return (
-    <Card className={cn("rounded-3xl border-border/50 transition-all hover:border-primary/20", isPrivate && "bg-secondary/20 border-dashed")}>
-      <CardHeader className="pb-2">
+    <Card className={cn("rounded-3xl border-border/50 transition-all hover:border-primary/20 overflow-hidden", isPrivate && "bg-secondary/20 border-dashed")}>
+      <div className="p-4 pb-2 border-b border-border/50">
         <div className="flex justify-between items-center">
-           <CardTitle className="text-lg font-bold">{title}</CardTitle>
+           <h3 className="text-lg font-bold">{title}</h3>
            {isPrivate && <span className="text-[10px] uppercase tracking-wider font-bold bg-secondary px-2 py-1 rounded text-muted-foreground">Личное</span>}
         </div>
-      </CardHeader>
-      <CardContent>
-        <Textarea 
-          className="min-h-[100px] border-none resize-none focus-visible:ring-0 bg-transparent p-0 text-base leading-relaxed text-muted-foreground focus:text-foreground transition-colors"
-          defaultValue={content}
-        />
-      </CardContent>
+      </div>
+      <Textarea 
+        className="min-h-[100px] w-full border-none resize-none focus-visible:ring-0 bg-transparent p-4 text-base leading-relaxed text-muted-foreground focus:text-foreground transition-colors break-words"
+        defaultValue={content}
+      />
     </Card>
   );
 }

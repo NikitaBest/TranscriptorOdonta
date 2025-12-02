@@ -112,14 +112,12 @@ export default function PatientProfile() {
           {/* Sidebar - Notes */}
           <div className="space-y-4 md:space-y-6">
             <h2 className="text-lg md:text-xl font-display font-bold">Заметки врача</h2>
-            <Card className="border-border/50 rounded-3xl shadow-sm">
-              <CardContent className="p-4">
-                <Textarea 
-                  placeholder="Добавить личные заметки о пациенте..." 
-                  className="min-h-[200px] border-none resize-none focus-visible:ring-0 bg-transparent p-0 text-sm leading-relaxed"
-                  defaultValue="У пациента высокая тревожность перед стоматологическими процедурами. Предпочитает подробные объяснения перед любыми действиями. Аллергия на пенициллин."
-                />
-              </CardContent>
+            <Card className="border-border/50 rounded-3xl shadow-sm overflow-hidden">
+              <Textarea 
+                placeholder="Добавить личные заметки о пациенте..." 
+                className="min-h-[200px] w-full border-none resize-none focus-visible:ring-0 bg-transparent p-4 text-sm leading-relaxed break-words"
+                defaultValue="У пациента высокая тревожность перед стоматологическими процедурами. Предпочитает подробные объяснения перед любыми действиями. Аллергия на пенициллин."
+              />
               <div className="p-4 border-t border-border/50 bg-secondary/20 flex justify-end">
                 <Button size="sm" variant="ghost" className="gap-2 text-xs">
                   <Edit className="w-3 h-3" /> Сохранить
