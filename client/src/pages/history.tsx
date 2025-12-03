@@ -5,23 +5,22 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { MOCK_CONSULTATIONS } from '@/lib/mock-data';
-import { Search, FileText, Calendar, Filter, ArrowUpRight } from 'lucide-react';
+import { Search, Calendar, Filter, ArrowUpRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
 export default function HistoryPage() {
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState<'all' | 'unassigned'>('all');
 
   const filteredConsultations = MOCK_CONSULTATIONS.filter(c => {
-    const matchesSearch = 
+    // Показываем только консультации, привязанные к пациенту
+    if (!c.patientId) return false;
+
+    const matchesSearch =
       (c.patientName?.toLowerCase().includes(search.toLowerCase()) ?? false) ||
       c.summary.toLowerCase().includes(search.toLowerCase());
-    
-    if (filter === 'unassigned') {
-      return matchesSearch && !c.patientId;
-    }
+
     return matchesSearch;
   });
 
@@ -32,23 +31,6 @@ export default function HistoryPage() {
           <div>
             <h1 className="text-2xl md:text-3xl font-display font-bold tracking-tight">История консультаций</h1>
             <p className="text-sm md:text-base text-muted-foreground mt-1">Архив всех записанных сессий и отчетов.</p>
-          </div>
-          <div className="flex gap-2">
-             <Button 
-               variant={filter === 'all' ? "default" : "outline"} 
-               onClick={() => setFilter('all')}
-               className="flex-1 md:flex-none rounded-xl h-10 md:h-11 text-sm md:text-base"
-             >
-               Все
-             </Button>
-             <Button 
-               variant={filter === 'unassigned' ? "default" : "outline"} 
-               onClick={() => setFilter('unassigned')}
-               className="flex-1 md:flex-none rounded-xl h-10 md:h-11 text-sm md:text-base"
-             >
-               <span className="hidden sm:inline">Только непривязанные</span>
-               <span className="sm:hidden">Непривязанные</span>
-             </Button>
           </div>
         </div>
 
