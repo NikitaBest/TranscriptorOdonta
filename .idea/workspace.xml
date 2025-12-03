@@ -4,9 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="добавлен выбор пациентов на запись , адаптация под мобильные экраны">
+    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="адаптация текста в блоках">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/pages/history.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/history.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -72,7 +71,7 @@
       <updated>1764343014515</updated>
       <workItem from="1764343016372" duration="199000" />
       <workItem from="1764343218794" duration="1953000" />
-      <workItem from="1764665232759" duration="1249000" />
+      <workItem from="1764665232759" duration="1867000" />
     </task>
     <task id="LOCAL-00001" summary="новая ветка">
       <option name="closed" value="true" />
@@ -122,7 +121,23 @@
       <option name="project" value="LOCAL" />
       <updated>1764671648317</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="на странице история разьединение блоков">
+      <option name="closed" value="true" />
+      <created>1764672680629</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1764672680629</updated>
+    </task>
+    <task id="LOCAL-00008" summary="адаптация текста в блоках">
+      <option name="closed" value="true" />
+      <created>1764674995892</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1764674995892</updated>
+    </task>
+    <option name="localTasksCounter" value="9" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -135,6 +150,8 @@
     <MESSAGE value="на моб нижнее нав меню , адаптация" />
     <MESSAGE value="на моб адаптация новый пациент блок" />
     <MESSAGE value="добавлен выбор пациентов на запись , адаптация под мобильные экраны" />
-    <option name="LAST_COMMIT_MESSAGE" value="добавлен выбор пациентов на запись , адаптация под мобильные экраны" />
+    <MESSAGE value="на странице история разьединение блоков" />
+    <MESSAGE value="адаптация текста в блоках" />
+    <option name="LAST_COMMIT_MESSAGE" value="адаптация текста в блоках" />
   </component>
 </project>

@@ -48,6 +48,7 @@ export default function RecordPage() {
   };
 
   const handleStart = () => {
+    if (!selectedPatientId) return;
     setIsRecording(true);
     setStatus('recording');
   };
@@ -81,7 +82,7 @@ export default function RecordPage() {
     setStatus('idle');
   };
 
-  const handlePatientSelect = (patientId: string | null) => {
+  const handlePatientSelect = (patientId: string) => {
     setSelectedPatientId(patientId);
     setPatientSheetOpen(false);
   };
@@ -99,24 +100,18 @@ export default function RecordPage() {
                   Выберите пациента
                 </label>
                 
-                {/* Desktop: Select */}
+                {/* Desktop: Select (patient is required) */}
                 {!isMobile && (
                   <Select 
-                    value={selectedPatientId || "none"} 
-                    onValueChange={(value) => setSelectedPatientId(value === "none" ? null : value)}
+                    value={selectedPatientId ?? undefined}
+                    onValueChange={(value) => setSelectedPatientId(value)}
                   >
                     <SelectTrigger className="w-full h-12 rounded-xl text-base bg-background border-border/50">
-                      <SelectValue placeholder="Выберите пациента или оставьте без пациента">
-                        {patient ? `${patient.firstName} ${patient.lastName}` : "Без пациента"}
+                      <SelectValue placeholder="Выберите пациента">
+                        {patient ? `${patient.firstName} ${patient.lastName}` : "Пациент не выбран"}
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent className="rounded-xl">
-                      <SelectItem value="none" className="rounded-lg">
-                        <div className="flex items-center gap-2">
-                          <User className="w-4 h-4 text-muted-foreground" />
-                          <span>Без пациента</span>
-                        </div>
-                      </SelectItem>
                       {MOCK_PATIENTS.map((p) => (
                         <SelectItem key={p.id} value={p.id} className="rounded-lg">
                           <div className="flex items-center gap-2">
@@ -150,7 +145,7 @@ export default function RecordPage() {
                           ) : (
                             <>
                               <User className="w-4 h-4 text-muted-foreground" />
-                              <span>Без пациента</span>
+                              <span>Выберите пациента</span>
                             </>
                           )}
                         </div>
@@ -169,22 +164,6 @@ export default function RecordPage() {
                         <CommandList className="max-h-[calc(80vh-8rem)]">
                           <CommandEmpty>Пациенты не найдены</CommandEmpty>
                           <CommandGroup>
-                            <CommandItem
-                              value="none"
-                              onSelect={() => handlePatientSelect(null)}
-                              className="flex items-center gap-3 px-4 py-4 cursor-pointer"
-                            >
-                              <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center">
-                                <User className="w-5 h-5 text-muted-foreground" />
-                              </div>
-                              <div className="flex-1">
-                                <div className="font-medium">Без пациента</div>
-                                <div className="text-xs text-muted-foreground">Быстрая заметка</div>
-                              </div>
-                              {!selectedPatientId && (
-                                <div className="w-2 h-2 rounded-full bg-primary" />
-                              )}
-                            </CommandItem>
                             {MOCK_PATIENTS.map((p) => (
                               <CommandItem
                                 key={p.id}
@@ -218,7 +197,7 @@ export default function RecordPage() {
 
           <div className="space-y-2">
             <h2 className="text-xs md:text-sm uppercase tracking-widest text-muted-foreground font-bold">
-              {patient ? `Консультация: ${patient.firstName} ${patient.lastName}` : 'Быстрая заметка (Без пациента)'}
+              {patient ? `Консультация: ${patient.firstName} ${patient.lastName}` : 'Пациент не выбран'}
             </h2>
             <h1 className="text-4xl md:text-6xl font-display font-bold tabular-nums tracking-tight">
               {formatTime(duration)}
@@ -271,7 +250,8 @@ export default function RecordPage() {
               {!isRecording ? (
                 <Button 
                   size="icon" 
-                  className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-primary text-primary-foreground hover:scale-105 transition-transform shadow-2xl shadow-primary/30"
+                  className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-primary text-primary-foreground hover:scale-105 transition-transform shadow-2xl shadow-primary/30 disabled:opacity-60 disabled:hover:scale-100"
+                  disabled={!selectedPatientId}
                   onClick={handleStart}
                 >
                   <Mic className="w-8 h-8 md:w-10 md:h-10" />
