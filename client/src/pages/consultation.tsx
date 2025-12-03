@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useParams, Link } from 'wouter';
 import { Layout } from '@/components/layout';
 import { Button } from '@/components/ui/button';
@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { MOCK_CONSULTATIONS } from '@/lib/mock-data';
-import { ArrowLeft, Download, Share2, Copy, Play, Pause, RefreshCw, Check } from 'lucide-react';
+import { ArrowLeft, Download, Share2, Copy, Play, Pause, RefreshCw, Check, GripVertical } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -155,6 +155,35 @@ export default function ConsultationPage() {
 }
 
 function ReportSection({ title, content, isPrivate = false }: { title: string, content: string, isPrivate?: boolean }) {
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const startYRef = useRef(0);
+  const startHeightRef = useRef(0);
+
+  const handleResizeStart = (event: React.MouseEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    if (!textareaRef.current) return;
+
+    startYRef.current = event.clientY;
+    startHeightRef.current = textareaRef.current.offsetHeight;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!textareaRef.current) return;
+      const delta = e.clientY - startYRef.current;
+      const min = 120;
+      const max = 480;
+      const next = Math.min(Math.max(startHeightRef.current + delta, min), max);
+      textareaRef.current.style.height = `${next}px`;
+    };
+
+    const handleMouseUp = () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  };
+
   return (
     <Card className={cn("rounded-3xl border-border/50 transition-all hover:border-primary/20 overflow-hidden", isPrivate && "bg-secondary/20 border-dashed")}>
       <div className="p-4 pb-2 border-b border-border/50">
@@ -163,10 +192,19 @@ function ReportSection({ title, content, isPrivate = false }: { title: string, c
            {isPrivate && <span className="text-[10px] uppercase tracking-wider font-bold bg-secondary px-2 py-1 rounded text-muted-foreground">Личное</span>}
         </div>
       </div>
-      <Textarea 
-        className="min-h-[100px] w-full border-none resize-none focus-visible:ring-0 bg-transparent p-4 text-base leading-relaxed text-muted-foreground focus:text-foreground transition-colors break-words"
-        defaultValue={content}
-      />
+      <div className="relative pb-6">
+        <Textarea 
+          ref={textareaRef}
+          className="min-h-[120px] max-h-[480px] w-full border-none resize-none focus-visible:ring-0 bg-transparent pr-10 pt-4 pl-4 text-base leading-relaxed text-muted-foreground focus:text-foreground transition-colors break-words"
+          defaultValue={content}
+        />
+        <div
+          className="absolute bottom-1 left-1/2 flex h-6 w-10 -translate-x-1/2 items-center justify-center rounded-full text-muted-foreground/60 cursor-ns-resize"
+          onMouseDown={handleResizeStart}
+        >
+          <GripVertical className="h-3 w-3" />
+        </div>
+      </div>
     </Card>
   );
 }
