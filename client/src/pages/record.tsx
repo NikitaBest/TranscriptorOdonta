@@ -10,12 +10,14 @@ import { Mic, Square, Pause, Play, Loader2, X, User, ChevronRight } from 'lucide
 import { getPatientById, MOCK_PATIENTS } from '@/lib/mock-data';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 export default function RecordPage() {
   const [location, setLocation] = useLocation();
   const searchParams = new URLSearchParams(window.location.search);
   const initialPatientId = searchParams.get('patientId');
   const isMobile = useIsMobile();
+  const { toast } = useToast();
   
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(initialPatientId);
   const [patientSheetOpen, setPatientSheetOpen] = useState(false);
@@ -25,9 +27,62 @@ export default function RecordPage() {
   const [isPaused, setIsPaused] = useState(false);
   const [duration, setDuration] = useState(0);
   const [status, setStatus] = useState<'idle' | 'recording' | 'uploading' | 'transcribing' | 'processing'>('idle');
+  const [audioData, setAudioData] = useState<number[]>(Array(40).fill(0));
   
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
+  // Анализ звука в реальном времени
+  useEffect(() => {
+    if (!isRecording || isPaused || !analyserRef.current) {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+      return;
+    }
+
+    const analyser = analyserRef.current;
+    const dataArray = new Uint8Array(analyser.frequencyBinCount);
+    const bufferLength = analyser.frequencyBinCount;
+    const barsCount = 40;
+    const samplesPerBar = Math.floor(bufferLength / barsCount);
+
+    const updateVisualization = () => {
+      analyser.getByteFrequencyData(dataArray);
+      
+      const newAudioData: number[] = [];
+      for (let i = 0; i < barsCount; i++) {
+        let sum = 0;
+        for (let j = 0; j < samplesPerBar; j++) {
+          sum += dataArray[i * samplesPerBar + j];
+        }
+        const average = sum / samplesPerBar;
+        // Нормализуем от 0 до 100 для высоты
+        const normalized = Math.min((average / 255) * 100, 100);
+        newAudioData.push(normalized);
+      }
+      
+      setAudioData(newAudioData);
+      animationFrameRef.current = requestAnimationFrame(updateVisualization);
+    };
+
+    animationFrameRef.current = requestAnimationFrame(updateVisualization);
+
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+    };
+  }, [isRecording, isPaused]);
+
+  // Таймер записи
   useEffect(() => {
     if (isRecording && !isPaused) {
       timerRef.current = setInterval(() => {
@@ -41,33 +96,135 @@ export default function RecordPage() {
     };
   }, [isRecording, isPaused]);
 
+  // Очистка при размонтировании
+  useEffect(() => {
+    return () => {
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach(track => track.stop());
+      }
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+      }
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, []);
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleStart = () => {
-    if (!selectedPatientId) return;
-    setIsRecording(true);
-    setStatus('recording');
+  const handleStart = async () => {
+    if (!selectedPatientId) {
+      toast({
+        title: "Выберите пациента",
+        description: "Перед началом записи необходимо выбрать пациента.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      // Запрашиваем доступ к микрофону
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        } 
+      });
+      
+      mediaStreamRef.current = stream;
+
+      // Создаем AudioContext для анализа звука
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const source = audioContext.createMediaStreamSource(stream);
+      const analyser = audioContext.createAnalyser();
+      
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.8;
+      
+      source.connect(analyser);
+      
+      audioContextRef.current = audioContext;
+      analyserRef.current = analyser;
+
+      // Создаем MediaRecorder для записи
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4'
+      });
+      
+      audioChunksRef.current = [];
+      
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+      
+      mediaRecorder.onstop = () => {
+        // Здесь можно сохранить запись, когда будет готов бэкенд
+        const audioBlob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType });
+        console.log('Audio recorded:', audioBlob.size, 'bytes');
+        // TODO: Отправить на бэкенд когда будет готов
+      };
+      
+      mediaRecorderRef.current = mediaRecorder;
+      mediaRecorder.start(1000); // Сохраняем данные каждую секунду
+      
+      setIsRecording(true);
+      setStatus('recording');
+      setDuration(0);
+    } catch (error) {
+      console.error('Error accessing microphone:', error);
+      toast({
+        title: "Ошибка доступа к микрофону",
+        description: "Пожалуйста, разрешите доступ к микрофону в настройках браузера.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handlePause = () => {
-    setIsPaused(!isPaused);
+    if (!mediaRecorderRef.current) return;
+    
+    if (isPaused) {
+      // Возобновляем запись
+      mediaRecorderRef.current.resume();
+      setIsPaused(false);
+    } else {
+      // Пауза
+      mediaRecorderRef.current.pause();
+      setIsPaused(true);
+    }
   };
 
   const handleStop = async () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+    
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach(track => track.stop());
+      mediaStreamRef.current = null;
+    }
+    
     setIsRecording(false);
     setStatus('uploading');
+    
+    // Сбрасываем визуализацию
+    setAudioData(Array(40).fill(0));
     
     // Simulate processing steps
     setTimeout(() => setStatus('transcribing'), 1500);
     setTimeout(() => setStatus('processing'), 3000);
     setTimeout(() => {
-      // Redirect to a "new" consultation page (using mock ID c3 which is 'processing' or creating a new view)
-      // For demo, let's go to c1 or a new one
-      // If patient is selected, redirect to patient page, otherwise to consultation
       if (selectedPatientId) {
         setLocation(`/patient/${selectedPatientId}`);
       } else {
@@ -77,9 +234,25 @@ export default function RecordPage() {
   };
 
   const handleCancel = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+    
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach(track => track.stop());
+      mediaStreamRef.current = null;
+    }
+    
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
+    
+    audioChunksRef.current = [];
     setIsRecording(false);
     setDuration(0);
     setStatus('idle');
+    setAudioData(Array(40).fill(0));
   };
 
   const handlePatientSelect = (patientId: string) => {
@@ -204,18 +377,22 @@ export default function RecordPage() {
             </h1>
           </div>
 
-          {/* Visualizer Mock */}
+          {/* Audio Visualizer */}
           <div className="h-24 md:h-32 flex items-center justify-center gap-0.5 md:gap-1 px-4">
-            {Array.from({ length: 40 }).map((_, i) => (
+            {audioData.map((value, i) => (
               <div 
                 key={i} 
                 className={cn(
-                  "w-1 md:w-1.5 bg-primary rounded-full transition-all duration-150",
-                  status === 'recording' && !isPaused ? "animate-pulse" : "h-1"
+                  "w-1 md:w-1.5 bg-primary rounded-full transition-all duration-75 ease-out",
+                  status === 'recording' && !isPaused ? "" : "h-1"
                 )}
                 style={{ 
-                  height: status === 'recording' && !isPaused ? `${Math.random() * 100}%` : '4px',
-                  opacity: status === 'recording' && !isPaused ? 1 : 0.2 
+                  height: status === 'recording' && !isPaused 
+                    ? `${Math.max(value, 4)}%` 
+                    : '4px',
+                  opacity: status === 'recording' && !isPaused 
+                    ? Math.max(value / 100, 0.3) 
+                    : 0.2 
                 }}
               />
             ))}
