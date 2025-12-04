@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="добавлено реальная запись голоса" />
+    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="добавлен выход из аккаунта для мобилки" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -71,6 +71,7 @@
       <workItem from="1764343218794" duration="1953000" />
       <workItem from="1764665232759" duration="1867000" />
       <workItem from="1764751324422" duration="2093000" />
+      <workItem from="1764840130592" duration="335000" />
     </task>
     <task id="LOCAL-00001" summary="новая ветка">
       <option name="closed" value="true" />
@@ -168,7 +169,15 @@
       <option name="project" value="LOCAL" />
       <updated>1764762565578</updated>
     </task>
-    <option name="localTasksCounter" value="13" />
+    <task id="LOCAL-00013" summary="добавлен выход из аккаунта для мобилки">
+      <option name="closed" value="true" />
+      <created>1764840159740</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1764840159740</updated>
+    </task>
+    <option name="localTasksCounter" value="14" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -187,6 +196,7 @@
     <MESSAGE value="с истории убрана функция без пациента" />
     <MESSAGE value="добавлено к блокам отчет о консультации растянуть блок" />
     <MESSAGE value="добавлено реальная запись голоса" />
-    <option name="LAST_COMMIT_MESSAGE" value="добавлено реальная запись голоса" />
+    <MESSAGE value="добавлен выход из аккаунта для мобилки" />
+    <option name="LAST_COMMIT_MESSAGE" value="добавлен выход из аккаунта для мобилки" />
   </component>
 </project>

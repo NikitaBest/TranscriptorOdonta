@@ -269,7 +269,7 @@ export default function RecordPage() {
           {status === 'idle' && (
             <div className="flex flex-col items-center gap-4 animate-in fade-in slide-in-from-bottom-4 w-full">
               <div className="w-full max-w-md">
-                <label className="text-sm font-medium text-muted-foreground mb-2 block text-left">
+                <label className="text-sm font-medium text-muted-foreground mb-2 block text-center">
                   Выберите пациента
                 </label>
                 
