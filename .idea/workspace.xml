@@ -4,9 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="адаптация текста в блоках">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-    </list>
+    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="добавлено реальная запись голоса" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -72,6 +70,7 @@
       <workItem from="1764343016372" duration="199000" />
       <workItem from="1764343218794" duration="1953000" />
       <workItem from="1764665232759" duration="1867000" />
+      <workItem from="1764751324422" duration="2093000" />
     </task>
     <task id="LOCAL-00001" summary="новая ветка">
       <option name="closed" value="true" />
@@ -137,7 +136,39 @@
       <option name="project" value="LOCAL" />
       <updated>1764674995892</updated>
     </task>
-    <option name="localTasksCounter" value="9" />
+    <task id="LOCAL-00009" summary="запись только с выбором пациента">
+      <option name="closed" value="true" />
+      <created>1764751693871</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1764751693871</updated>
+    </task>
+    <task id="LOCAL-00010" summary="с истории убрана функция без пациента">
+      <option name="closed" value="true" />
+      <created>1764752055752</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1764752055752</updated>
+    </task>
+    <task id="LOCAL-00011" summary="добавлено к блокам отчет о консультации растянуть блок">
+      <option name="closed" value="true" />
+      <created>1764761622520</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1764761622520</updated>
+    </task>
+    <task id="LOCAL-00012" summary="добавлено реальная запись голоса">
+      <option name="closed" value="true" />
+      <created>1764762565578</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1764762565578</updated>
+    </task>
+    <option name="localTasksCounter" value="13" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -152,6 +183,10 @@
     <MESSAGE value="добавлен выбор пациентов на запись , адаптация под мобильные экраны" />
     <MESSAGE value="на странице история разьединение блоков" />
     <MESSAGE value="адаптация текста в блоках" />
-    <option name="LAST_COMMIT_MESSAGE" value="адаптация текста в блоках" />
+    <MESSAGE value="запись только с выбором пациента" />
+    <MESSAGE value="с истории убрана функция без пациента" />
+    <MESSAGE value="добавлено к блокам отчет о консультации растянуть блок" />
+    <MESSAGE value="добавлено реальная запись голоса" />
+    <option name="LAST_COMMIT_MESSAGE" value="добавлено реальная запись голоса" />
   </component>
 </project>

@@ -61,8 +61,17 @@ export function Layout({ children }: LayoutProps) {
       </aside>
 
       {/* Mobile Header */}
-      <div className="md:hidden fixed top-0 left-0 right-0 h-14 border-b border-border/50 bg-background/95 backdrop-blur-xl z-50 flex items-center justify-center px-4">
+      <div className="md:hidden fixed top-0 left-0 right-0 h-14 border-b border-border/50 bg-background/95 backdrop-blur-xl z-50 flex items-center justify-between px-4">
         <span className="font-display font-bold text-lg">Transcriptor</span>
+        <Link href="/auth">
+          <button
+            type="button"
+            className="flex items-center justify-center w-9 h-9 rounded-full border border-border/70 text-muted-foreground hover:text-destructive hover:border-destructive/60 transition-colors"
+            aria-label="Выйти из аккаунта"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        </Link>
       </div>
 
       {/* Main Content */}
