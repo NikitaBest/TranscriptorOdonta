@@ -21,6 +21,7 @@ import { ArrowLeft, Loader2, Trash2 } from 'lucide-react';
 import { patientsApi } from '@/lib/api/patients';
 import { useToast } from '@/hooks/use-toast';
 import type { ApiError } from '@/lib/api/types';
+import { normalizePhone, handlePhoneInput, formatPhoneForDisplay } from '@/lib/utils/phone';
 
 export default function PatientEditPage() {
   const { id } = useParams();
@@ -51,7 +52,8 @@ export default function PatientEditPage() {
     if (patientData) {
       setFirstName(patientData.firstName || '');
       setLastName(patientData.lastName || '');
-      setPhone(patientData.phone || '');
+      // Форматируем телефон для отображения
+      setPhone(patientData.phone ? formatPhoneForDisplay(patientData.phone) : '');
       setComment(patientData.comment || '');
     }
   }, [patientData]);
@@ -84,7 +86,7 @@ export default function PatientEditPage() {
         id,
         firstName: firstName.trim(),
         lastName: lastName.trim(),
-        phone: phone.trim(),
+        phone: normalizePhone(phone),
         comment: comment.trim() || undefined,
       });
 
@@ -250,10 +252,11 @@ export default function PatientEditPage() {
                   <Label htmlFor="phone">Телефон</Label>
                   <Input 
                     id="phone" 
+                    type="tel"
                     value={phone} 
-                    onChange={e => setPhone(e.target.value)} 
+                    onChange={e => setPhone(handlePhoneInput(e.target.value))} 
                     className="rounded-xl h-12"
-                    placeholder="+7 ..."
+                    placeholder="+7 (999) 123-45-67"
                     disabled={isSaving}
                   />
                 </div>

@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ru } from 'date-fns/locale';
 import { patientsApi } from '@/lib/api/patients';
 import type { ApiError, PatientResponse } from '@/lib/api/types';
+import { normalizePhone, handlePhoneInput } from '@/lib/utils/phone';
 
 export default function Dashboard() {
   const [search, setSearch] = useState('');
@@ -80,7 +81,7 @@ export default function Dashboard() {
       const response = await patientsApi.create({
         firstName: newFirstName,
         lastName: newLastName,
-        phone: newPhone || '',
+        phone: normalizePhone(newPhone),
         comment: newComment || undefined,
       });
 
@@ -184,10 +185,11 @@ export default function Dashboard() {
                     <Label htmlFor="phone">Телефон</Label>
                     <Input 
                       id="phone" 
+                      type="tel"
                       value={newPhone} 
-                      onChange={e => setNewPhone(e.target.value)} 
+                      onChange={e => setNewPhone(handlePhoneInput(e.target.value))} 
                       className="rounded-xl h-11" 
-                      placeholder="+7 ..."
+                      placeholder="+7 (999) 123-45-67"
                     />
                   </div>
                   <div className="grid gap-2">

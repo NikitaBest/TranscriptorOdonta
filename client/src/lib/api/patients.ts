@@ -9,7 +9,8 @@ import type {
   PatientResponse,
   ConsultationResponse,
   GetConsultationsResponse,
-  ApiResponse 
+  ApiResponse,
+  ApiError
 } from './types';
 
 /**
@@ -86,11 +87,33 @@ export const patientsApi = {
 
   /**
    * Получение пациента по ID
-   * POST /client/get с параметром id
+   * GET /client/{id}
    */
   async getById(id: string | number): Promise<PatientResponse | null> {
-    const patients = await this.get({ id });
-    return patients.length > 0 ? patients[0] : null;
+    try {
+      const response = await ApiClient.get<ApiResponse<PatientResponse>>(
+        `client/${id}`,
+        { requireAuth: true }
+      );
+
+      // Бэкенд возвращает обёрнутый ответ { value: {...}, isSuccess: true, error: null }
+      if (response.isSuccess && response.value) {
+        return {
+          ...response.value,
+          id: String(response.value.id),
+        };
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Get patient by ID error:', error);
+      // Если пациент не найден (404), возвращаем null
+      const apiError = error as ApiError;
+      if (apiError.status === 404) {
+        return null;
+      }
+      throw error;
+    }
   },
 
   /**
