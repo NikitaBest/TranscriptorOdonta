@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'wouter';
+import { useQuery } from '@tanstack/react-query';
 import { Layout } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -7,7 +8,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Mic, Square, Pause, Play, Loader2, X, User, ChevronRight } from 'lucide-react';
-// TODO: Заменить на реальный API для получения пациентов
+import { patientsApi } from '@/lib/api/patients';
+import type { PatientResponse } from '@/lib/api/types';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -21,8 +23,44 @@ export default function RecordPage() {
   
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(initialPatientId);
   const [patientSheetOpen, setPatientSheetOpen] = useState(false);
-  // TODO: Заменить на реальный API для получения пациента по ID
-  const patient = null;
+  const [patientSearch, setPatientSearch] = useState('');
+
+  // Загрузка списка пациентов
+  const { data: patientsData = [], isLoading: isLoadingPatients } = useQuery({
+    queryKey: ['patients'],
+    queryFn: () => patientsApi.get(),
+    staleTime: 30000, // 30 секунд
+  });
+
+  // Загрузка данных выбранного пациента
+  const { data: selectedPatientData } = useQuery({
+    queryKey: ['patient', selectedPatientId],
+    queryFn: () => {
+      if (!selectedPatientId) return null;
+      return patientsApi.getById(selectedPatientId);
+    },
+    enabled: !!selectedPatientId,
+  });
+
+  // Преобразуем данные пациента для отображения
+  const patient = selectedPatientData ? {
+    id: String(selectedPatientData.id),
+    firstName: selectedPatientData.firstName,
+    lastName: selectedPatientData.lastName,
+    phone: selectedPatientData.phone || '',
+    avatar: `${selectedPatientData.firstName[0]}${selectedPatientData.lastName[0]}`.toUpperCase(),
+  } : null;
+
+  // Фильтруем пациентов для поиска
+  const filteredPatients = patientsData.filter((p: PatientResponse) => {
+    if (!patientSearch) return true;
+    const search = patientSearch.toLowerCase();
+    return (
+      p.firstName.toLowerCase().includes(search) ||
+      p.lastName.toLowerCase().includes(search) ||
+      p.phone?.toLowerCase().includes(search)
+    );
+  });
 
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -259,6 +297,7 @@ export default function RecordPage() {
   const handlePatientSelect = (patientId: string) => {
     setSelectedPatientId(patientId);
     setPatientSheetOpen(false);
+    setPatientSearch('');
   };
 
   return (
@@ -286,10 +325,27 @@ export default function RecordPage() {
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent className="rounded-xl">
-                      {/* TODO: Заменить на реальный API для получения списка пациентов */}
-                      <div className="p-4 text-center text-sm text-muted-foreground">
-                        Пациенты не загружены
-                      </div>
+                      {isLoadingPatients ? (
+                        <div className="p-4 text-center text-sm text-muted-foreground">
+                          <Loader2 className="w-4 h-4 animate-spin mx-auto mb-2" />
+                          Загрузка пациентов...
+                        </div>
+                      ) : filteredPatients.length === 0 ? (
+                        <div className="p-4 text-center text-sm text-muted-foreground">
+                          Пациенты не найдены
+                        </div>
+                      ) : (
+                        filteredPatients.map((p: PatientResponse) => (
+                          <SelectItem key={p.id} value={String(p.id)} className="rounded-lg">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{p.firstName} {p.lastName}</span>
+                              {p.phone && (
+                                <span className="text-xs text-muted-foreground">({p.phone})</span>
+                              )}
+                            </div>
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                 )}
@@ -330,15 +386,45 @@ export default function RecordPage() {
                         <CommandInput 
                           placeholder="Поиск по имени или телефону..." 
                           className="h-14 text-base"
+                          value={patientSearch}
+                          onValueChange={setPatientSearch}
                         />
                         <CommandList className="max-h-[calc(80vh-8rem)]">
-                          <CommandEmpty>Пациенты не найдены</CommandEmpty>
-                          <CommandGroup>
-                            {/* TODO: Заменить на реальный API для получения списка пациентов */}
+                          {isLoadingPatients ? (
                             <div className="p-4 text-center text-sm text-muted-foreground">
-                              Пациенты не загружены
+                              <Loader2 className="w-4 h-4 animate-spin mx-auto mb-2" />
+                              Загрузка пациентов...
                             </div>
-                          </CommandGroup>
+                          ) : (
+                            <>
+                              <CommandEmpty>Пациенты не найдены</CommandEmpty>
+                              <CommandGroup>
+                                {filteredPatients.map((p: PatientResponse) => (
+                                  <CommandItem
+                                    key={p.id}
+                                    value={`${p.firstName} ${p.lastName} ${p.phone || ''}`}
+                                    onSelect={() => handlePatientSelect(String(p.id))}
+                                    className="flex items-center gap-3 px-4 py-4 cursor-pointer"
+                                  >
+                                    <Avatar className="w-10 h-10 rounded-xl">
+                                      <AvatarFallback className="rounded-xl bg-secondary font-medium">
+                                        {`${p.firstName[0]}${p.lastName[0]}`.toUpperCase()}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="font-medium truncate">{p.firstName} {p.lastName}</div>
+                                      {p.phone && (
+                                        <div className="text-xs text-muted-foreground truncate">{p.phone}</div>
+                                      )}
+                                    </div>
+                                    {selectedPatientId === String(p.id) && (
+                                      <div className="w-2 h-2 rounded-full bg-primary" />
+                                    )}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </>
+                          )}
                         </CommandList>
                       </Command>
                     </SheetContent>

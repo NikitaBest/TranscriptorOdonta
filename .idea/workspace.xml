@@ -4,7 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="поле ввода номера телефона , формат для бекенда" />
+    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="обновление комментария после редактирования">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -71,7 +73,7 @@
       <workItem from="1764343218794" duration="1953000" />
       <workItem from="1764665232759" duration="1867000" />
       <workItem from="1764751324422" duration="2093000" />
-      <workItem from="1764840130592" duration="2221000" />
+      <workItem from="1764840130592" duration="2791000" />
     </task>
     <task id="LOCAL-00001" summary="новая ветка">
       <option name="closed" value="true" />
@@ -217,7 +219,15 @@
       <option name="project" value="LOCAL" />
       <updated>1764857299980</updated>
     </task>
-    <option name="localTasksCounter" value="19" />
+    <task id="LOCAL-00019" summary="обновление комментария после редактирования">
+      <option name="closed" value="true" />
+      <created>1764857617394</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1764857617394</updated>
+    </task>
+    <option name="localTasksCounter" value="20" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -242,6 +252,7 @@
     <MESSAGE value="добавление пациентов отображение данных" />
     <MESSAGE value="удаление пациента , редактирование пациента" />
     <MESSAGE value="поле ввода номера телефона , формат для бекенда" />
-    <option name="LAST_COMMIT_MESSAGE" value="поле ввода номера телефона , формат для бекенда" />
+    <MESSAGE value="обновление комментария после редактирования" />
+    <option name="LAST_COMMIT_MESSAGE" value="обновление комментария после редактирования" />
   </component>
 </project>
