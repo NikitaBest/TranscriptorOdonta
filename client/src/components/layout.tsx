@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useLocation } from 'wouter';
+import { Link, useLocation, useRoute } from 'wouter';
 import { 
   Users, 
   Mic, 
@@ -7,19 +7,39 @@ import {
   LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { authApi } from '@/lib/api/auth';
+import { useToast } from '@/hooks/use-toast';
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
 export function Layout({ children }: LayoutProps) {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
+  const { toast } = useToast();
 
   const navItems = [
     { href: '/dashboard', icon: Users, label: 'Пациенты' },
     { href: '/history', icon: History, label: 'История' },
     { href: '/record', icon: Mic, label: 'Запись' },
   ];
+
+  const handleLogout = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    
+    try {
+      await authApi.logout();
+      toast({
+        title: "Выход выполнен",
+        description: "Вы успешно вышли из системы",
+      });
+      setLocation('/auth');
+    } catch (error) {
+      console.error('Logout error:', error);
+      // В любом случае перенаправляем на страницу авторизации
+      setLocation('/auth');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col md:flex-row">
@@ -50,12 +70,13 @@ export function Layout({ children }: LayoutProps) {
           </nav>
 
           <div className="p-4 mt-auto border-t border-border/50 space-y-2">
-            <Link href="/auth">
-              <div className="flex items-center gap-3 px-4 py-3 rounded-2xl transition-all hover:bg-destructive/10 hover:text-destructive cursor-pointer text-sm">
-                <LogOut className="w-4 h-4" />
-                <span>Выйти</span>
-              </div>
-            </Link>
+            <div 
+              onClick={handleLogout}
+              className="flex items-center gap-3 px-4 py-3 rounded-2xl transition-all hover:bg-destructive/10 hover:text-destructive cursor-pointer text-sm"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Выйти</span>
+            </div>
           </div>
         </div>
       </aside>
@@ -63,15 +84,14 @@ export function Layout({ children }: LayoutProps) {
       {/* Mobile Header */}
       <div className="md:hidden fixed top-0 left-0 right-0 h-14 border-b border-border/50 bg-background/95 backdrop-blur-xl z-50 flex items-center justify-between px-4">
         <span className="font-display font-bold text-lg">Transcriptor</span>
-        <Link href="/auth">
-          <button
-            type="button"
-            className="flex items-center justify-center w-9 h-9 rounded-full border border-border/70 text-muted-foreground hover:text-destructive hover:border-destructive/60 transition-colors"
-            aria-label="Выйти из аккаунта"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
-        </Link>
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="flex items-center justify-center w-9 h-9 rounded-full border border-border/70 text-muted-foreground hover:text-destructive hover:border-destructive/60 transition-colors"
+          aria-label="Выйти из аккаунта"
+        >
+          <LogOut className="w-4 h-4" />
+        </button>
       </div>
 
       {/* Main Content */}

@@ -1,25 +1,29 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { getApiUrl } from "./api/config";
+import { ApiClient } from "./api/client";
 
-async function throwIfResNotOk(res: Response) {
-  if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
-  }
-}
-
+/**
+ * Устаревшая функция - используйте ApiClient напрямую
+ * @deprecated Используйте ApiClient из lib/api/client.ts
+ */
 export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const res = await fetch(url, {
+  const fullUrl = url.startsWith('http') ? url : getApiUrl(url);
+  const res = await fetch(fullUrl, {
     method,
     headers: data ? { "Content-Type": "application/json" } : {},
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
 
-  await throwIfResNotOk(res);
+  if (!res.ok) {
+    const text = (await res.text()) || res.statusText;
+    throw new Error(`${res.status}: ${text}`);
+  }
+
   return res;
 }
 
@@ -29,15 +33,26 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey.join("/") as string, {
+    // queryKey[0] - это путь API
+    const path = queryKey[0] as string;
+    const fullUrl = path.startsWith('http') ? path : getApiUrl(path);
+    
+    const res = await fetch(fullUrl, {
       credentials: "include",
+      headers: {
+        'Authorization': `Bearer ${ApiClient.getAuthToken() || ''}`,
+      },
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
       return null;
     }
 
-    await throwIfResNotOk(res);
+    if (!res.ok) {
+      const text = (await res.text()) || res.statusText;
+      throw new Error(`${res.status}: ${text}`);
+    }
+
     return await res.json();
   };
 

@@ -10,21 +10,27 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { authApi } from "@/lib/api/auth";
+import { useToast } from "@/hooks/use-toast";
+import type { ApiError } from "@/lib/api/types";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function RegisterPage() {
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const handleRegister = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const name = formData.get("name")?.toString().trim();
     const email = formData.get("email")?.toString().trim();
     const password = formData.get("password")?.toString();
     const confirm = formData.get("confirm")?.toString();
 
-    if (!name || !email || !password || !confirm) {
+    if (!email || !password || !confirm) {
       setError("Заполните все поля");
       return;
     }
@@ -34,11 +40,58 @@ export default function RegisterPage() {
       return;
     }
 
+    if (password.length < 6) {
+      setError("Пароль должен содержать минимум 6 символов");
+      return;
+    }
+
     setError(null);
     setIsLoading(true);
-    setTimeout(() => {
-      setLocation("/dashboard");
-    }, 1200);
+
+    try {
+      await authApi.register({
+        email,
+        password,
+      });
+
+      toast({
+        title: "Регистрация успешна",
+        description: "Добро пожаловать! Вы будете перенаправлены...",
+      });
+
+      // Перенаправляем на дашборд после успешной регистрации
+      setTimeout(() => {
+        setLocation("/dashboard");
+      }, 1000);
+    } catch (err) {
+      console.error('Registration error:', err);
+      
+      const apiError = err as ApiError;
+      let errorMessage =
+        apiError.message ||
+        apiError.errors?.email?.[0] ||
+        apiError.errors?.password?.[0];
+
+      // Если это сетевая ошибка (статус 0), даем более понятное сообщение
+      if (apiError.status === 0) {
+        errorMessage = apiError.message || 'Не удалось подключиться к серверу. Проверьте подключение к интернету.';
+      }
+
+      // Если сообщение все еще пустое, используем дефолтное
+      if (!errorMessage) {
+        errorMessage = "Произошла ошибка при регистрации. Попробуйте еще раз.";
+      }
+
+      setError(errorMessage);
+
+      toast({
+        title: "Ошибка регистрации",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -57,22 +110,11 @@ export default function RegisterPage() {
           <CardHeader className="space-y-1 pb-6">
             <CardTitle className="text-2xl text-center">Регистрация</CardTitle>
             <CardDescription className="text-center">
-              Укажите данные для создания рабочего профиля
+              Введите email и пароль для создания аккаунта
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleRegister} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Имя и фамилия</Label>
-                <Input
-                  id="name"
-                  name="name"
-                  placeholder="Ирина Смирнова"
-                  required
-                  className="h-12 rounded-xl bg-secondary/30 border-transparent focus:border-primary focus:bg-background transition-all"
-                />
-              </div>
-
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -87,24 +129,52 @@ export default function RegisterPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="password">Пароль</Label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  required
-                  className="h-12 rounded-xl bg-secondary/30 border-transparent focus:border-primary focus:bg-background transition-all"
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    required
+                    className="h-12 rounded-xl bg-secondary/30 border-transparent focus:border-primary focus:bg-background transition-all pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="confirm">Повторите пароль</Label>
-                <Input
-                  id="confirm"
-                  name="confirm"
-                  type="password"
-                  required
-                  className="h-12 rounded-xl bg-secondary/30 border-transparent focus:border-primary focus:bg-background transition-all"
-                />
+                <div className="relative">
+                  <Input
+                    id="confirm"
+                    name="confirm"
+                    type={showConfirmPassword ? "text" : "password"}
+                    required
+                    className="h-12 rounded-xl bg-secondary/30 border-transparent focus:border-primary focus:bg-background transition-all pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    aria-label={showConfirmPassword ? "Скрыть пароль" : "Показать пароль"}
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
+                  </button>
+                </div>
               </div>
 
               {error && (

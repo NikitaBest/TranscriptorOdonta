@@ -1,0 +1,207 @@
+import { getApiUrl } from './config';
+import type { ApiError } from './types';
+
+/**
+ * Базовый клиент для API запросов
+ */
+export class ApiClient {
+  /**
+   * Выполнить API запрос
+   */
+  static async request<T>(
+    method: string,
+    path: string,
+    data?: unknown,
+    options?: {
+      headers?: Record<string, string>;
+      requireAuth?: boolean;
+    }
+  ): Promise<T> {
+    const url = getApiUrl(path);
+    const headers: Record<string, string> = {
+      ...options?.headers,
+    };
+
+    // Добавляем Content-Type для запросов с телом
+    if (data) {
+      headers['Content-Type'] = 'application/json';
+    }
+
+    // Добавляем токен авторизации если требуется
+    if (options?.requireAuth) {
+      const token = this.getAuthToken();
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+    }
+
+    try {
+      console.log(`[API] ${method} ${url}`, data ? { body: data } : '');
+      console.log(`[API] Headers:`, headers);
+      
+      // Не используем credentials для всех запросов, так как мы используем Bearer token в заголовке
+      // Credentials нужны только для cookies/sessions, а мы используем JWT токены
+      // Это также решает проблему CORS, когда бэкенд возвращает Access-Control-Allow-Origin: *
+      const useCredentials = false;
+      
+      const response = await fetch(url, {
+        method,
+        headers,
+        body: data ? JSON.stringify(data) : undefined,
+        credentials: useCredentials ? 'include' : 'omit',
+        mode: 'cors', // Явно указываем CORS режим
+      });
+
+      console.log(`[API] Response status: ${response.status}`, response);
+
+      // Обработка ошибок
+      if (!response.ok) {
+        await this.handleError(response);
+      }
+
+      // Если ответ пустой (например, 204 No Content)
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        return {} as T;
+      }
+
+      const jsonData = await response.json();
+      console.log(`[API] Response data:`, jsonData);
+      return jsonData;
+    } catch (error) {
+      console.error(`[API] Request failed:`, error);
+      
+      // Обработка сетевых ошибок (CORS, нет интернета, таймаут и т.д.)
+      if (error instanceof TypeError && error.message === 'Failed to fetch') {
+        const apiError: ApiError = {
+          message: 'Не удалось подключиться к серверу. Проверьте подключение к интернету или обратитесь к администратору.',
+          status: 0,
+        };
+        throw apiError;
+      }
+      
+      // Если это уже наш ApiError, пробрасываем дальше
+      if (error && typeof error === 'object' && 'message' in error) {
+        throw error;
+      }
+      
+      // Для остальных ошибок
+      if (error instanceof Error) {
+        const apiError: ApiError = {
+          message: error.message || 'Произошла неизвестная ошибка при выполнении запроса',
+          status: 0,
+        };
+        throw apiError;
+      }
+      
+      throw {
+        message: 'Произошла неизвестная ошибка при выполнении запроса',
+        status: 0,
+      } as ApiError;
+    }
+  }
+
+  /**
+   * Обработка ошибок API
+   */
+  private static async handleError(response: Response): Promise<never> {
+    let errorMessage = `Ошибка ${response.status}: ${response.statusText}`;
+    let errors: Record<string, string[]> | undefined;
+
+    try {
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorData.error || errorMessage;
+        errors = errorData.errors;
+      } else {
+        const text = await response.text();
+        if (text) {
+          errorMessage = text;
+        }
+      }
+    } catch {
+      // Если не удалось распарсить ошибку, используем дефолтное сообщение
+    }
+
+    const apiError: ApiError = {
+      message: errorMessage,
+      status: response.status,
+      errors,
+    };
+
+    throw apiError;
+  }
+
+  /**
+   * Получить токен авторизации из localStorage
+   */
+  static getAuthToken(): string | null {
+    return localStorage.getItem('auth_token');
+  }
+
+  /**
+   * Сохранить токен авторизации
+   */
+  static setAuthToken(token: string): void {
+    localStorage.setItem('auth_token', token);
+  }
+
+  /**
+   * Удалить токен авторизации
+   */
+  static removeAuthToken(): void {
+    localStorage.removeItem('auth_token');
+  }
+
+  /**
+   * GET запрос
+   */
+  static get<T>(path: string, options?: { requireAuth?: boolean }): Promise<T> {
+    return this.request<T>('GET', path, undefined, options);
+  }
+
+  /**
+   * POST запрос
+   */
+  static post<T>(
+    path: string,
+    data?: unknown,
+    options?: { requireAuth?: boolean }
+  ): Promise<T> {
+    return this.request<T>('POST', path, data, options);
+  }
+
+  /**
+   * PUT запрос
+   */
+  static put<T>(
+    path: string,
+    data?: unknown,
+    options?: { requireAuth?: boolean }
+  ): Promise<T> {
+    return this.request<T>('PUT', path, data, options);
+  }
+
+  /**
+   * PATCH запрос
+   */
+  static patch<T>(
+    path: string,
+    data?: unknown,
+    options?: { requireAuth?: boolean }
+  ): Promise<T> {
+    return this.request<T>('PATCH', path, data, options);
+  }
+
+  /**
+   * DELETE запрос
+   */
+  static delete<T>(
+    path: string,
+    options?: { requireAuth?: boolean }
+  ): Promise<T> {
+    return this.request<T>('DELETE', path, undefined, options);
+  }
+}
+
