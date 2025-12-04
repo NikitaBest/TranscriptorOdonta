@@ -1,7 +1,9 @@
 import { ApiClient } from './client';
 import type { 
   CreatePatientRequest, 
-  CreatePatientResponse, 
+  CreatePatientResponse,
+  UpdatePatientRequest,
+  UpdatePatientResponse,
   GetPatientsRequest,
   GetPatientsResponse,
   PatientResponse,
@@ -89,6 +91,37 @@ export const patientsApi = {
   async getById(id: string | number): Promise<PatientResponse | null> {
     const patients = await this.get({ id });
     return patients.length > 0 ? patients[0] : null;
+  },
+
+  /**
+   * Обновление пациента
+   * PUT /client/update
+   */
+  async update(data: UpdatePatientRequest): Promise<UpdatePatientResponse> {
+    const response = await ApiClient.put<ApiResponse<UpdatePatientResponse>>(
+      'client/update',
+      data,
+      { requireAuth: true }
+    );
+
+    // Бэкенд возвращает обёрнутый ответ { value: {...}, isSuccess: true, error: null }
+    if (response.isSuccess && response.value) {
+      return {
+        ...response.value,
+        id: String(response.value.id),
+      };
+    }
+
+    // Если структура неожиданная, пробрасываем ошибку
+    throw new Error('Неожиданный формат ответа от сервера');
+  },
+
+  /**
+   * Удаление пациента
+   * DELETE /client/delete/{id}
+   */
+  async delete(id: string | number): Promise<void> {
+    await ApiClient.delete(`client/delete/${id}`, { requireAuth: true });
   },
 
   /**

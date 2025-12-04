@@ -4,7 +4,7 @@ import { Layout } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Mic, ArrowLeft, Phone, Calendar, FileText, Play, Edit, Loader2 } from 'lucide-react';
+import { Mic, ArrowLeft, Phone, Calendar, FileText, Play, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { Textarea } from '@/components/ui/textarea';
@@ -122,9 +122,11 @@ export default function PatientProfile() {
               </div>
             </div>
             <div className="flex gap-2 md:gap-3 w-full md:w-auto">
-               <Button variant="outline" className="flex-1 md:flex-none rounded-xl h-11 md:h-12 border-border/50 text-sm md:text-base">
-                Редактировать
-              </Button>
+              <Link href={`/patient/${patient.id}/edit`} className="flex-1 md:flex-none">
+                <Button variant="outline" className="w-full md:w-auto rounded-xl h-11 md:h-12 border-border/50 text-sm md:text-base">
+                  Редактировать
+                </Button>
+              </Link>
               <Link href={`/record?patientId=${patient.id}`} className="flex-1 md:flex-none">
                 <Button className="w-full md:w-auto rounded-xl h-11 md:h-12 gap-2 shadow-lg shadow-primary/20 text-sm md:text-base">
                   <Mic className="w-4 h-4" />
@@ -204,11 +206,6 @@ export default function PatientProfile() {
                 defaultValue={patientData?.comment || ''}
                 readOnly
               />
-              <div className="p-4 border-t border-border/50 bg-secondary/20 flex justify-end">
-                <Button size="sm" variant="ghost" className="gap-2 text-xs" disabled>
-                  <Edit className="w-3 h-3" /> Сохранить
-                </Button>
-              </div>
             </Card>
           </div>
         </div>

@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="добавление связи с бек авторизация регистрация" />
+    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="добавление пациентов отображение данных" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -71,7 +71,7 @@
       <workItem from="1764343218794" duration="1953000" />
       <workItem from="1764665232759" duration="1867000" />
       <workItem from="1764751324422" duration="2093000" />
-      <workItem from="1764840130592" duration="904000" />
+      <workItem from="1764840130592" duration="1467000" />
     </task>
     <task id="LOCAL-00001" summary="новая ветка">
       <option name="closed" value="true" />
@@ -193,7 +193,15 @@
       <option name="project" value="LOCAL" />
       <updated>1764852950461</updated>
     </task>
-    <option name="localTasksCounter" value="16" />
+    <task id="LOCAL-00016" summary="добавление пациентов отображение данных">
+      <option name="closed" value="true" />
+      <created>1764855360043</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1764855360043</updated>
+    </task>
+    <option name="localTasksCounter" value="17" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -215,6 +223,7 @@
     <MESSAGE value="добавлен выход из аккаунта для мобилки" />
     <MESSAGE value="заголовок выберите пациента по середине" />
     <MESSAGE value="добавление связи с бек авторизация регистрация" />
-    <option name="LAST_COMMIT_MESSAGE" value="добавление связи с бек авторизация регистрация" />
+    <MESSAGE value="добавление пациентов отображение данных" />
+    <option name="LAST_COMMIT_MESSAGE" value="добавление пациентов отображение данных" />
   </component>
 </project>

@@ -10,6 +10,7 @@ import AuthPage from "@/pages/auth";
 import RegisterPage from "@/pages/register";
 import Dashboard from "@/pages/dashboard";
 import PatientProfile from "@/pages/patient";
+import PatientEditPage from "@/pages/patient-edit";
 import RecordPage from "@/pages/record";
 import ConsultationPage from "@/pages/consultation";
 import HistoryPage from "@/pages/history";
@@ -22,6 +23,7 @@ function Router() {
       <Route path="/register" component={RegisterPage} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/patient/:id" component={PatientProfile} />
+      <Route path="/patient/:id/edit" component={PatientEditPage} />
       <Route path="/record" component={RecordPage} />
       <Route path="/consultation/:id" component={ConsultationPage} />
       <Route path="/history" component={HistoryPage} />

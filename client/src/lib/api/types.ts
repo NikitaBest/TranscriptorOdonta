@@ -70,6 +70,31 @@ export interface CreatePatientResponse {
 }
 
 /**
+ * Запрос на обновление пациента
+ * PUT /client/update
+ */
+export interface UpdatePatientRequest {
+  id: string | number;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  comment?: string;
+}
+
+/**
+ * Ответ при успешном обновлении пациента
+ */
+export interface UpdatePatientResponse {
+  id: string | number;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  comment?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+/**
  * Запрос на получение списка пациентов
  * POST /client/get
  */
