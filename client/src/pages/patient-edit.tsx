@@ -82,7 +82,7 @@ export default function PatientEditPage() {
     setIsSaving(true);
 
     try {
-      await patientsApi.update({
+      const updatedPatient = await patientsApi.update({
         id,
         firstName: firstName.trim(),
         lastName: lastName.trim(),
@@ -90,8 +90,18 @@ export default function PatientEditPage() {
         comment: comment.trim() || undefined,
       });
 
-      // Обновляем кэш
-      queryClient.invalidateQueries({ queryKey: ['patient', id] });
+      // Обновляем кэш напрямую с новыми данными
+      queryClient.setQueryData(['patient', id], {
+        id: updatedPatient.id,
+        firstName: updatedPatient.firstName,
+        lastName: updatedPatient.lastName,
+        phone: updatedPatient.phone,
+        comment: updatedPatient.comment,
+        createdAt: updatedPatient.createdAt,
+        updatedAt: updatedPatient.updatedAt,
+      });
+      
+      // Инвалидируем запросы для обновления списка пациентов
       queryClient.invalidateQueries({ queryKey: ['patients'] });
 
       toast({

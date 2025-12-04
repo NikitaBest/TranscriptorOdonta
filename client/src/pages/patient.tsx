@@ -203,7 +203,7 @@ export default function PatientProfile() {
               <Textarea 
                 placeholder="Добавить личные заметки о пациенте..." 
                 className="min-h-[200px] w-full border-none resize-none focus-visible:ring-0 bg-transparent p-4 text-sm leading-relaxed break-words"
-                defaultValue={patientData?.comment || ''}
+                value={patientData?.comment || ''}
                 readOnly
               />
             </Card>
