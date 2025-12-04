@@ -1,20 +1,96 @@
 import { Link, useParams } from 'wouter';
+import { useQuery } from '@tanstack/react-query';
 import { Layout } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { getConsultationsByPatient, getPatientById } from '@/lib/mock-data';
-import { Mic, ArrowLeft, Phone, Calendar, FileText, Play, Edit } from 'lucide-react';
+import { Mic, ArrowLeft, Phone, Calendar, FileText, Play, Edit, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { Textarea } from '@/components/ui/textarea';
+import { patientsApi } from '@/lib/api/patients';
+import type { PatientResponse, ConsultationResponse } from '@/lib/api/types';
 
 export default function PatientProfile() {
   const { id } = useParams();
-  const patient = getPatientById(id);
-  const consultations = getConsultationsByPatient(id);
 
-  if (!patient) return <div>Пациент не найден</div>;
+  // Загрузка данных пациента
+  const { data: patientData, isLoading: isLoadingPatient, error: patientError } = useQuery({
+    queryKey: ['patient', id],
+    queryFn: () => {
+      if (!id) throw new Error('ID пациента не указан');
+      return patientsApi.getById(id);
+    },
+    enabled: !!id,
+  });
+
+  // Загрузка консультаций пациента
+  const { data: consultationsData = [], isLoading: isLoadingConsultations } = useQuery({
+    queryKey: ['patient-consultations', id],
+    queryFn: () => {
+      if (!id) return [];
+      return patientsApi.getConsultations(id);
+    },
+    enabled: !!id && !!patientData,
+  });
+
+  // Преобразуем данные пациента в формат для отображения
+  const patient = patientData ? {
+    id: String(patientData.id),
+    firstName: patientData.firstName,
+    lastName: patientData.lastName,
+    phone: patientData.phone || '',
+    lastVisit: patientData.createdAt || new Date().toISOString(),
+    summary: patientData.comment || '',
+    avatar: `${patientData.firstName[0]}${patientData.lastName[0]}`.toUpperCase(),
+  } : null;
+
+  // Преобразуем консультации в формат для отображения
+  const consultations = consultationsData.map((c: ConsultationResponse) => ({
+    id: String(c.id),
+    patientId: c.patientId ? String(c.patientId) : undefined,
+    patientName: c.patientName,
+    date: c.date,
+    duration: c.duration,
+    status: c.status,
+    summary: c.summary,
+    complaints: c.complaints,
+    objective: c.objective,
+    plan: c.plan,
+    comments: c.comments,
+    transcript: c.transcript,
+    audioUrl: c.audioUrl,
+  }));
+
+  // Состояния загрузки и ошибок
+  if (isLoadingPatient) {
+    return (
+      <Layout>
+        <div className="max-w-5xl mx-auto flex flex-col gap-8">
+          <div className="text-center py-20">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+            <p className="text-muted-foreground">Загрузка данных пациента...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (patientError || !patient) {
+    return (
+      <Layout>
+        <div className="max-w-5xl mx-auto flex flex-col gap-8">
+          <div className="text-center py-20">
+            <h2 className="text-xl font-bold mb-2">Пациент не найден</h2>
+            <p className="text-muted-foreground">Пациент с ID {id} не найден</p>
+            <Link href="/dashboard">
+              <Button variant="outline" className="mt-4">Вернуться к списку</Button>
+            </Link>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -65,7 +141,14 @@ export default function PatientProfile() {
           <div className="lg:col-span-2 space-y-4 md:space-y-6">
             <h2 className="text-lg md:text-xl font-display font-bold">История консультаций</h2>
             <div className="space-y-4">
-              {consultations.map(consultation => (
+              {isLoadingConsultations ? (
+                <div className="text-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
+                  <p className="text-sm text-muted-foreground">Загрузка консультаций...</p>
+                </div>
+              ) : (
+                <>
+                  {consultations.map(consultation => (
                 <Link key={consultation.id} href={`/consultation/${consultation.id}`}>
                   <Card className="group cursor-pointer hover:shadow-md transition-all duration-300 border-border/50 rounded-3xl overflow-hidden hover:border-primary/20">
                     <CardContent className="p-6">
@@ -96,15 +179,17 @@ export default function PatientProfile() {
                     </CardContent>
                   </Card>
                 </Link>
-              ))}
-              
-              {consultations.length === 0 && (
-                <div className="text-center py-12 bg-secondary/20 rounded-3xl border border-dashed border-border">
-                  <p className="text-muted-foreground">Консультаций пока нет.</p>
-                  <Link href={`/record?patientId=${patient.id}`}>
-                    <Button variant="link" className="mt-2">Начать первую консультацию</Button>
-                  </Link>
-                </div>
+                  ))}
+                  
+                  {consultations.length === 0 && (
+                    <div className="text-center py-12 bg-secondary/20 rounded-3xl border border-dashed border-border">
+                      <p className="text-muted-foreground">Консультаций пока нет.</p>
+                      <Link href={`/record?patientId=${patient.id}`}>
+                        <Button variant="link" className="mt-2">Начать первую консультацию</Button>
+                      </Link>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -116,10 +201,11 @@ export default function PatientProfile() {
               <Textarea 
                 placeholder="Добавить личные заметки о пациенте..." 
                 className="min-h-[200px] w-full border-none resize-none focus-visible:ring-0 bg-transparent p-4 text-sm leading-relaxed break-words"
-                defaultValue="У пациента высокая тревожность перед стоматологическими процедурами. Предпочитает подробные объяснения перед любыми действиями. Аллергия на пенициллин."
+                defaultValue={patientData?.comment || ''}
+                readOnly
               />
               <div className="p-4 border-t border-border/50 bg-secondary/20 flex justify-end">
-                <Button size="sm" variant="ghost" className="gap-2 text-xs">
+                <Button size="sm" variant="ghost" className="gap-2 text-xs" disabled>
                   <Edit className="w-3 h-3" /> Сохранить
                 </Button>
               </div>

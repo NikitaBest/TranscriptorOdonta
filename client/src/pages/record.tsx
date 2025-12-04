@@ -7,7 +7,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Mic, Square, Pause, Play, Loader2, X, User, ChevronRight } from 'lucide-react';
-import { getPatientById, MOCK_PATIENTS } from '@/lib/mock-data';
+// TODO: Заменить на реальный API для получения пациентов
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -21,7 +21,8 @@ export default function RecordPage() {
   
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(initialPatientId);
   const [patientSheetOpen, setPatientSheetOpen] = useState(false);
-  const patient = getPatientById(selectedPatientId);
+  // TODO: Заменить на реальный API для получения пациента по ID
+  const patient = null;
 
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -285,14 +286,10 @@ export default function RecordPage() {
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent className="rounded-xl">
-                      {MOCK_PATIENTS.map((p) => (
-                        <SelectItem key={p.id} value={p.id} className="rounded-lg">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">{p.firstName} {p.lastName}</span>
-                            <span className="text-xs text-muted-foreground">({p.phone})</span>
-                          </div>
-                        </SelectItem>
-                      ))}
+                      {/* TODO: Заменить на реальный API для получения списка пациентов */}
+                      <div className="p-4 text-center text-sm text-muted-foreground">
+                        Пациенты не загружены
+                      </div>
                     </SelectContent>
                   </Select>
                 )}
@@ -337,27 +334,10 @@ export default function RecordPage() {
                         <CommandList className="max-h-[calc(80vh-8rem)]">
                           <CommandEmpty>Пациенты не найдены</CommandEmpty>
                           <CommandGroup>
-                            {MOCK_PATIENTS.map((p) => (
-                              <CommandItem
-                                key={p.id}
-                                value={`${p.firstName} ${p.lastName} ${p.phone}`}
-                                onSelect={() => handlePatientSelect(p.id)}
-                                className="flex items-center gap-3 px-4 py-4 cursor-pointer"
-                              >
-                                <Avatar className="w-10 h-10 rounded-xl">
-                                  <AvatarFallback className="rounded-xl bg-secondary font-medium">
-                                    {p.avatar || `${p.firstName[0]}${p.lastName[0]}`}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div className="flex-1 min-w-0">
-                                  <div className="font-medium truncate">{p.firstName} {p.lastName}</div>
-                                  <div className="text-xs text-muted-foreground truncate">{p.phone}</div>
-                                </div>
-                                {selectedPatientId === p.id && (
-                                  <div className="w-2 h-2 rounded-full bg-primary" />
-                                )}
-                              </CommandItem>
-                            ))}
+                            {/* TODO: Заменить на реальный API для получения списка пациентов */}
+                            <div className="p-4 text-center text-sm text-muted-foreground">
+                              Пациенты не загружены
+                            </div>
                           </CommandGroup>
                         </CommandList>
                       </Command>

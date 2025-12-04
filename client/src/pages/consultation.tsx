@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { MOCK_CONSULTATIONS } from '@/lib/mock-data';
+// TODO: Заменить на реальный API для получения консультации
+import type { Consultation } from '@/lib/mock-data';
 import { ArrowLeft, Download, Share2, Copy, Play, Pause, RefreshCw, Check, GripVertical } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -15,10 +16,28 @@ import { ru } from 'date-fns/locale';
 export default function ConsultationPage() {
   const { id } = useParams();
   const { toast } = useToast();
-  const consultation = MOCK_CONSULTATIONS.find(c => c.id === id);
+  // TODO: Заменить на реальный API для получения консультации
+  const consultation: Consultation | null = null;
   const [isPlaying, setIsPlaying] = useState(false);
   
-  if (!consultation) return <div>Консультация не найдена</div>;
+  if (!consultation) {
+    return (
+      <Layout>
+        <div className="max-w-5xl mx-auto flex flex-col gap-6">
+          <div className="text-center py-20">
+            <h2 className="text-xl font-bold mb-2">Консультация не найдена</h2>
+            <p className="text-muted-foreground">Консультация с ID {id} не найдена</p>
+            <Link href="/dashboard">
+              <Button variant="outline" className="mt-4">Вернуться к списку</Button>
+            </Link>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // TypeScript type guard - после проверки consultation точно не null
+  const consultationData = consultation as Consultation;
 
   const handleCopy = () => {
     toast({ title: "Скопировано в буфер обмена" });
@@ -37,7 +56,7 @@ export default function ConsultationPage() {
         {/* Header */}
         <div className="flex flex-col gap-4">
           <div>
-            <Link href={consultation.patientId ? `/patient/${consultation.patientId}` : '/dashboard'}>
+            <Link href={consultationData.patientId ? `/patient/${consultationData.patientId}` : '/dashboard'}>
               <Button variant="ghost" className="pl-0 mb-2 hover:bg-transparent hover:text-primary gap-2 text-muted-foreground text-sm md:text-base">
                 <ArrowLeft className="w-4 h-4" />
                 Назад
@@ -47,7 +66,7 @@ export default function ConsultationPage() {
               Отчет о консультации
             </h1>
             <p className="text-sm md:text-base text-muted-foreground mt-1">
-              {format(new Date(consultation.date), 'd MMMM yyyy', { locale: ru })} • {consultation.duration} • {consultation.patientName || "Пациент не назначен"}
+              {format(new Date(consultationData.date), 'd MMMM yyyy', { locale: ru })} • {consultationData.duration} • {consultationData.patientName || "Пациент не назначен"}
             </p>
           </div>
           <div className="flex gap-2">
@@ -82,7 +101,7 @@ export default function ConsultationPage() {
                  ))}
               </div>
             </div>
-            <span className="text-sm font-mono text-muted-foreground">{consultation.duration}</span>
+            <span className="text-sm font-mono text-muted-foreground">{consultationData.duration}</span>
           </div>
         </Card>
 
@@ -96,11 +115,11 @@ export default function ConsultationPage() {
               </TabsList>
 
               <TabsContent value="report" className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-                <ReportSection title="Жалобы" content={consultation.complaints} />
-                <ReportSection title="Объективный статус" content={consultation.objective} />
-                <ReportSection title="План лечения" content={consultation.plan} />
-                <ReportSection title="Выжимка" content={consultation.summary} />
-                <ReportSection title="Комментарий врача" content={consultation.comments} isPrivate />
+                <ReportSection title="Жалобы" content={consultationData.complaints} />
+                <ReportSection title="Объективный статус" content={consultationData.objective} />
+                <ReportSection title="План лечения" content={consultationData.plan} />
+                <ReportSection title="Выжимка" content={consultationData.summary} />
+                <ReportSection title="Комментарий врача" content={consultationData.comments} isPrivate />
               </TabsContent>
 
               <TabsContent value="transcript" className="animate-in fade-in slide-in-from-bottom-2">
@@ -112,7 +131,7 @@ export default function ConsultationPage() {
                       </Button>
                     </div>
                     <p className="whitespace-pre-wrap leading-relaxed text-muted-foreground font-mono text-sm">
-                      {consultation.transcript}
+                      {consultationData.transcript}
                     </p>
                   </CardContent>
                 </Card>
@@ -136,7 +155,7 @@ export default function ConsultationPage() {
               </CardContent>
             </Card>
 
-            {!consultation.patientId && (
+            {!consultationData.patientId && (
               <Card className="rounded-3xl border-destructive/20 bg-destructive/5">
                 <CardHeader>
                    <CardTitle className="text-lg text-destructive">Не привязан</CardTitle>

@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="добавлен выход из аккаунта для мобилки" />
+    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="добавление связи с бек авторизация регистрация" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -71,7 +71,7 @@
       <workItem from="1764343218794" duration="1953000" />
       <workItem from="1764665232759" duration="1867000" />
       <workItem from="1764751324422" duration="2093000" />
-      <workItem from="1764840130592" duration="335000" />
+      <workItem from="1764840130592" duration="904000" />
     </task>
     <task id="LOCAL-00001" summary="новая ветка">
       <option name="closed" value="true" />
@@ -177,7 +177,23 @@
       <option name="project" value="LOCAL" />
       <updated>1764840159740</updated>
     </task>
-    <option name="localTasksCounter" value="14" />
+    <task id="LOCAL-00014" summary="заголовок выберите пациента по середине">
+      <option name="closed" value="true" />
+      <created>1764848547638</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1764848547638</updated>
+    </task>
+    <task id="LOCAL-00015" summary="добавление связи с бек авторизация регистрация">
+      <option name="closed" value="true" />
+      <created>1764852950461</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1764852950461</updated>
+    </task>
+    <option name="localTasksCounter" value="16" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -197,6 +213,8 @@
     <MESSAGE value="добавлено к блокам отчет о консультации растянуть блок" />
     <MESSAGE value="добавлено реальная запись голоса" />
     <MESSAGE value="добавлен выход из аккаунта для мобилки" />
-    <option name="LAST_COMMIT_MESSAGE" value="добавлен выход из аккаунта для мобилки" />
+    <MESSAGE value="заголовок выберите пациента по середине" />
+    <MESSAGE value="добавление связи с бек авторизация регистрация" />
+    <option name="LAST_COMMIT_MESSAGE" value="добавление связи с бек авторизация регистрация" />
   </component>
 </project>

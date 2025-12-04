@@ -4,7 +4,7 @@ import { Layout } from '@/components/layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { MOCK_CONSULTATIONS } from '@/lib/mock-data';
+// TODO: Заменить на реальный API для получения списка консультаций
 import { Search, Calendar, Filter, ArrowUpRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -13,7 +13,10 @@ import { cn } from '@/lib/utils';
 export default function HistoryPage() {
   const [search, setSearch] = useState('');
 
-  const filteredConsultations = MOCK_CONSULTATIONS.filter(c => {
+  // TODO: Заменить на реальный API для получения списка консультаций
+  const consultations: any[] = [];
+  
+  const filteredConsultations = consultations.filter(c => {
     // Показываем только консультации, привязанные к пациенту
     if (!c.patientId) return false;
 
