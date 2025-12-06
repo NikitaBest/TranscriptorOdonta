@@ -18,6 +18,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { consultationsApi } from '@/lib/api/consultations';
+import { patientsApi } from '@/lib/api/patients';
 import { ConsultationProcessingStatus } from '@/lib/api/types';
 import type { ConsultationResponse } from '@/lib/api/types';
 import { ArrowLeft, Download, Share2, Copy, Play, Pause, RefreshCw, Check, GripVertical, Loader2, AlertCircle, Trash2 } from 'lucide-react';
@@ -34,6 +35,8 @@ export default function ConsultationPage() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isReprocessing, setIsReprocessing] = useState(false);
+  const [reprocessDialogOpen, setReprocessDialogOpen] = useState(false);
 
   // Загрузка данных консультации с периодической проверкой статуса
   const { data: consultationData, isLoading, error } = useQuery({
@@ -64,10 +67,27 @@ export default function ConsultationPage() {
 
   // Преобразуем данные для отображения
   const consultation: ConsultationResponse | null = consultationData || null;
+
+  // Загружаем данные пациента, если их нет в консультации
+  const { data: patientData } = useQuery({
+    queryKey: ['patient', consultation?.clientId],
+    queryFn: () => {
+      if (!consultation?.clientId) return null;
+      return patientsApi.getById(consultation.clientId);
+    },
+    enabled: !!consultation?.clientId && !consultation?.patientName,
+  });
+
+  // Обогащаем консультацию данными пациента, если они загружены
+  const enrichedConsultation: ConsultationResponse | null = consultation ? {
+    ...consultation,
+    patientName: consultation.patientName || 
+                 (patientData ? `${patientData.firstName} ${patientData.lastName}` : undefined),
+  } : null;
   
   // Определяем статус обработки
-  const processingStatus = consultation?.processingStatus ?? 
-                           (consultation?.status as ConsultationProcessingStatus) ?? 
+  const processingStatus = enrichedConsultation?.processingStatus ?? 
+                           (enrichedConsultation?.status as ConsultationProcessingStatus) ?? 
                            ConsultationProcessingStatus.None;
   
   // Определяем, обрабатывается ли консультация
@@ -103,7 +123,7 @@ export default function ConsultationPage() {
     );
   }
 
-  if (error || !consultation) {
+  if (error || !enrichedConsultation) {
     return (
       <Layout>
         <div className="max-w-5xl mx-auto flex flex-col gap-6">
@@ -130,6 +150,32 @@ export default function ConsultationPage() {
     });
   };
 
+  const handleReprocess = async () => {
+    if (!id) return;
+    
+    setIsReprocessing(true);
+    try {
+      await consultationsApi.reprocess(id);
+      
+      // Инвалидируем кэш консультации для обновления данных
+      queryClient.invalidateQueries({ queryKey: ['consultation', id] });
+      
+      toast({
+        title: "Переобработка запущена",
+        description: "Консультация отправлена на повторную обработку. Данные обновятся автоматически.",
+      });
+    } catch (error) {
+      console.error('Reprocess consultation error:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось запустить переобработку. Попробуйте еще раз.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsReprocessing(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!id) return;
     
@@ -139,8 +185,8 @@ export default function ConsultationPage() {
       
       // Инвалидируем кэш консультаций и пациента
       queryClient.invalidateQueries({ queryKey: ['consultation', id] });
-      if (consultation?.patientId) {
-        queryClient.invalidateQueries({ queryKey: ['patient-consultations', consultation.patientId] });
+      if (enrichedConsultation?.patientId) {
+        queryClient.invalidateQueries({ queryKey: ['patient-consultations', enrichedConsultation.patientId] });
       }
       
       toast({
@@ -149,8 +195,8 @@ export default function ConsultationPage() {
       });
       
       // Перенаправляем на страницу пациента или дашборд
-      if (consultation?.patientId) {
-        setLocation(`/patient/${consultation.patientId}`);
+      if (enrichedConsultation?.patientId) {
+        setLocation(`/patient/${enrichedConsultation.patientId}`);
       } else {
         setLocation('/dashboard');
       }
@@ -173,7 +219,7 @@ export default function ConsultationPage() {
         {/* Header */}
         <div className="flex flex-col gap-4">
           <div>
-            <Link href={consultation.patientId ? `/patient/${consultation.patientId}` : '/dashboard'}>
+            <Link href={enrichedConsultation.patientId ? `/patient/${enrichedConsultation.patientId}` : '/dashboard'}>
               <Button variant="ghost" className="pl-0 mb-2 hover:bg-transparent hover:text-primary gap-2 text-muted-foreground text-sm md:text-base">
                 <ArrowLeft className="w-4 h-4" />
                 Назад
@@ -181,11 +227,11 @@ export default function ConsultationPage() {
             </Link>
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h1 className="text-2xl md:text-3xl font-display font-bold tracking-tight">
-                  Отчет о консультации
-                </h1>
-                <p className="text-sm md:text-base text-muted-foreground mt-1">
-                  {consultation.date ? format(new Date(consultation.date), 'd MMMM yyyy', { locale: ru }) : 'Дата не указана'} • {consultation.duration || '0:00'} • {consultation.patientName || "Пациент не назначен"}
+            <h1 className="text-2xl md:text-3xl font-display font-bold tracking-tight">
+              Отчет о консультации
+            </h1>
+            <p className="text-sm md:text-base text-muted-foreground mt-1">
+                  {enrichedConsultation.date ? format(new Date(enrichedConsultation.date), 'd MMMM yyyy', { locale: ru }) : 'Дата не указана'} • {enrichedConsultation.duration || '0:00'} • {enrichedConsultation.patientName || "Пациент не назначен"}
                 </p>
               </div>
               {isProcessing && (
@@ -271,7 +317,7 @@ export default function ConsultationPage() {
                  ))}
               </div>
             </div>
-            <span className="text-sm font-mono text-muted-foreground">{consultation.duration || '0:00'}</span>
+            <span className="text-sm font-mono text-muted-foreground">{enrichedConsultation.duration || '0:00'}</span>
           </div>
         </Card>
 
@@ -334,11 +380,11 @@ export default function ConsultationPage() {
                   </Card>
                 ) : (
                   <>
-                    <ReportSection title="Жалобы" content={consultation.complaints || 'Не указано'} />
-                    <ReportSection title="Объективный статус" content={consultation.objective || 'Не указано'} />
-                    <ReportSection title="План лечения" content={consultation.plan || 'Не указано'} />
-                    <ReportSection title="Выжимка" content={consultation.summary || 'Не указано'} />
-                    <ReportSection title="Комментарий врача" content={consultation.comments || 'Не указано'} isPrivate />
+                    <ReportSection title="Жалобы" content={enrichedConsultation.complaints || 'Не указано'} />
+                    <ReportSection title="Объективный статус" content={enrichedConsultation.objective || 'Не указано'} />
+                    <ReportSection title="План лечения" content={enrichedConsultation.plan || 'Не указано'} />
+                    <ReportSection title="Выжимка" content={enrichedConsultation.summary || 'Не указано'} />
+                    <ReportSection title="Комментарий врача" content={enrichedConsultation.comments || 'Не указано'} isPrivate />
                   </>
                 )}
               </TabsContent>
@@ -358,14 +404,14 @@ export default function ConsultationPage() {
                       </div>
                     ) : (
                       <>
-                        <div className="flex justify-end mb-4">
-                          <Button variant="ghost" size="sm" className="gap-2" onClick={handleCopy}>
-                            <Copy className="w-3 h-3" /> Копировать текст
-                          </Button>
-                        </div>
-                        <p className="whitespace-pre-wrap leading-relaxed text-muted-foreground font-mono text-sm">
-                          {consultation.transcript || 'Транскрипция пока не готова'}
-                        </p>
+                    <div className="flex justify-end mb-4">
+                      <Button variant="ghost" size="sm" className="gap-2" onClick={handleCopy}>
+                        <Copy className="w-3 h-3" /> Копировать текст
+                      </Button>
+                    </div>
+                    <p className="whitespace-pre-wrap leading-relaxed text-muted-foreground font-mono text-sm">
+                          {enrichedConsultation.transcript || 'Транскрипция пока не готова'}
+                    </p>
                       </>
                     )}
                   </CardContent>
@@ -381,16 +427,54 @@ export default function ConsultationPage() {
                 <CardTitle className="text-lg">Действия ИИ</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button variant="secondary" className="w-full justify-start rounded-xl h-12 gap-3">
-                  <RefreshCw className="w-4 h-4" /> Пересоздать отчет
-                </Button>
+                <AlertDialog open={reprocessDialogOpen} onOpenChange={setReprocessDialogOpen}>
+                  <AlertDialogTrigger asChild>
+                    <Button 
+                      variant="secondary" 
+                      className="w-full justify-start rounded-xl h-12 gap-3"
+                      disabled={isReprocessing || isDeleting}
+                    >
+                      <RefreshCw className={cn("w-4 h-4", isReprocessing && "animate-spin")} /> 
+                      {isReprocessing ? "Переобработка..." : "Пересоздать отчет"}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className="rounded-3xl">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Пересоздать отчет?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Вы уверены, что хотите пересоздать отчет? 
+                        <strong className="block mt-2 text-foreground">
+                          Все внесенные правки будут удалены и заменены результатами новой обработки.
+                        </strong>
+                        Консультация будет отправлена на повторную обработку, и данные обновятся автоматически после завершения.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel disabled={isReprocessing}>Отмена</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleReprocess}
+                        disabled={isReprocessing}
+                        className="bg-primary text-primary-foreground hover:bg-primary/90"
+                      >
+                        {isReprocessing ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Переобработка...
+                          </>
+                        ) : (
+                          'Пересоздать отчет'
+                        )}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
                 <Button variant="secondary" className="w-full justify-start rounded-xl h-12 gap-3">
                   <Check className="w-4 h-4" /> Проверить по протоколам
                 </Button>
               </CardContent>
             </Card>
 
-            {!consultation.patientId && (
+            {!enrichedConsultation.patientId && (
               <Card className="rounded-3xl border-destructive/20 bg-destructive/5">
                 <CardHeader>
                    <CardTitle className="text-lg text-destructive">Не привязан</CardTitle>
@@ -447,11 +531,11 @@ function ReportSection({ title, content, isPrivate = false }: { title: string, c
         </div>
       </div>
       <div className="relative pb-6">
-        <Textarea 
+      <Textarea 
           ref={textareaRef}
           className="min-h-[120px] max-h-[480px] w-full border-none resize-none focus-visible:ring-0 bg-transparent pr-10 pt-4 pl-4 text-base leading-relaxed text-muted-foreground focus:text-foreground transition-colors break-words"
-          defaultValue={content}
-        />
+        defaultValue={content}
+      />
         <div
           className="absolute bottom-1 left-1/2 flex h-6 w-10 -translate-x-1/2 items-center justify-center rounded-full text-muted-foreground/60 cursor-ns-resize"
           onMouseDown={handleResizeStart}
