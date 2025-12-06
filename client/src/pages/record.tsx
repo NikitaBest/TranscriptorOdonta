@@ -9,7 +9,9 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Mic, Square, Pause, Play, Loader2, X, User, ChevronRight } from 'lucide-react';
 import { patientsApi } from '@/lib/api/patients';
+import { consultationsApi } from '@/lib/api/consultations';
 import type { PatientResponse } from '@/lib/api/types';
+import { ConsultationProcessingStatus } from '@/lib/api/types';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -75,6 +77,7 @@ export default function RecordPage() {
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const recordingStopPromiseRef = useRef<{ resolve: () => void; reject: (error: Error) => void } | null>(null);
 
   // Анализ звука в реальном времени
   useEffect(() => {
@@ -208,10 +211,14 @@ export default function RecordPage() {
       };
       
       mediaRecorder.onstop = () => {
-        // Здесь можно сохранить запись, когда будет готов бэкенд
         const audioBlob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType });
         console.log('Audio recorded:', audioBlob.size, 'bytes');
-        // TODO: Отправить на бэкенд когда будет готов
+        
+        // Разрешаем промис ожидания окончания записи
+        if (recordingStopPromiseRef.current) {
+          recordingStopPromiseRef.current.resolve();
+          recordingStopPromiseRef.current = null;
+        }
       };
       
       mediaRecorderRef.current = mediaRecorder;
@@ -245,31 +252,125 @@ export default function RecordPage() {
   };
 
   const handleStop = async () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
+    if (!selectedPatientId) {
+      toast({
+        title: "Ошибка",
+        description: "Не выбран пациент для записи",
+        variant: "destructive"
+      });
+      return;
     }
-    
-    if (mediaStreamRef.current) {
-      mediaStreamRef.current.getTracks().forEach(track => track.stop());
-      mediaStreamRef.current = null;
+
+    if (!mediaRecorderRef.current || mediaRecorderRef.current.state === 'inactive') {
+      return;
     }
-    
+
     setIsRecording(false);
     setStatus('uploading');
-    
-    // Сбрасываем визуализацию
     setAudioData(Array(40).fill(0));
-    
-    // Simulate processing steps
-    setTimeout(() => setStatus('transcribing'), 1500);
-    setTimeout(() => setStatus('processing'), 3000);
-    setTimeout(() => {
-      if (selectedPatientId) {
-        setLocation(`/patient/${selectedPatientId}`);
-      } else {
-        setLocation('/consultation/c1'); 
+
+    // Создаем промис для ожидания окончания записи
+    const stopPromise = new Promise<void>((resolve, reject) => {
+      recordingStopPromiseRef.current = { resolve, reject };
+      
+      // Таймаут на случай, если onstop не сработает
+      setTimeout(() => {
+        if (recordingStopPromiseRef.current) {
+          recordingStopPromiseRef.current.reject(new Error('Таймаут ожидания окончания записи'));
+          recordingStopPromiseRef.current = null;
+        }
+      }, 5000);
+    });
+
+    // Останавливаем запись
+    mediaRecorderRef.current.stop();
+
+    try {
+      // Ждем окончания записи
+      await stopPromise;
+
+      // Отправляем файл на бэкенд
+      const audioBlob = new Blob(audioChunksRef.current, { 
+        type: mediaRecorderRef.current?.mimeType || 'audio/webm' 
+      });
+      
+      if (audioBlob.size === 0) {
+        throw new Error('Запись пуста');
       }
-    }, 5000);
+
+      const response = await consultationsApi.uploadConsultation(selectedPatientId, audioBlob);
+      
+      console.log('Consultation uploaded:', response);
+      
+      // Останавливаем поток
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach(track => track.stop());
+        mediaStreamRef.current = null;
+      }
+      
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+        audioContextRef.current = null;
+      }
+      
+      // Обрабатываем статус
+      if (response.status === ConsultationProcessingStatus.Completed) {
+        setStatus('idle');
+        toast({
+          title: "Консультация загружена",
+          description: "Аудиофайл успешно отправлен и обработан.",
+        });
+        
+        // Переходим на страницу пациента
+        setTimeout(() => {
+          setLocation(`/patient/${selectedPatientId}`);
+        }, 1000);
+      } else if (response.status === ConsultationProcessingStatus.Failed) {
+        setStatus('idle');
+        toast({
+          title: "Ошибка обработки",
+          description: "Не удалось обработать консультацию. Попробуйте еще раз.",
+          variant: "destructive"
+        });
+      } else {
+        // InProgress или None - показываем статус обработки
+        setStatus('processing');
+        toast({
+          title: "Консультация загружена",
+          description: "Аудиофайл отправлен. Обработка началась.",
+        });
+        
+        // Переходим на страницу пациента через некоторое время
+        setTimeout(() => {
+          setLocation(`/patient/${selectedPatientId}`);
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Error uploading consultation:', error);
+      setStatus('idle');
+      
+      // Останавливаем поток даже при ошибке
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach(track => track.stop());
+        mediaStreamRef.current = null;
+      }
+      
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+        audioContextRef.current = null;
+      }
+      
+      toast({
+        title: "Ошибка загрузки",
+        description: error instanceof Error ? error.message : "Не удалось отправить аудиофайл. Попробуйте еще раз.",
+        variant: "destructive"
+      });
+    } finally {
+      // Очищаем запись
+      audioChunksRef.current = [];
+      setDuration(0);
+      recordingStopPromiseRef.current = null;
+    }
   };
 
   const handleCancel = () => {

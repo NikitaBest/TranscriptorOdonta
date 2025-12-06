@@ -141,22 +141,66 @@ export interface ApiResponse<T> {
 }
 
 /**
- * Консультация из API
+ * Консультация из API (полный ответ от бэкенда)
  */
 export interface ConsultationResponse {
   id: string | number;
+  tempFileName?: string;
+  externalAudioFileId?: number;
+  audioDuration?: number | null;
+  transcriptionResult?: string | null;
+  complaints?: string | null;
+  objective?: string | null;
+  treatmentPlan?: string | null;
+  summary?: string | null;
+  comment?: string | null;
+  tenantId?: number;
+  userId?: number;
+  clientId?: string | number;
+  client?: {
+    id: string | number;
+    firstName: string;
+    lastName: string;
+    phone?: string;
+  };
+  createdAt?: string;
+  updatedAt?: string;
+  // Статус обработки от бэкенда (может быть в разных полях)
+  processingStatus?: ConsultationProcessingStatus;
+  status?: ConsultationProcessingStatus | 'processing' | 'ready' | 'error' | 'recording';
+  // Вычисляемые поля для совместимости
   patientId?: string | number;
   patientName?: string;
-  date: string;
-  duration: string;
-  status: 'processing' | 'ready' | 'error' | 'recording';
-  summary: string;
-  complaints?: string;
-  objective?: string;
+  date?: string;
+  duration?: string;
   plan?: string;
   comments?: string;
   transcript?: string;
   audioUrl?: string;
+}
+
+/**
+ * Запрос на получение списка консультаций
+ * POST /note/get
+ */
+export interface GetConsultationsRequest {
+  page?: number;
+  pageSize?: number;
+  clientId?: string | number;
+  search?: string;
+}
+
+/**
+ * Запрос на обновление консультации
+ * PUT /note/update
+ */
+export interface UpdateConsultationRequest {
+  id: string | number;
+  complaints?: string;
+  objective?: string;
+  treatmentPlan?: string;
+  summary?: string;
+  comment?: string;
 }
 
 /**
@@ -170,6 +214,27 @@ export interface GetConsultationsResponse {
   totalCount?: number;
   hasPrevious?: boolean;
   hasNext?: boolean;
+}
+
+/**
+ * Статус обработки консультации
+ */
+export enum ConsultationProcessingStatus {
+  None = 0,
+  InProgress = 1,
+  Failed = 2,
+  Completed = 3,
+}
+
+/**
+ * Ответ при загрузке аудиофайла консультации
+ */
+export interface UploadConsultationResponse {
+  id: string | number;
+  clientId: string | number;
+  status: ConsultationProcessingStatus;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 /**

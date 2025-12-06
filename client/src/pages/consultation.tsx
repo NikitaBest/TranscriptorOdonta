@@ -1,13 +1,26 @@
 import { useRef, useState } from 'react';
-import { useParams, Link } from 'wouter';
+import { useParams, Link, useLocation } from 'wouter';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Layout } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-// TODO: Заменить на реальный API для получения консультации
-import type { Consultation } from '@/lib/mock-data';
-import { ArrowLeft, Download, Share2, Copy, Play, Pause, RefreshCw, Check, GripVertical } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { consultationsApi } from '@/lib/api/consultations';
+import { ConsultationProcessingStatus } from '@/lib/api/types';
+import type { ConsultationResponse } from '@/lib/api/types';
+import { ArrowLeft, Download, Share2, Copy, Play, Pause, RefreshCw, Check, GripVertical, Loader2, AlertCircle, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -15,12 +28,82 @@ import { ru } from 'date-fns/locale';
 
 export default function ConsultationPage() {
   const { id } = useParams();
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
-  // TODO: Заменить на реальный API для получения консультации
-  const consultation: Consultation | null = null;
+  const queryClient = useQueryClient();
   const [isPlaying, setIsPlaying] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Загрузка данных консультации с периодической проверкой статуса
+  const { data: consultationData, isLoading, error } = useQuery({
+    queryKey: ['consultation', id],
+    queryFn: () => {
+      if (!id) throw new Error('ID консультации не указан');
+      return consultationsApi.getById(id);
+    },
+    enabled: !!id,
+    // Если консультация еще обрабатывается (InProgress или None), проверяем статус каждые 5 секунд
+    refetchInterval: (query) => {
+      const data = query.state.data as ConsultationResponse | null;
+      if (data) {
+        // Получаем статус из ответа бэкенда (может быть в разных полях)
+        const status = data.processingStatus ?? 
+                      (data.status as ConsultationProcessingStatus) ?? 
+                      (data as any).processingStatus ??
+                      ConsultationProcessingStatus.None;
+        // Если статус InProgress (1) или None (0), продолжаем проверять
+        if (status === ConsultationProcessingStatus.InProgress || status === ConsultationProcessingStatus.None) {
+          return 5000; // Проверяем каждые 5 секунд
+        }
+      }
+      return false; // Если Completed или Failed, не проверяем
+    },
+    refetchOnWindowFocus: true, // Обновляем при возврате на вкладку
+  });
+
+  // Преобразуем данные для отображения
+  const consultation: ConsultationResponse | null = consultationData || null;
   
-  if (!consultation) {
+  // Определяем статус обработки
+  const processingStatus = consultation?.processingStatus ?? 
+                           (consultation?.status as ConsultationProcessingStatus) ?? 
+                           ConsultationProcessingStatus.None;
+  
+  // Определяем, обрабатывается ли консультация
+  const isProcessing = processingStatus === ConsultationProcessingStatus.InProgress || 
+                       processingStatus === ConsultationProcessingStatus.None;
+  
+  // Получаем текстовое описание статуса
+  const getStatusText = (status: ConsultationProcessingStatus) => {
+    switch (status) {
+      case ConsultationProcessingStatus.None:
+        return 'Ожидание обработки';
+      case ConsultationProcessingStatus.InProgress:
+        return 'Обработка...';
+      case ConsultationProcessingStatus.Failed:
+        return 'Ошибка обработки';
+      case ConsultationProcessingStatus.Completed:
+        return 'Готово';
+      default:
+        return 'Неизвестный статус';
+    }
+  };
+  
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="max-w-5xl mx-auto flex flex-col gap-6">
+          <div className="text-center py-20">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+            <p className="text-muted-foreground">Загрузка консультации...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (error || !consultation) {
     return (
       <Layout>
         <div className="max-w-5xl mx-auto flex flex-col gap-6">
@@ -36,9 +119,6 @@ export default function ConsultationPage() {
     );
   }
 
-  // TypeScript type guard - после проверки consultation точно не null
-  const consultationData = consultation as Consultation;
-
   const handleCopy = () => {
     toast({ title: "Скопировано в буфер обмена" });
   };
@@ -50,24 +130,77 @@ export default function ConsultationPage() {
     });
   };
 
+  const handleDelete = async () => {
+    if (!id) return;
+    
+    setIsDeleting(true);
+    try {
+      await consultationsApi.delete(id);
+      
+      // Инвалидируем кэш консультаций и пациента
+      queryClient.invalidateQueries({ queryKey: ['consultation', id] });
+      if (consultation?.patientId) {
+        queryClient.invalidateQueries({ queryKey: ['patient-consultations', consultation.patientId] });
+      }
+      
+      toast({
+        title: "Консультация удалена",
+        description: "Консультация успешно удалена.",
+      });
+      
+      // Перенаправляем на страницу пациента или дашборд
+      if (consultation?.patientId) {
+        setLocation(`/patient/${consultation.patientId}`);
+      } else {
+        setLocation('/dashboard');
+      }
+    } catch (error) {
+      console.error('Delete consultation error:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось удалить консультацию. Попробуйте еще раз.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+      setDeleteDialogOpen(false);
+    }
+  };
+
   return (
     <Layout>
       <div className="max-w-5xl mx-auto flex flex-col gap-6">
         {/* Header */}
         <div className="flex flex-col gap-4">
           <div>
-            <Link href={consultationData.patientId ? `/patient/${consultationData.patientId}` : '/dashboard'}>
+            <Link href={consultation.patientId ? `/patient/${consultation.patientId}` : '/dashboard'}>
               <Button variant="ghost" className="pl-0 mb-2 hover:bg-transparent hover:text-primary gap-2 text-muted-foreground text-sm md:text-base">
                 <ArrowLeft className="w-4 h-4" />
                 Назад
               </Button>
             </Link>
-            <h1 className="text-2xl md:text-3xl font-display font-bold tracking-tight">
-              Отчет о консультации
-            </h1>
-            <p className="text-sm md:text-base text-muted-foreground mt-1">
-              {format(new Date(consultationData.date), 'd MMMM yyyy', { locale: ru })} • {consultationData.duration} • {consultationData.patientName || "Пациент не назначен"}
-            </p>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h1 className="text-2xl md:text-3xl font-display font-bold tracking-tight">
+                  Отчет о консультации
+                </h1>
+                <p className="text-sm md:text-base text-muted-foreground mt-1">
+                  {consultation.date ? format(new Date(consultation.date), 'd MMMM yyyy', { locale: ru }) : 'Дата не указана'} • {consultation.duration || '0:00'} • {consultation.patientName || "Пациент не назначен"}
+                </p>
+              </div>
+              {isProcessing && (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
+                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                  <span className="text-sm font-medium text-primary">{getStatusText(processingStatus)}</span>
+                </div>
+              )}
+              {processingStatus === ConsultationProcessingStatus.Failed && (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-destructive/10 border border-destructive/20">
+                  <AlertCircle className="w-4 h-4 text-destructive" />
+                  <span className="text-sm font-medium text-destructive">{getStatusText(processingStatus)}</span>
+                </div>
+              )}
+            </div>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" className="flex-1 md:flex-none rounded-xl gap-2 h-11 md:h-12 text-sm md:text-base" onClick={handleShare}>
@@ -76,6 +209,43 @@ export default function ConsultationPage() {
             <Button variant="outline" className="flex-1 md:flex-none rounded-xl gap-2 h-11 md:h-12 text-sm md:text-base">
               <Download className="w-4 h-4" /> <span className="hidden sm:inline">PDF</span>
             </Button>
+            <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+              <AlertDialogTrigger asChild>
+                <Button 
+                  variant="destructive" 
+                  className="flex-1 md:flex-none rounded-xl gap-2 h-11 md:h-12 text-sm md:text-base"
+                  disabled={isDeleting}
+                >
+                  <Trash2 className="w-4 h-4" /> <span className="hidden sm:inline">Удалить</span>
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="rounded-3xl">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Удалить консультацию?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Вы уверены, что хотите удалить эту консультацию? 
+                    Это действие нельзя отменить. Все данные консультации будут безвозвратно удалены.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={isDeleting}>Отмена</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDelete}
+                    disabled={isDeleting}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {isDeleting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Удаление...
+                      </>
+                    ) : (
+                      'Удалить'
+                    )}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
 
@@ -101,7 +271,7 @@ export default function ConsultationPage() {
                  ))}
               </div>
             </div>
-            <span className="text-sm font-mono text-muted-foreground">{consultationData.duration}</span>
+            <span className="text-sm font-mono text-muted-foreground">{consultation.duration || '0:00'}</span>
           </div>
         </Card>
 
@@ -115,24 +285,89 @@ export default function ConsultationPage() {
               </TabsList>
 
               <TabsContent value="report" className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-                <ReportSection title="Жалобы" content={consultationData.complaints} />
-                <ReportSection title="Объективный статус" content={consultationData.objective} />
-                <ReportSection title="План лечения" content={consultationData.plan} />
-                <ReportSection title="Выжимка" content={consultationData.summary} />
-                <ReportSection title="Комментарий врача" content={consultationData.comments} isPrivate />
+                {isProcessing ? (
+                  <Card className="rounded-3xl border-border/50">
+                    <CardContent className="p-12 text-center">
+                      <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-primary" />
+                      <h3 className="text-lg font-bold mb-2">Обработка консультации</h3>
+                      <p className="text-muted-foreground">
+                        {processingStatus === ConsultationProcessingStatus.InProgress 
+                          ? 'Идет обработка аудиофайла и генерация отчета...' 
+                          : 'Ожидание начала обработки...'}
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Данные появятся автоматически после завершения обработки
+                      </p>
+                    </CardContent>
+                  </Card>
+                ) : processingStatus === ConsultationProcessingStatus.Failed ? (
+                  <Card className="rounded-3xl border-destructive/20 bg-destructive/5">
+                    <CardContent className="p-12 text-center">
+                      <AlertCircle className="w-12 h-12 mx-auto mb-4 text-destructive" />
+                      <h3 className="text-lg font-bold mb-2 text-destructive">Ошибка обработки</h3>
+                      <p className="text-muted-foreground mb-4">
+                        Не удалось обработать консультацию. Попробуйте переобработать.
+                      </p>
+                      <Button 
+                        variant="outline" 
+                        onClick={async () => {
+                          if (!id) return;
+                          try {
+                            await consultationsApi.reprocess(id);
+                            toast({
+                              title: "Переобработка запущена",
+                              description: "Консультация отправлена на повторную обработку.",
+                            });
+                          } catch (error) {
+                            toast({
+                              title: "Ошибка",
+                              description: "Не удалось запустить переобработку.",
+                              variant: "destructive",
+                            });
+                          }
+                        }}
+                      >
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Переобработать
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <>
+                    <ReportSection title="Жалобы" content={consultation.complaints || 'Не указано'} />
+                    <ReportSection title="Объективный статус" content={consultation.objective || 'Не указано'} />
+                    <ReportSection title="План лечения" content={consultation.plan || 'Не указано'} />
+                    <ReportSection title="Выжимка" content={consultation.summary || 'Не указано'} />
+                    <ReportSection title="Комментарий врача" content={consultation.comments || 'Не указано'} isPrivate />
+                  </>
+                )}
               </TabsContent>
 
               <TabsContent value="transcript" className="animate-in fade-in slide-in-from-bottom-2">
                 <Card className="rounded-3xl border-border/50">
                   <CardContent className="p-6">
-                    <div className="flex justify-end mb-4">
-                      <Button variant="ghost" size="sm" className="gap-2" onClick={handleCopy}>
-                        <Copy className="w-3 h-3" /> Копировать текст
-                      </Button>
-                    </div>
-                    <p className="whitespace-pre-wrap leading-relaxed text-muted-foreground font-mono text-sm">
-                      {consultationData.transcript}
-                    </p>
+                    {isProcessing ? (
+                      <div className="text-center py-12">
+                        <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+                        <p className="text-muted-foreground">Транскрипция обрабатывается...</p>
+                      </div>
+                    ) : processingStatus === ConsultationProcessingStatus.Failed ? (
+                      <div className="text-center py-12">
+                        <AlertCircle className="w-8 h-8 mx-auto mb-4 text-destructive" />
+                        <p className="text-muted-foreground">Транскрипция не доступна</p>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex justify-end mb-4">
+                          <Button variant="ghost" size="sm" className="gap-2" onClick={handleCopy}>
+                            <Copy className="w-3 h-3" /> Копировать текст
+                          </Button>
+                        </div>
+                        <p className="whitespace-pre-wrap leading-relaxed text-muted-foreground font-mono text-sm">
+                          {consultation.transcript || 'Транскрипция пока не готова'}
+                        </p>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -155,7 +390,7 @@ export default function ConsultationPage() {
               </CardContent>
             </Card>
 
-            {!consultationData.patientId && (
+            {!consultation.patientId && (
               <Card className="rounded-3xl border-destructive/20 bg-destructive/5">
                 <CardHeader>
                    <CardTitle className="text-lg text-destructive">Не привязан</CardTitle>

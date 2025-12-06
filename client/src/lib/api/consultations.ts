@@ -1,0 +1,249 @@
+import { ApiClient } from './client';
+import type { 
+  ApiResponse, 
+  UploadConsultationResponse,
+  ConsultationResponse,
+  GetConsultationsRequest,
+  GetConsultationsResponse,
+  UpdateConsultationRequest
+} from './types';
+import { ConsultationProcessingStatus } from './types';
+
+/**
+ * API функции для работы с консультациями
+ */
+export const consultationsApi = {
+  /**
+   * Загрузка аудиофайла консультации
+   * POST /note/upload-consultation/{clientId}
+   * @param clientId - ID пациента
+   * @param audioFile - аудиофайл (Blob или File)
+   * @returns информация о созданной консультации
+   */
+  async uploadConsultation(
+    clientId: string | number,
+    audioFile: Blob | File
+  ): Promise<UploadConsultationResponse> {
+    const formData = new FormData();
+    
+    // Если это Blob, создаем File с правильным именем и расширением
+    let fileToUpload: File;
+    if (audioFile instanceof File) {
+      fileToUpload = audioFile;
+    } else {
+      // Определяем расширение на основе MIME типа
+      let extension = 'webm';
+      if (audioFile.type.includes('webm')) {
+        extension = 'webm';
+      } else if (audioFile.type.includes('mp4')) {
+        extension = 'mp4';
+      } else if (audioFile.type.includes('ogg')) {
+        extension = 'ogg';
+      } else if (audioFile.type.includes('wav')) {
+        extension = 'wav';
+      } else if (audioFile.type.includes('mp3')) {
+        extension = 'mp3';
+      }
+      
+      // Создаем File из Blob с правильным именем и расширением
+      fileToUpload = new File([audioFile], `consultation_${Date.now()}.${extension}`, {
+        type: audioFile.type || 'audio/webm',
+      });
+    }
+    
+    formData.append('file', fileToUpload);
+
+    try {
+      const response = await ApiClient.request<ApiResponse<UploadConsultationResponse>>(
+        'POST',
+        `note/upload-consultation/${clientId}`,
+        formData,
+        {
+          requireAuth: true,
+          isFormData: true,
+        }
+      );
+
+      // Бэкенд возвращает обёрнутый ответ { value: {...}, isSuccess: true, error: null }
+      if (response.isSuccess && response.value) {
+        return {
+          ...response.value,
+          id: String(response.value.id),
+          clientId: String(response.value.clientId),
+        };
+      }
+
+      // Если isSuccess = false, бэкенд вернул ошибку в поле error
+      if (!response.isSuccess) {
+        const errorMessage = response.error || 'Ошибка при загрузке консультации';
+        const error: any = new Error(errorMessage);
+        error.status = 400;
+        throw error;
+      }
+
+      // Если структура неожиданная, пробрасываем ошибку
+      throw new Error('Неожиданный формат ответа от сервера');
+    } catch (error: any) {
+      // Если это уже обработанная ошибка, пробрасываем дальше
+      if (error.status && error.message) {
+        throw error;
+      }
+      // Иначе пробрасываем как есть
+      throw error;
+    }
+  },
+
+  /**
+   * Получение консультации по ID
+   * GET /note/{id}
+   */
+  async getById(id: string | number): Promise<ConsultationResponse | null> {
+    try {
+      const response = await ApiClient.get<ApiResponse<ConsultationResponse>>(
+        `note/${id}`,
+        { requireAuth: true }
+      );
+
+      if (response.isSuccess && response.value) {
+        const consultation = response.value;
+        // Определяем статус обработки (может быть в разных полях ответа)
+        const processingStatus = (consultation as any).processingStatus || 
+                                 (consultation as any).status || 
+                                 ConsultationProcessingStatus.None;
+        
+        // Преобразуем данные для совместимости
+        return {
+          ...consultation,
+          id: String(consultation.id),
+          clientId: consultation.clientId ? String(consultation.clientId) : undefined,
+          patientId: consultation.clientId ? String(consultation.clientId) : undefined,
+          patientName: consultation.client ? `${consultation.client.firstName} ${consultation.client.lastName}` : undefined,
+          date: consultation.createdAt || new Date().toISOString(),
+          duration: consultation.audioDuration ? `${Math.floor(consultation.audioDuration / 60)}:${String(consultation.audioDuration % 60).padStart(2, '0')}` : '0:00',
+          transcript: consultation.transcriptionResult || undefined,
+          summary: consultation.summary || undefined,
+          complaints: consultation.complaints || undefined,
+          objective: consultation.objective || undefined,
+          plan: consultation.treatmentPlan || undefined,
+          comments: consultation.comment || undefined,
+          processingStatus: typeof processingStatus === 'number' ? processingStatus : ConsultationProcessingStatus.None,
+          status: typeof processingStatus === 'number' ? processingStatus : ConsultationProcessingStatus.None,
+        };
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Get consultation by ID error:', error);
+      const apiError = error as any;
+      if (apiError.status === 404) {
+        return null;
+      }
+      throw error;
+    }
+  },
+
+  /**
+   * Получение списка консультаций
+   * POST /note/get
+   */
+  async get(params?: GetConsultationsRequest): Promise<ConsultationResponse[]> {
+    const response = await ApiClient.post<ApiResponse<GetConsultationsResponse | ConsultationResponse[]>>(
+      'note/get',
+      params || {},
+      { requireAuth: true }
+    );
+
+    if (response.isSuccess && response.value) {
+      // Проверяем, массив ли это напрямую
+      if (Array.isArray(response.value)) {
+        return response.value.map(consultation => this.normalizeConsultation(consultation));
+      }
+      
+      // Если это объект с data
+      if ('data' in response.value && Array.isArray(response.value.data)) {
+        return response.value.data.map(consultation => this.normalizeConsultation(consultation));
+      }
+    }
+
+    console.warn('Неожиданный формат ответа от сервера при получении списка консультаций:', response);
+    return [];
+  },
+
+  /**
+   * Обновление консультации
+   * PUT /note/update
+   */
+  async update(data: UpdateConsultationRequest): Promise<ConsultationResponse> {
+    const response = await ApiClient.put<ApiResponse<ConsultationResponse>>(
+      'note/update',
+      data,
+      { requireAuth: true }
+    );
+
+    if (response.isSuccess && response.value) {
+      return this.normalizeConsultation(response.value);
+    }
+
+    if (!response.isSuccess && response.error) {
+      const error: any = new Error(response.error);
+      error.status = 400;
+      throw error;
+    }
+
+    throw new Error('Неожиданный формат ответа от сервера');
+  },
+
+  /**
+   * Удаление консультации
+   * DELETE /note/delete/{id}
+   */
+  async delete(id: string | number): Promise<void> {
+    await ApiClient.delete(`note/delete/${id}`, { requireAuth: true });
+  },
+
+  /**
+   * Переобработка консультации
+   * POST /note/reprocess
+   */
+  async reprocess(id: string | number): Promise<ConsultationResponse> {
+    const response = await ApiClient.post<ApiResponse<ConsultationResponse>>(
+      'note/reprocess',
+      { id },
+      { requireAuth: true }
+    );
+
+    if (response.isSuccess && response.value) {
+      return this.normalizeConsultation(response.value);
+    }
+
+    if (!response.isSuccess && response.error) {
+      const error: any = new Error(response.error);
+      error.status = 400;
+      throw error;
+    }
+
+    throw new Error('Неожиданный формат ответа от сервера');
+  },
+
+  /**
+   * Нормализация данных консультации для отображения
+   */
+  normalizeConsultation(consultation: ConsultationResponse): ConsultationResponse {
+    return {
+      ...consultation,
+      id: String(consultation.id),
+      clientId: consultation.clientId ? String(consultation.clientId) : undefined,
+      patientId: consultation.clientId ? String(consultation.clientId) : undefined,
+      patientName: consultation.client ? `${consultation.client.firstName} ${consultation.client.lastName}` : undefined,
+      date: consultation.createdAt || new Date().toISOString(),
+      duration: consultation.audioDuration ? `${Math.floor(consultation.audioDuration / 60)}:${String(consultation.audioDuration % 60).padStart(2, '0')}` : '0:00',
+      transcript: consultation.transcriptionResult || undefined,
+      summary: consultation.summary || undefined,
+      complaints: consultation.complaints || undefined,
+      objective: consultation.objective || undefined,
+      plan: consultation.treatmentPlan || undefined,
+      comments: consultation.comment || undefined,
+    };
+  },
+};
+

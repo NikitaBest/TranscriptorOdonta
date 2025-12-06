@@ -9,7 +9,8 @@ import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { Textarea } from '@/components/ui/textarea';
 import { patientsApi } from '@/lib/api/patients';
-import type { PatientResponse, ConsultationResponse } from '@/lib/api/types';
+import { consultationsApi } from '@/lib/api/consultations';
+import type { PatientResponse } from '@/lib/api/types';
 
 export default function PatientProfile() {
   const { id } = useParams();
@@ -29,7 +30,7 @@ export default function PatientProfile() {
     queryKey: ['patient-consultations', id],
     queryFn: () => {
       if (!id) return [];
-      return patientsApi.getConsultations(id);
+      return consultationsApi.get({ clientId: id });
     },
     enabled: !!id && !!patientData,
   });

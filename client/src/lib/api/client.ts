@@ -15,6 +15,7 @@ export class ApiClient {
     options?: {
       headers?: Record<string, string>;
       requireAuth?: boolean;
+      isFormData?: boolean;
     }
   ): Promise<T> {
     const url = getApiUrl(path);
@@ -22,8 +23,8 @@ export class ApiClient {
       ...options?.headers,
     };
 
-    // Добавляем Content-Type для запросов с телом
-    if (data) {
+    // Для FormData не добавляем Content-Type, браузер установит его автоматически с boundary
+    if (data && !options?.isFormData) {
       headers['Content-Type'] = 'application/json';
     }
 
@@ -36,7 +37,7 @@ export class ApiClient {
     }
 
     try {
-      console.log(`[API] ${method} ${url}`, data ? { body: data } : '');
+      console.log(`[API] ${method} ${url}`, options?.isFormData ? '[FormData]' : data ? { body: data } : '');
       console.log(`[API] Headers:`, headers);
       
       // Не используем credentials для всех запросов, так как мы используем Bearer token в заголовке
@@ -47,7 +48,7 @@ export class ApiClient {
       const response = await fetch(url, {
         method,
         headers,
-        body: data ? JSON.stringify(data) : undefined,
+        body: options?.isFormData ? (data as FormData) : (data ? JSON.stringify(data) : undefined),
         credentials: useCredentials ? 'include' : 'omit',
         mode: 'cors', // Явно указываем CORS режим
       });
@@ -112,7 +113,8 @@ export class ApiClient {
       const contentType = response.headers.get('content-type');
       if (contentType && contentType.includes('application/json')) {
         const errorData = await response.json();
-        errorMessage = errorData.message || errorData.error || errorMessage;
+        // Бэкенд может возвращать ошибку в поле error (ApiResponse формат)
+        errorMessage = errorData.message || errorData.error || (errorData.value === null && errorData.isSuccess === false ? errorData.error : null) || errorMessage;
         errors = errorData.errors;
       } else {
         const text = await response.text();
