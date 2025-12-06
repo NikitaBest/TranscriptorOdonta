@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useParams, Link, useLocation } from 'wouter';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Layout } from '@/components/layout';
@@ -37,6 +37,16 @@ export default function ConsultationPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isReprocessing, setIsReprocessing] = useState(false);
   const [reprocessDialogOpen, setReprocessDialogOpen] = useState(false);
+  
+  // Состояния для редактирования полей отчета
+  const [complaints, setComplaints] = useState('');
+  const [objective, setObjective] = useState('');
+  const [treatmentPlan, setTreatmentPlan] = useState('');
+  const [summary, setSummary] = useState('');
+  const [comment, setComment] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Загрузка данных консультации с периодической проверкой статуса
   const { data: consultationData, isLoading, error } = useQuery({
@@ -84,6 +94,87 @@ export default function ConsultationPage() {
     patientName: consultation.patientName || 
                  (patientData ? `${patientData.firstName} ${patientData.lastName}` : undefined),
   } : null;
+
+  // Синхронизируем локальные состояния с данными из API
+  useEffect(() => {
+    if (enrichedConsultation) {
+      setComplaints(enrichedConsultation.complaints || '');
+      setObjective(enrichedConsultation.objective || '');
+      setTreatmentPlan(enrichedConsultation.plan || '');
+      setSummary(enrichedConsultation.summary || '');
+      setComment(enrichedConsultation.comments || '');
+    }
+  }, [enrichedConsultation?.complaints, enrichedConsultation?.objective, enrichedConsultation?.plan, enrichedConsultation?.summary, enrichedConsultation?.comments]);
+
+  // Автосохранение полей отчета с debounce
+  useEffect(() => {
+    if (!id || !enrichedConsultation) return;
+    
+    // Очищаем предыдущий таймер
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    // Проверяем, изменились ли какие-либо поля
+    const hasChanges = 
+      complaints !== (enrichedConsultation.complaints || '') ||
+      objective !== (enrichedConsultation.objective || '') ||
+      treatmentPlan !== (enrichedConsultation.plan || '') ||
+      summary !== (enrichedConsultation.summary || '') ||
+      comment !== (enrichedConsultation.comments || '');
+
+    if (!hasChanges) {
+      return;
+    }
+
+    // Устанавливаем новый таймер для автосохранения (через 1 секунду после последнего изменения)
+    saveTimeoutRef.current = setTimeout(async () => {
+      setIsSaving(true);
+      setIsSaved(false);
+      
+      try {
+        await consultationsApi.update({
+          id,
+          complaints: complaints.trim() || undefined,
+          objective: objective.trim() || undefined,
+          treatmentPlan: treatmentPlan.trim() || undefined,
+          summary: summary.trim() || undefined,
+          comment: comment.trim() || undefined,
+        });
+
+        // Обновляем кэш
+        queryClient.setQueryData(['consultation', id], {
+          ...enrichedConsultation,
+          complaints: complaints.trim() || null,
+          objective: objective.trim() || null,
+          plan: treatmentPlan.trim() || null,
+          summary: summary.trim() || null,
+          comments: comment.trim() || null,
+        });
+
+        setIsSaved(true);
+        
+        // Скрываем индикатор сохранения через 2 секунды
+        setTimeout(() => setIsSaved(false), 2000);
+      } catch (error) {
+        console.error('Auto-save consultation error:', error);
+        toast({
+          title: "Ошибка сохранения",
+          description: "Не удалось сохранить изменения. Попробуйте еще раз.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsSaving(false);
+      }
+    }, 1000); // Сохраняем через 1 секунду после последнего изменения
+
+    // Очистка при размонтировании
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [complaints, objective, treatmentPlan, summary, comment, id, enrichedConsultation, queryClient, toast]);
   
   // Определяем статус обработки
   const processingStatus = enrichedConsultation?.processingStatus ?? 
@@ -380,11 +471,49 @@ export default function ConsultationPage() {
                   </Card>
                 ) : (
                   <>
-                    <ReportSection title="Жалобы" content={enrichedConsultation.complaints || 'Не указано'} />
-                    <ReportSection title="Объективный статус" content={enrichedConsultation.objective || 'Не указано'} />
-                    <ReportSection title="План лечения" content={enrichedConsultation.plan || 'Не указано'} />
-                    <ReportSection title="Выжимка" content={enrichedConsultation.summary || 'Не указано'} />
-                    <ReportSection title="Комментарий врача" content={enrichedConsultation.comments || 'Не указано'} isPrivate />
+                    {isSaving && (
+                      <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-4">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Сохранение изменений...</span>
+                      </div>
+                    )}
+                    {isSaved && !isSaving && (
+                      <div className="flex items-center justify-center gap-2 text-sm text-green-600 mb-4">
+                        <Check className="w-4 h-4" />
+                        <span>Изменения сохранены</span>
+                      </div>
+                    )}
+                    <ReportSection 
+                      title="Жалобы" 
+                      content={complaints} 
+                      onChange={setComplaints}
+                      placeholder="Не указано"
+                    />
+                    <ReportSection 
+                      title="Объективный статус" 
+                      content={objective} 
+                      onChange={setObjective}
+                      placeholder="Не указано"
+                    />
+                    <ReportSection 
+                      title="План лечения" 
+                      content={treatmentPlan} 
+                      onChange={setTreatmentPlan}
+                      placeholder="Не указано"
+                    />
+                    <ReportSection 
+                      title="Выжимка" 
+                      content={summary} 
+                      onChange={setSummary}
+                      placeholder="Не указано"
+                    />
+                    <ReportSection 
+                      title="Комментарий врача" 
+                      content={comment} 
+                      onChange={setComment}
+                      placeholder="Не указано"
+                      isPrivate 
+                    />
                   </>
                 )}
               </TabsContent>
@@ -436,7 +565,7 @@ export default function ConsultationPage() {
                     >
                       <RefreshCw className={cn("w-4 h-4", isReprocessing && "animate-spin")} /> 
                       {isReprocessing ? "Переобработка..." : "Пересоздать отчет"}
-                    </Button>
+                </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent className="rounded-3xl">
                     <AlertDialogHeader>
@@ -489,34 +618,42 @@ export default function ConsultationPage() {
   );
 }
 
-function ReportSection({ title, content, isPrivate = false }: { title: string, content: string, isPrivate?: boolean }) {
+function ReportSection({ 
+  title, 
+  content, 
+  onChange,
+  placeholder = '',
+  isPrivate = false 
+}: { 
+  title: string; 
+  content: string; 
+  onChange?: (value: string) => void;
+  placeholder?: string;
+  isPrivate?: boolean;
+}) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const startYRef = useRef(0);
-  const startHeightRef = useRef(0);
+  const isEditable = !!onChange;
 
-  const handleResizeStart = (event: React.MouseEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    if (!textareaRef.current) return;
+  // Автоматическое изменение высоты textarea при изменении содержимого
+  useEffect(() => {
+    if (textareaRef.current) {
+      // Сбрасываем высоту, чтобы получить правильный scrollHeight
+      textareaRef.current.style.height = 'auto';
+      // Устанавливаем высоту на основе содержимого
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [content]);
 
-    startYRef.current = event.clientY;
-    startHeightRef.current = textareaRef.current.offsetHeight;
-
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!textareaRef.current) return;
-      const delta = e.clientY - startYRef.current;
-      const min = 120;
-      const max = 480;
-      const next = Math.min(Math.max(startHeightRef.current + delta, min), max);
-      textareaRef.current.style.height = `${next}px`;
-    };
-
-    const handleMouseUp = () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value;
+    if (onChange) {
+      onChange(newValue);
+    }
+    // Автоматически изменяем высоту при вводе
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
   };
 
   return (
@@ -527,18 +664,22 @@ function ReportSection({ title, content, isPrivate = false }: { title: string, c
            {isPrivate && <span className="text-[10px] uppercase tracking-wider font-bold bg-secondary px-2 py-1 rounded text-muted-foreground">Личное</span>}
         </div>
       </div>
-      <div className="relative pb-6">
+      <div className="relative">
       <Textarea 
           ref={textareaRef}
-          className="min-h-[120px] max-h-[480px] w-full border-none resize-none focus-visible:ring-0 bg-transparent pr-10 pt-4 pl-4 text-base leading-relaxed text-muted-foreground focus:text-foreground transition-colors break-words"
-        defaultValue={content}
+          className={cn(
+            "min-h-[120px] w-full border-none resize-none focus-visible:ring-1 focus-visible:ring-ring bg-transparent pt-4 pl-4 pr-4 pb-4 text-base leading-relaxed break-words overflow-hidden transition-colors",
+            isEditable 
+              ? "text-foreground focus:text-foreground" 
+              : "text-muted-foreground focus:text-foreground"
+          )}
+        value={content || ''}
+        onChange={handleChange}
+        readOnly={!isEditable}
+        disabled={!isEditable}
+        placeholder={placeholder}
+        rows={1}
       />
-        <div
-          className="absolute bottom-1 left-1/2 flex h-6 w-10 -translate-x-1/2 items-center justify-center rounded-full text-muted-foreground/60 cursor-ns-resize"
-          onMouseDown={handleResizeStart}
-        >
-          <GripVertical className="h-3 w-3" />
-        </div>
       </div>
     </Card>
   );
