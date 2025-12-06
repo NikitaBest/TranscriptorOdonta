@@ -1,19 +1,28 @@
+import { useState, useEffect, useRef } from 'react';
 import { Link, useParams } from 'wouter';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Layout } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Mic, ArrowLeft, Phone, Calendar, FileText, Play, Loader2 } from 'lucide-react';
+import { Mic, ArrowLeft, Phone, Calendar, FileText, Play, Loader2, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { Textarea } from '@/components/ui/textarea';
 import { patientsApi } from '@/lib/api/patients';
 import { consultationsApi } from '@/lib/api/consultations';
-import type { PatientResponse } from '@/lib/api/types';
+import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
+import type { PatientResponse, ConsultationResponse } from '@/lib/api/types';
 
 export default function PatientProfile() {
   const { id } = useParams();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [comment, setComment] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Загрузка данных пациента
   const { data: patientData, isLoading: isLoadingPatient, error: patientError } = useQuery({
@@ -24,6 +33,76 @@ export default function PatientProfile() {
     },
     enabled: !!id,
   });
+
+  // Синхронизируем локальное состояние с данными из API
+  useEffect(() => {
+    if (patientData?.comment !== undefined) {
+      setComment(patientData.comment || '');
+    }
+  }, [patientData?.comment]);
+
+  // Автосохранение комментария с debounce
+  useEffect(() => {
+    if (!id || !patientData) return;
+    
+    // Очищаем предыдущий таймер
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    // Получаем исходное значение комментария из patientData
+    const originalComment = patientData.comment || '';
+    const currentComment = comment || '';
+    
+    // Если комментарий не изменился, не сохраняем
+    if (currentComment === originalComment) {
+      return;
+    }
+
+    // Устанавливаем новый таймер для автосохранения (через 1 секунду после последнего изменения)
+    saveTimeoutRef.current = setTimeout(async () => {
+      setIsSaving(true);
+      setIsSaved(false);
+      
+      try {
+        const updatedPatient = await patientsApi.update({
+          id,
+          firstName: patientData.firstName,
+          lastName: patientData.lastName,
+          phone: patientData.phone || '',
+          comment: currentComment.trim() || undefined,
+        });
+
+        // Обновляем кэш с новыми данными
+        queryClient.setQueryData(['patient', id], {
+          ...patientData,
+          comment: currentComment.trim() || null,
+          updatedAt: updatedPatient.updatedAt || patientData.updatedAt,
+        });
+
+        setIsSaved(true);
+        
+        // Скрываем индикатор сохранения через 2 секунды
+        setTimeout(() => setIsSaved(false), 2000);
+      } catch (error) {
+        console.error('Auto-save comment error:', error);
+        toast({
+          title: "Ошибка сохранения",
+          description: "Не удалось сохранить заметки. Попробуйте еще раз.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsSaving(false);
+      }
+    }, 1000); // Сохраняем через 1 секунду после последнего изменения
+
+    // Очистка при размонтировании
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [comment, id, patientData, queryClient, toast]);
 
   // Загрузка консультаций пациента
   const { data: consultationsData = [], isLoading: isLoadingConsultations } = useQuery({
@@ -204,13 +283,31 @@ export default function PatientProfile() {
 
           {/* Sidebar - Notes */}
           <div className="space-y-4 md:space-y-6">
-            <h2 className="text-lg md:text-xl font-display font-bold">Заметки врача</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg md:text-xl font-display font-bold">Заметки врача</h2>
+              {isSaving && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Сохранение...</span>
+                </div>
+              )}
+              {isSaved && !isSaving && (
+                <div className="flex items-center gap-2 text-sm text-green-600">
+                  <Check className="w-4 h-4" />
+                  <span>Сохранено</span>
+                </div>
+              )}
+            </div>
             <Card className="border-border/50 rounded-3xl shadow-sm overflow-hidden">
               <Textarea 
                 placeholder="Добавить личные заметки о пациенте..." 
-                className="min-h-[200px] w-full border-none resize-none focus-visible:ring-0 bg-transparent p-4 text-sm leading-relaxed break-words"
-                value={patientData?.comment || ''}
-                readOnly
+                className={cn(
+                  "min-h-[200px] w-full border-none resize-y focus-visible:ring-1 focus-visible:ring-ring bg-transparent p-4 text-sm leading-relaxed break-words transition-colors",
+                  isSaving && "opacity-70"
+                )}
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                disabled={isLoadingPatient || !patientData}
               />
             </Card>
           </div>
