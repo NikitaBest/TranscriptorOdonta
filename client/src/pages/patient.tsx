@@ -30,7 +30,12 @@ export default function PatientProfile() {
     queryKey: ['patient-consultations', id],
     queryFn: () => {
       if (!id) return [];
-      return consultationsApi.get({ clientId: id });
+      return consultationsApi.get({ 
+        pageNumber: 1,
+        pageSize: 100,
+        clientIds: [id], // Используем массив clientIds
+        order: '-createdAt'
+      });
     },
     enabled: !!id && !!patientData,
   });

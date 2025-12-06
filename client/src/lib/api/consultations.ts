@@ -147,9 +147,25 @@ export const consultationsApi = {
    * POST /note/get
    */
   async get(params?: GetConsultationsRequest): Promise<ConsultationResponse[]> {
+    // Формируем тело запроса согласно API
+    const requestBody: any = {
+      pageNumber: params?.pageNumber ?? 1,
+      pageSize: params?.pageSize ?? 20,
+    };
+    
+    // Добавляем clientIds только если они указаны и массив не пустой
+    if (params?.clientIds && params.clientIds.length > 0) {
+      requestBody.clientIds = params.clientIds;
+    }
+    
+    // Добавляем order если указан
+    if (params?.order) {
+      requestBody.order = params.order;
+    }
+    
     const response = await ApiClient.post<ApiResponse<GetConsultationsResponse | ConsultationResponse[]>>(
       'note/get',
-      params || {},
+      requestBody,
       { requireAuth: true }
     );
 

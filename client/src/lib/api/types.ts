@@ -184,10 +184,10 @@ export interface ConsultationResponse {
  * POST /note/get
  */
 export interface GetConsultationsRequest {
-  page?: number;
+  pageNumber?: number;
   pageSize?: number;
-  clientId?: string | number;
-  search?: string;
+  clientIds?: (string | number)[];
+  order?: string;
 }
 
 /**
