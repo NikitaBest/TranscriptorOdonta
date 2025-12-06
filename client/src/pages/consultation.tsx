@@ -468,9 +468,6 @@ export default function ConsultationPage() {
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
-                <Button variant="secondary" className="w-full justify-start rounded-xl h-12 gap-3">
-                  <Check className="w-4 h-4" /> Проверить по протоколам
-                </Button>
               </CardContent>
             </Card>
 
