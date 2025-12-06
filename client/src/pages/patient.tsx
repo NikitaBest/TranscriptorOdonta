@@ -23,6 +23,7 @@ export default function PatientProfile() {
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   // Загрузка данных пациента
   const { data: patientData, isLoading: isLoadingPatient, error: patientError } = useQuery({
@@ -40,6 +41,16 @@ export default function PatientProfile() {
       setComment(patientData.comment || '');
     }
   }, [patientData?.comment]);
+
+  // Автоматическое изменение высоты textarea при изменении содержимого
+  useEffect(() => {
+    if (textareaRef.current) {
+      // Сбрасываем высоту, чтобы получить правильный scrollHeight
+      textareaRef.current.style.height = 'auto';
+      // Устанавливаем высоту на основе содержимого
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [comment]);
 
   // Автосохранение комментария с debounce
   useEffect(() => {
@@ -209,8 +220,8 @@ export default function PatientProfile() {
             <div className="flex gap-2 md:gap-3 w-full md:w-auto">
               <Link href={`/patient/${patient.id}/edit`} className="flex-1 md:flex-none">
                 <Button variant="outline" className="w-full md:w-auto rounded-xl h-11 md:h-12 border-border/50 text-sm md:text-base">
-                  Редактировать
-                </Button>
+                Редактировать
+              </Button>
               </Link>
               <Link href={`/record?patientId=${patient.id}`} className="flex-1 md:flex-none">
                 <Button className="w-full md:w-auto rounded-xl h-11 md:h-12 gap-2 shadow-lg shadow-primary/20 text-sm md:text-base">
@@ -235,7 +246,7 @@ export default function PatientProfile() {
                 </div>
               ) : (
                 <>
-                  {consultations.map(consultation => (
+              {consultations.map(consultation => (
                 <Link key={consultation.id} href={`/consultation/${consultation.id}`}>
                   <Card className="group cursor-pointer hover:shadow-md transition-all duration-300 border-border/50 rounded-3xl overflow-hidden hover:border-primary/20">
                     <CardContent className="p-6">
@@ -266,15 +277,15 @@ export default function PatientProfile() {
                     </CardContent>
                   </Card>
                 </Link>
-                  ))}
-                  
-                  {consultations.length === 0 && (
-                    <div className="text-center py-12 bg-secondary/20 rounded-3xl border border-dashed border-border">
-                      <p className="text-muted-foreground">Консультаций пока нет.</p>
-                      <Link href={`/record?patientId=${patient.id}`}>
-                        <Button variant="link" className="mt-2">Начать первую консультацию</Button>
-                      </Link>
-                    </div>
+              ))}
+              
+              {consultations.length === 0 && (
+                <div className="text-center py-12 bg-secondary/20 rounded-3xl border border-dashed border-border">
+                  <p className="text-muted-foreground">Консультаций пока нет.</p>
+                  <Link href={`/record?patientId=${patient.id}`}>
+                    <Button variant="link" className="mt-2">Начать первую консультацию</Button>
+                  </Link>
+                </div>
                   )}
                 </>
               )}
@@ -284,7 +295,7 @@ export default function PatientProfile() {
           {/* Sidebar - Notes */}
           <div className="space-y-4 md:space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg md:text-xl font-display font-bold">Заметки врача</h2>
+            <h2 className="text-lg md:text-xl font-display font-bold">Заметки врача</h2>
               {isSaving && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -300,14 +311,23 @@ export default function PatientProfile() {
             </div>
             <Card className="border-border/50 rounded-3xl shadow-sm overflow-hidden">
               <Textarea 
+                ref={textareaRef}
                 placeholder="Добавить личные заметки о пациенте..." 
                 className={cn(
-                  "min-h-[200px] w-full border-none resize-y focus-visible:ring-1 focus-visible:ring-ring bg-transparent p-4 text-sm leading-relaxed break-words transition-colors",
+                  "min-h-[200px] w-full border-none resize-none focus-visible:ring-1 focus-visible:ring-ring bg-transparent p-4 text-sm leading-relaxed break-words transition-colors overflow-hidden",
                   isSaving && "opacity-70"
                 )}
                 value={comment}
-                onChange={(e) => setComment(e.target.value)}
+                onChange={(e) => {
+                  setComment(e.target.value);
+                  // Автоматически изменяем высоту при вводе
+                  if (textareaRef.current) {
+                    textareaRef.current.style.height = 'auto';
+                    textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+                  }
+                }}
                 disabled={isLoadingPatient || !patientData}
+                rows={1}
               />
             </Card>
           </div>
