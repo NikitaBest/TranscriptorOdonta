@@ -3,7 +3,7 @@ import { useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { Layout } from '@/components/layout';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -25,6 +25,7 @@ export default function RecordPage() {
   
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(initialPatientId);
   const [patientSheetOpen, setPatientSheetOpen] = useState(false);
+  const [patientPopoverOpen, setPatientPopoverOpen] = useState(false);
   const [patientSearch, setPatientSearch] = useState('');
 
   // Загрузка списка пациентов
@@ -414,41 +415,85 @@ export default function RecordPage() {
                   Выберите пациента
                 </label>
                 
-                {/* Desktop: Select (patient is required) */}
+                {/* Desktop: Popover with Command for search */}
                 {!isMobile && (
-                  <Select 
-                    value={selectedPatientId ?? undefined}
-                    onValueChange={(value) => setSelectedPatientId(value)}
-                  >
-                    <SelectTrigger className="w-full h-12 rounded-xl text-base bg-background border-border/50">
-                      <SelectValue placeholder="Выберите пациента">
-                        {patient ? `${patient.firstName} ${patient.lastName}` : "Пациент не выбран"}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl">
-                      {isLoadingPatients ? (
-                        <div className="p-4 text-center text-sm text-muted-foreground">
-                          <Loader2 className="w-4 h-4 animate-spin mx-auto mb-2" />
-                          Загрузка пациентов...
+                  <Popover open={patientPopoverOpen} onOpenChange={setPatientPopoverOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full h-12 rounded-xl text-base bg-background border-border/50 justify-between"
+                      >
+                        <div className="flex items-center gap-2">
+                          {patient ? (
+                            <>
+                              <Avatar className="w-6 h-6 rounded-lg">
+                                <AvatarFallback className="rounded-lg text-xs bg-secondary">
+                                  {patient.avatar || `${patient.firstName[0]}${patient.lastName[0]}`}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="font-medium">{patient.firstName} {patient.lastName}</span>
+                            </>
+                          ) : (
+                            <>
+                              <User className="w-4 h-4 text-muted-foreground" />
+                              <span>Выберите пациента</span>
+                            </>
+                          )}
                         </div>
-                      ) : filteredPatients.length === 0 ? (
-                        <div className="p-4 text-center text-sm text-muted-foreground">
-                          Пациенты не найдены
-                        </div>
-                      ) : (
-                        filteredPatients.map((p: PatientResponse) => (
-                          <SelectItem key={p.id} value={String(p.id)} className="rounded-lg">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium">{p.firstName} {p.lastName}</span>
-                              {p.phone && (
-                                <span className="text-xs text-muted-foreground">({p.phone})</span>
-                              )}
+                        <ChevronRight className="w-4 h-4 text-muted-foreground rotate-90" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 rounded-xl" align="start">
+                      <Command>
+                        <CommandInput 
+                          placeholder="Поиск по имени или телефону..." 
+                          className="h-12 text-base"
+                          value={patientSearch}
+                          onValueChange={setPatientSearch}
+                        />
+                        <CommandList className="max-h-[300px]">
+                          {isLoadingPatients ? (
+                            <div className="p-4 text-center text-sm text-muted-foreground">
+                              <Loader2 className="w-4 h-4 animate-spin mx-auto mb-2" />
+                              Загрузка пациентов...
                             </div>
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
+                          ) : (
+                            <>
+                              <CommandEmpty>Пациенты не найдены</CommandEmpty>
+                              <CommandGroup>
+                                {filteredPatients.map((p: PatientResponse) => (
+                                  <CommandItem
+                                    key={p.id}
+                                    value={`${p.firstName} ${p.lastName} ${p.phone || ''}`}
+                                    onSelect={() => {
+                                      setSelectedPatientId(String(p.id));
+                                      setPatientPopoverOpen(false);
+                                      setPatientSearch('');
+                                    }}
+                                    className="rounded-lg cursor-pointer"
+                                  >
+                                    <div className="flex items-center gap-3 w-full">
+                                      <Avatar className="w-8 h-8 rounded-lg">
+                                        <AvatarFallback className="rounded-lg bg-secondary">
+                                          {`${p.firstName[0]}${p.lastName[0]}`.toUpperCase()}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="font-medium truncate">{p.firstName} {p.lastName}</div>
+                                        {p.phone && (
+                                          <div className="text-xs text-muted-foreground truncate">{p.phone}</div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </>
+                          )}
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 )}
 
                 {/* Mobile: Sheet with Command */}
