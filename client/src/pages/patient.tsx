@@ -5,12 +5,13 @@ import { Layout } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Mic, ArrowLeft, Phone, Calendar, FileText, Play, Loader2, Check } from 'lucide-react';
+import { Mic, ArrowLeft, Phone, Calendar, FileText, Play, Loader2, Check, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { Textarea } from '@/components/ui/textarea';
 import { patientsApi } from '@/lib/api/patients';
 import { consultationsApi } from '@/lib/api/consultations';
+import { ConsultationProcessingStatus } from '@/lib/api/types';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { PatientResponse, ConsultationResponse } from '@/lib/api/types';
@@ -149,6 +150,7 @@ export default function PatientProfile() {
     date: c.date,
     duration: c.duration,
     status: c.status,
+    processingStatus: c.processingStatus ?? (c.status as ConsultationProcessingStatus) ?? ConsultationProcessingStatus.None,
     summary: c.summary,
     complaints: c.complaints,
     objective: c.objective,
@@ -157,6 +159,22 @@ export default function PatientProfile() {
     transcript: c.transcript,
     audioUrl: c.audioUrl,
   }));
+
+  // Получаем текстовое описание статуса
+  const getStatusText = (status: ConsultationProcessingStatus) => {
+    switch (status) {
+      case ConsultationProcessingStatus.None:
+        return 'Ожидание обработки';
+      case ConsultationProcessingStatus.InProgress:
+        return 'Обработка...';
+      case ConsultationProcessingStatus.Failed:
+        return 'Ошибка обработки';
+      case ConsultationProcessingStatus.Completed:
+        return 'Готово';
+      default:
+        return 'Неизвестный статус';
+    }
+  };
 
   // Состояния загрузки и ошибок
   if (isLoadingPatient) {
@@ -278,7 +296,7 @@ export default function PatientProfile() {
           {/* Main Content - History (вторым на мобильных, первым на десктопе) */}
           <div className="order-2 lg:order-1 lg:col-span-2 space-y-4 md:space-y-6">
             <h2 className="text-lg md:text-xl font-display font-bold">История консультаций</h2>
-            <div className="space-y-4">
+            <div className="space-y-6 md:space-y-8">
               {isLoadingConsultations ? (
                 <div className="text-center py-12">
                   <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
@@ -287,8 +305,9 @@ export default function PatientProfile() {
               ) : (
                 <>
               {consultations.map(consultation => (
-                <Link key={consultation.id} href={`/consultation/${consultation.id}`}>
-                  <Card className="group cursor-pointer hover:shadow-md transition-all duration-300 border-border/50 rounded-3xl overflow-hidden hover:border-primary/20">
+                <div key={consultation.id}>
+                  <Link href={`/consultation/${consultation.id}`} className="block">
+                    <Card className="group cursor-pointer hover:shadow-md transition-all duration-300 border-border/50 rounded-3xl overflow-hidden hover:border-primary/20">
                     <CardContent className="p-6">
                       <div className="flex justify-between items-start mb-4">
                         <div className="flex items-center gap-3">
@@ -302,8 +321,23 @@ export default function PatientProfile() {
                             </div>
                           </div>
                         </div>
-                        <div className="px-3 py-1 rounded-full bg-secondary text-xs font-medium">
-                          {consultation.duration}
+                        <div className="flex items-center gap-2">
+                          {/* Статус обработки */}
+                          {consultation.processingStatus === ConsultationProcessingStatus.InProgress || 
+                           consultation.processingStatus === ConsultationProcessingStatus.None ? (
+                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20">
+                              <Loader2 className="w-3 h-3 animate-spin text-primary" />
+                              <span className="text-xs font-medium text-primary">{getStatusText(consultation.processingStatus)}</span>
+                            </div>
+                          ) : consultation.processingStatus === ConsultationProcessingStatus.Failed ? (
+                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-destructive/10 border border-destructive/20">
+                              <AlertCircle className="w-3 h-3 text-destructive" />
+                              <span className="text-xs font-medium text-destructive">{getStatusText(consultation.processingStatus)}</span>
+                            </div>
+                          ) : null}
+                          <div className="px-3 py-1 rounded-full bg-secondary text-xs font-medium">
+                            {consultation.duration}
+                          </div>
                         </div>
                       </div>
                       <p className="text-sm text-muted-foreground line-clamp-2 mb-4 pl-[3.25rem]">
@@ -317,6 +351,7 @@ export default function PatientProfile() {
                     </CardContent>
                   </Card>
                 </Link>
+                </div>
               ))}
               
               {consultations.length === 0 && (
