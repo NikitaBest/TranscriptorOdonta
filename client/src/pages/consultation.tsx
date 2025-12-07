@@ -26,6 +26,8 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 export default function ConsultationPage() {
   const { id } = useParams();
@@ -241,6 +243,195 @@ export default function ConsultationPage() {
     });
   };
 
+  const handleDownloadPDF = async () => {
+    if (!enrichedConsultation) return;
+
+    try {
+      // Создаем временный контейнер для PDF контента
+      const pdfContainer = document.createElement('div');
+      pdfContainer.style.position = 'absolute';
+      pdfContainer.style.left = '-9999px';
+      pdfContainer.style.width = '800px';
+      pdfContainer.style.padding = '40px';
+      pdfContainer.style.backgroundColor = '#ffffff';
+      pdfContainer.style.fontFamily = 'system-ui, -apple-system, sans-serif';
+      pdfContainer.style.color = '#000000';
+      pdfContainer.style.lineHeight = '1.6';
+
+      // Заголовок
+      const title = document.createElement('h1');
+      title.textContent = 'Медицинский отчет';
+      title.style.fontSize = '24px';
+      title.style.fontWeight = 'bold';
+      title.style.marginBottom = '20px';
+      title.style.color = '#000000';
+      pdfContainer.appendChild(title);
+
+      // Информация о консультации
+      const info = document.createElement('div');
+      info.style.fontSize = '14px';
+      info.style.color = '#666666';
+      info.style.marginBottom = '20px';
+      info.style.paddingBottom = '20px';
+      info.style.borderBottom = '1px solid #e0e0e0';
+      const consultationInfo = [
+        enrichedConsultation.date ? format(new Date(enrichedConsultation.date), 'd MMMM yyyy', { locale: ru }) : 'Дата не указана',
+        `Длительность: ${enrichedConsultation.duration || '0:00'}`,
+        `Пациент: ${enrichedConsultation.patientName || 'Не указан'}`,
+      ].filter(Boolean).join(' • ');
+      info.textContent = consultationInfo;
+      pdfContainer.appendChild(info);
+
+      // Функция для создания секции
+      const createSection = (sectionTitle: string, content: string) => {
+        const section = document.createElement('div');
+        section.style.marginBottom = '30px';
+
+        const title = document.createElement('h2');
+        title.textContent = sectionTitle;
+        title.style.fontSize = '18px';
+        title.style.fontWeight = 'bold';
+        title.style.marginBottom = '10px';
+        title.style.color = '#000000';
+        section.appendChild(title);
+
+        const text = document.createElement('p');
+        text.textContent = content || 'Не указано';
+        text.style.fontSize = '14px';
+        text.style.color = '#333333';
+        text.style.whiteSpace = 'pre-wrap';
+        text.style.wordWrap = 'break-word';
+        section.appendChild(text);
+
+        return section;
+      };
+
+      // Добавляем секции
+      pdfContainer.appendChild(createSection('Жалобы', complaints || enrichedConsultation.complaints || ''));
+      pdfContainer.appendChild(createSection('Объективный статус', objective || enrichedConsultation.objective || ''));
+      pdfContainer.appendChild(createSection('План лечения', treatmentPlan || enrichedConsultation.treatmentPlan || ''));
+      pdfContainer.appendChild(createSection('Выжимка', summary || enrichedConsultation.summary || ''));
+
+      if (comment || enrichedConsultation.comment) {
+        const commentSection = createSection('Комментарий врача', comment || enrichedConsultation.comment || '');
+        commentSection.style.color = '#666666';
+        pdfContainer.appendChild(commentSection);
+      }
+
+      // Добавляем контейнер в DOM
+      document.body.appendChild(pdfContainer);
+
+      // Конвертируем в canvas
+      const canvas = await html2canvas(pdfContainer, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+      });
+
+      // Удаляем временный контейнер
+      document.body.removeChild(pdfContainer);
+
+      // Создаем PDF
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+      const imgScaledWidth = imgWidth * ratio;
+      const imgScaledHeight = imgHeight * ratio;
+
+      // Если контент не помещается на одну страницу, разбиваем на несколько
+      const pageHeight = pdfHeight;
+      let heightLeft = imgScaledHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, imgScaledWidth, imgScaledHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft > 0) {
+        position = heightLeft - imgScaledHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgScaledWidth, imgScaledHeight);
+        heightLeft -= pageHeight;
+      }
+
+      // Добавляем транскрипцию на отдельной странице, если есть
+      if (enrichedConsultation.transcript) {
+        pdf.addPage();
+        const transcriptContainer = document.createElement('div');
+        transcriptContainer.style.position = 'absolute';
+        transcriptContainer.style.left = '-9999px';
+        transcriptContainer.style.width = '800px';
+        transcriptContainer.style.padding = '40px';
+        transcriptContainer.style.backgroundColor = '#ffffff';
+        transcriptContainer.style.fontFamily = 'system-ui, -apple-system, sans-serif';
+        transcriptContainer.style.color = '#000000';
+
+        const transcriptTitle = document.createElement('h1');
+        transcriptTitle.textContent = 'Транскрипция';
+        transcriptTitle.style.fontSize = '24px';
+        transcriptTitle.style.fontWeight = 'bold';
+        transcriptTitle.style.marginBottom = '20px';
+        transcriptContainer.appendChild(transcriptTitle);
+
+        const transcriptText = document.createElement('p');
+        transcriptText.textContent = enrichedConsultation.transcript;
+        transcriptText.style.fontSize = '12px';
+        transcriptText.style.color = '#333333';
+        transcriptText.style.whiteSpace = 'pre-wrap';
+        transcriptText.style.wordWrap = 'break-word';
+        transcriptText.style.fontFamily = 'monospace';
+        transcriptContainer.appendChild(transcriptText);
+
+        document.body.appendChild(transcriptContainer);
+        const transcriptCanvas = await html2canvas(transcriptContainer, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: '#ffffff',
+        });
+        document.body.removeChild(transcriptContainer);
+
+        const transcriptImgData = transcriptCanvas.toDataURL('image/png');
+        const transcriptImgWidth = transcriptCanvas.width;
+        const transcriptImgHeight = transcriptCanvas.height;
+        const transcriptRatio = Math.min(pdfWidth / transcriptImgWidth, pdfHeight / transcriptImgHeight);
+        const transcriptImgScaledWidth = transcriptImgWidth * transcriptRatio;
+        const transcriptImgScaledHeight = transcriptImgHeight * transcriptRatio;
+
+        let transcriptHeightLeft = transcriptImgScaledHeight;
+        let transcriptPosition = 0;
+
+        pdf.addImage(transcriptImgData, 'PNG', 0, transcriptPosition, transcriptImgScaledWidth, transcriptImgScaledHeight);
+        transcriptHeightLeft -= pageHeight;
+
+        while (transcriptHeightLeft > 0) {
+          transcriptPosition = transcriptHeightLeft - transcriptImgScaledHeight;
+          pdf.addPage();
+          pdf.addImage(transcriptImgData, 'PNG', 0, transcriptPosition, transcriptImgScaledWidth, transcriptImgScaledHeight);
+          transcriptHeightLeft -= pageHeight;
+        }
+      }
+
+      // Сохраняем PDF
+      const fileName = `consultation_${enrichedConsultation.id}_${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+      pdf.save(fileName);
+
+      toast({
+        title: "PDF скачан",
+        description: "Медицинский отчет успешно сохранен в PDF.",
+      });
+    } catch (error) {
+      console.error('PDF generation error:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось создать PDF файл. Попробуйте еще раз.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleReprocess = async () => {
     if (!id) return;
     
@@ -343,7 +534,12 @@ export default function ConsultationPage() {
             <Button variant="outline" className="flex-1 md:flex-none rounded-xl gap-2 h-11 md:h-12 text-sm md:text-base" onClick={handleShare}>
               <Share2 className="w-4 h-4" /> <span className="hidden sm:inline">Поделиться</span>
             </Button>
-            <Button variant="outline" className="flex-1 md:flex-none rounded-xl gap-2 h-11 md:h-12 text-sm md:text-base">
+            <Button 
+              variant="outline" 
+              className="flex-1 md:flex-none rounded-xl gap-2 h-11 md:h-12 text-sm md:text-base"
+              onClick={handleDownloadPDF}
+              disabled={isProcessing}
+            >
               <Download className="w-4 h-4" /> <span className="hidden sm:inline">PDF</span>
             </Button>
             <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
