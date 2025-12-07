@@ -234,9 +234,49 @@ export default function PatientProfile() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-          {/* Main Content - History */}
-          <div className="lg:col-span-2 space-y-4 md:space-y-6">
+        <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6 md:gap-8">
+          {/* Sidebar - Notes (первым на мобильных, вторым на десктопе) */}
+          <div className="order-1 lg:order-2 space-y-4 md:space-y-6">
+            <div className="flex items-center justify-between">
+            <h2 className="text-lg md:text-xl font-display font-bold">Заметки врача</h2>
+              {isSaving && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Сохранение...</span>
+                </div>
+              )}
+              {isSaved && !isSaving && (
+                <div className="flex items-center gap-2 text-sm text-green-600">
+                  <Check className="w-4 h-4" />
+                  <span>Сохранено</span>
+                </div>
+              )}
+            </div>
+            <Card className="border-border/50 rounded-3xl shadow-sm overflow-hidden">
+              <Textarea 
+                ref={textareaRef}
+                placeholder="Добавить личные заметки о пациенте..." 
+                className={cn(
+                  "min-h-[200px] w-full border-none resize-none focus-visible:ring-1 focus-visible:ring-ring bg-transparent p-4 text-sm leading-relaxed break-words transition-colors overflow-hidden",
+                  isSaving && "opacity-70"
+                )}
+                value={comment}
+                onChange={(e) => {
+                  setComment(e.target.value);
+                  // Автоматически изменяем высоту при вводе
+                  if (textareaRef.current) {
+                    textareaRef.current.style.height = 'auto';
+                    textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+                  }
+                }}
+                disabled={isLoadingPatient || !patientData}
+                rows={1}
+              />
+            </Card>
+          </div>
+
+          {/* Main Content - History (вторым на мобильных, первым на десктопе) */}
+          <div className="order-2 lg:order-1 lg:col-span-2 space-y-4 md:space-y-6">
             <h2 className="text-lg md:text-xl font-display font-bold">История консультаций</h2>
             <div className="space-y-4">
               {isLoadingConsultations ? (
@@ -290,46 +330,6 @@ export default function PatientProfile() {
                 </>
               )}
             </div>
-          </div>
-
-          {/* Sidebar - Notes */}
-          <div className="space-y-4 md:space-y-6">
-            <div className="flex items-center justify-between">
-            <h2 className="text-lg md:text-xl font-display font-bold">Заметки врача</h2>
-              {isSaving && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Сохранение...</span>
-                </div>
-              )}
-              {isSaved && !isSaving && (
-                <div className="flex items-center gap-2 text-sm text-green-600">
-                  <Check className="w-4 h-4" />
-                  <span>Сохранено</span>
-                </div>
-              )}
-            </div>
-            <Card className="border-border/50 rounded-3xl shadow-sm overflow-hidden">
-              <Textarea 
-                ref={textareaRef}
-                placeholder="Добавить личные заметки о пациенте..." 
-                className={cn(
-                  "min-h-[200px] w-full border-none resize-none focus-visible:ring-1 focus-visible:ring-ring bg-transparent p-4 text-sm leading-relaxed break-words transition-colors overflow-hidden",
-                  isSaving && "opacity-70"
-                )}
-                value={comment}
-                onChange={(e) => {
-                  setComment(e.target.value);
-                  // Автоматически изменяем высоту при вводе
-                  if (textareaRef.current) {
-                    textareaRef.current.style.height = 'auto';
-                    textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-                  }
-                }}
-                disabled={isLoadingPatient || !patientData}
-                rows={1}
-              />
-            </Card>
           </div>
         </div>
       </div>
