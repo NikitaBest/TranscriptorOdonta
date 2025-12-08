@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="добавлены определения форматов для браузера" />
+    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="подключена база для телеграмм все файлы" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -73,6 +73,7 @@
       <workItem from="1764751324422" duration="2093000" />
       <workItem from="1764840130592" duration="2791000" />
       <workItem from="1765182668193" duration="900000" />
+      <workItem from="1765199549783" duration="6582000" />
     </task>
     <task id="LOCAL-00001" summary="новая ветка">
       <option name="closed" value="true" />
@@ -314,23 +315,93 @@
       <option name="project" value="LOCAL" />
       <updated>1765104196234</updated>
     </task>
-    <option name="localTasksCounter" value="31" />
+    <task id="LOCAL-00031" summary="убрано время с блоа в карточке пациента">
+      <option name="closed" value="true" />
+      <created>1765199572910</created>
+      <option name="number" value="00031" />
+      <option name="presentableId" value="LOCAL-00031" />
+      <option name="project" value="LOCAL" />
+      <updated>1765199572910</updated>
+    </task>
+    <task id="LOCAL-00032" summary="добавление аудио , прослушивание аудио в отчете">
+      <option name="closed" value="true" />
+      <created>1765209734779</created>
+      <option name="number" value="00032" />
+      <option name="presentableId" value="LOCAL-00032" />
+      <option name="project" value="LOCAL" />
+      <updated>1765209734779</updated>
+    </task>
+    <task id="LOCAL-00033" summary="работа с аудио плеером">
+      <option name="closed" value="true" />
+      <created>1765211486289</created>
+      <option name="number" value="00033" />
+      <option name="presentableId" value="LOCAL-00033" />
+      <option name="project" value="LOCAL" />
+      <updated>1765211486289</updated>
+    </task>
+    <task id="LOCAL-00034" summary="работа с аудио плеером, адаптация под мобилку">
+      <option name="closed" value="true" />
+      <created>1765212247497</created>
+      <option name="number" value="00034" />
+      <option name="presentableId" value="LOCAL-00034" />
+      <option name="project" value="LOCAL" />
+      <updated>1765212247498</updated>
+    </task>
+    <task id="LOCAL-00035" summary="поделится отчетом публичная страница">
+      <option name="closed" value="true" />
+      <created>1765213311211</created>
+      <option name="number" value="00035" />
+      <option name="presentableId" value="LOCAL-00035" />
+      <option name="project" value="LOCAL" />
+      <updated>1765213311211</updated>
+    </task>
+    <task id="LOCAL-00036" summary="поделится отчетом публичная страница 1">
+      <option name="closed" value="true" />
+      <created>1765213391499</created>
+      <option name="number" value="00036" />
+      <option name="presentableId" value="LOCAL-00036" />
+      <option name="project" value="LOCAL" />
+      <updated>1765213391499</updated>
+    </task>
+    <task id="LOCAL-00037" summary="редактирование кнопки новая консультация">
+      <option name="closed" value="true" />
+      <created>1765213660837</created>
+      <option name="number" value="00037" />
+      <option name="presentableId" value="LOCAL-00037" />
+      <option name="project" value="LOCAL" />
+      <updated>1765213660837</updated>
+    </task>
+    <task id="LOCAL-00038" summary="редактирование кнопки сохранить на редактировании">
+      <option name="closed" value="true" />
+      <created>1765213845959</created>
+      <option name="number" value="00038" />
+      <option name="presentableId" value="LOCAL-00038" />
+      <option name="project" value="LOCAL" />
+      <updated>1765213845959</updated>
+    </task>
+    <task id="LOCAL-00039" summary="подключена база для телеграмм">
+      <option name="closed" value="true" />
+      <created>1765215446434</created>
+      <option name="number" value="00039" />
+      <option name="presentableId" value="LOCAL-00039" />
+      <option name="project" value="LOCAL" />
+      <updated>1765215446434</updated>
+    </task>
+    <task id="LOCAL-00040" summary="подключена база для телеграмм все файлы">
+      <option name="closed" value="true" />
+      <created>1765215462665</created>
+      <option name="number" value="00040" />
+      <option name="presentableId" value="LOCAL-00040" />
+      <option name="project" value="LOCAL" />
+      <updated>1765215462665</updated>
+    </task>
+    <option name="localTasksCounter" value="41" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="на странице история разьединение блоков" />
-    <MESSAGE value="адаптация текста в блоках" />
-    <MESSAGE value="запись только с выбором пациента" />
-    <MESSAGE value="с истории убрана функция без пациента" />
-    <MESSAGE value="добавлено к блокам отчет о консультации растянуть блок" />
-    <MESSAGE value="добавлено реальная запись голоса" />
-    <MESSAGE value="добавлен выход из аккаунта для мобилки" />
-    <MESSAGE value="заголовок выберите пациента по середине" />
-    <MESSAGE value="добавление связи с бек авторизация регистрация" />
-    <MESSAGE value="добавление пациентов отображение данных" />
     <MESSAGE value="удаление пациента , редактирование пациента" />
     <MESSAGE value="поле ввода номера телефона , формат для бекенда" />
     <MESSAGE value="обновление комментария после редактирования" />
@@ -346,6 +417,16 @@
     <MESSAGE value="добавлен статус обработки в карточки консультации у пациента" />
     <MESSAGE value="добавлен поиск пациента на веб при записи" />
     <MESSAGE value="возможность скачивания в пдф" />
-    <option name="LAST_COMMIT_MESSAGE" value="возможность скачивания в пдф" />
+    <MESSAGE value="убрано время с блоа в карточке пациента" />
+    <MESSAGE value="добавление аудио , прослушивание аудио в отчете" />
+    <MESSAGE value="работа с аудио плеером" />
+    <MESSAGE value="работа с аудио плеером, адаптация под мобилку" />
+    <MESSAGE value="поделится отчетом публичная страница" />
+    <MESSAGE value="поделится отчетом публичная страница 1" />
+    <MESSAGE value="редактирование кнопки новая консультация" />
+    <MESSAGE value="редактирование кнопки сохранить на редактировании" />
+    <MESSAGE value="подключена база для телеграмм" />
+    <MESSAGE value="подключена база для телеграмм все файлы" />
+    <option name="LAST_COMMIT_MESSAGE" value="подключена база для телеграмм все файлы" />
   </component>
 </project>

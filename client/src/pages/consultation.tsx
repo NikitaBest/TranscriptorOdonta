@@ -52,6 +52,7 @@ export default function ConsultationPage() {
   const [duration, setDuration] = useState(0);
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
   const [audioData, setAudioData] = useState<number[]>([]);
+  const [staticWaveform, setStaticWaveform] = useState<number[]>([]);
   
   // Состояния для редактирования полей отчета
   const [complaints, setComplaints] = useState('');
@@ -362,6 +363,56 @@ export default function ConsultationPage() {
     };
   }, [isPlaying]);
 
+  // Генерация статичной формы волны из аудио файла
+  useEffect(() => {
+    if (!audioUrl) return;
+
+    const generateStaticWaveform = async () => {
+      try {
+        const response = await fetch(audioUrl);
+        const arrayBuffer = await response.arrayBuffer();
+        
+        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        
+        const barsCount = 120;
+        const channelData = audioBuffer.getChannelData(0); // Берем первый канал
+        const samplesPerBar = Math.floor(channelData.length / barsCount);
+        
+        const waveform: number[] = [];
+        
+        for (let i = 0; i < barsCount; i++) {
+          const start = i * samplesPerBar;
+          const end = Math.min(start + samplesPerBar, channelData.length);
+          
+          let sum = 0;
+          let max = 0;
+          
+          for (let j = start; j < end; j++) {
+            const abs = Math.abs(channelData[j]);
+            sum += abs;
+            max = Math.max(max, abs);
+          }
+          
+          // Используем комбинацию среднего и максимума для более выразительной формы волны
+          const average = sum / (end - start);
+          // Увеличиваем множитель и используем максимум для более высоких линий
+          const normalized = Math.min((Math.max(average, max * 0.7) * 100) * 4, 100);
+          waveform.push(Math.max(normalized, 8)); // Увеличиваем минимальную высоту до 8%
+        }
+        
+        setStaticWaveform(waveform);
+        audioContext.close();
+      } catch (error) {
+        console.error('Failed to generate static waveform:', error);
+        // В случае ошибки используем минимальные значения
+        setStaticWaveform(Array(120).fill(5));
+      }
+    };
+
+    generateStaticWaveform();
+  }, [audioUrl]);
+
   // Инициализация audio элемента и обработчиков событий
   useEffect(() => {
     const audio = audioRef.current;
@@ -451,9 +502,11 @@ export default function ConsultationPage() {
   // Вычисляем процент прогресса
   const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0;
 
-  // Инициализируем данные для визуализации, если они пустые
+  // Используем статичную форму волны, если она загружена, иначе динамическую или минимальные значения
   const barsCount = 120;
-  const displayAudioData = audioData.length > 0 ? audioData : Array(barsCount).fill(5);
+  const displayAudioData = staticWaveform.length > 0 
+    ? staticWaveform 
+    : (audioData.length > 0 ? audioData : Array(barsCount).fill(5));
   
   // Определяем статус обработки
   const processingStatus = enrichedConsultation?.processingStatus ?? 
@@ -915,10 +968,10 @@ export default function ConsultationPage() {
             <div className="flex-1 relative min-w-0 overflow-hidden">
               <div 
                 ref={progressBarRef}
-                className="h-9 sm:h-10 md:h-12 flex items-center gap-0.5 opacity-50 cursor-pointer group relative w-full pr-1 sm:pr-1.5 md:pr-0"
+                className="h-9 sm:h-10 md:h-12 flex items-center gap-0.5 cursor-pointer group relative w-full pr-1 sm:pr-1.5 md:pr-0"
                 onClick={handleProgressClick}
               >
-                 {/* Real-time Audio Waveform Progress Bar */}
+                 {/* Audio Waveform Progress Bar */}
                  {displayAudioData.map((height, i) => {
                    const barPosition = ((i + 0.5) / displayAudioData.length) * 100; // Центр бара
                    const isBeforeProgress = barPosition < progressPercentage;
@@ -929,21 +982,16 @@ export default function ConsultationPage() {
                        className={cn(
                          "flex-1 rounded-full transition-all duration-75 min-w-[1px] md:min-w-[2px]",
                          isBeforeProgress 
-                           ? "bg-foreground opacity-100" 
-                           : "bg-foreground opacity-25"
+                           ? "bg-foreground" 
+                           : "bg-muted-foreground/30"
                        )}
                        style={{ 
                          height: `${Math.max(height, 5)}%`,
-                         transition: 'opacity 0.15s ease-out, height 0.075s ease-out'
+                         transition: 'height 0.075s ease-out, background-color 0.15s ease-out'
                        }}
                      />
                    );
                  })}
-                 {/* Индикатор текущей позиции */}
-                 <div 
-                   className="absolute top-0 bottom-0 w-0.5 bg-primary opacity-90 transition-all duration-100 pointer-events-none z-10"
-                   style={{ left: `${progressPercentage}%` }}
-                 />
               </div>
             </div>
             <span className="text-[10px] sm:text-xs md:text-sm font-mono text-muted-foreground whitespace-nowrap shrink-0 min-w-[50px] sm:min-w-[55px] md:min-w-[70px] text-right ml-1 sm:ml-1.5 md:ml-0">
