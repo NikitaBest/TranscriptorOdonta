@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="обновление комментария после редактирования">
+    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="возможность скачивания в пдф">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -74,6 +74,7 @@
       <workItem from="1764665232759" duration="1867000" />
       <workItem from="1764751324422" duration="2093000" />
       <workItem from="1764840130592" duration="2791000" />
+      <workItem from="1765182668193" duration="900000" />
     </task>
     <task id="LOCAL-00001" summary="новая ветка">
       <option name="closed" value="true" />
@@ -227,19 +228,101 @@
       <option name="project" value="LOCAL" />
       <updated>1764857617394</updated>
     </task>
-    <option name="localTasksCounter" value="20" />
+    <task id="LOCAL-00020" summary="добавление записи и отчетности по пациенту">
+      <option name="closed" value="true" />
+      <created>1765022284733</created>
+      <option name="number" value="00020" />
+      <option name="presentableId" value="LOCAL-00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1765022284733</updated>
+    </task>
+    <task id="LOCAL-00021" summary="добавление информации в истории">
+      <option name="closed" value="true" />
+      <created>1765034186931</created>
+      <option name="number" value="00021" />
+      <option name="presentableId" value="LOCAL-00021" />
+      <option name="project" value="LOCAL" />
+      <updated>1765034186931</updated>
+    </task>
+    <task id="LOCAL-00022" summary="добавление обновление отчета и уведомление о предупреждении">
+      <option name="closed" value="true" />
+      <created>1765034704752</created>
+      <option name="number" value="00022" />
+      <option name="presentableId" value="LOCAL-00022" />
+      <option name="project" value="LOCAL" />
+      <updated>1765034704752</updated>
+    </task>
+    <task id="LOCAL-00023" summary="убран проверить по протоколам покане нужно в отчете">
+      <option name="closed" value="true" />
+      <created>1765034774073</created>
+      <option name="number" value="00023" />
+      <option name="presentableId" value="LOCAL-00023" />
+      <option name="project" value="LOCAL" />
+      <updated>1765034774073</updated>
+    </task>
+    <task id="LOCAL-00024" summary="автосохранение для заметок врача">
+      <option name="closed" value="true" />
+      <created>1765035564039</created>
+      <option name="number" value="00024" />
+      <option name="presentableId" value="LOCAL-00024" />
+      <option name="project" value="LOCAL" />
+      <updated>1765035564039</updated>
+    </task>
+    <task id="LOCAL-00025" summary="увеличение блока с текстом для заметок врача">
+      <option name="closed" value="true" />
+      <created>1765035744684</created>
+      <option name="number" value="00025" />
+      <option name="presentableId" value="LOCAL-00025" />
+      <option name="project" value="LOCAL" />
+      <updated>1765035744684</updated>
+    </task>
+    <task id="LOCAL-00026" summary="автосохранение для блоков отчетности">
+      <option name="closed" value="true" />
+      <created>1765036711844</created>
+      <option name="number" value="00026" />
+      <option name="presentableId" value="LOCAL-00026" />
+      <option name="project" value="LOCAL" />
+      <updated>1765036711844</updated>
+    </task>
+    <task id="LOCAL-00027" summary="заметки врача для мобилки перед историей">
+      <option name="closed" value="true" />
+      <created>1765102144064</created>
+      <option name="number" value="00027" />
+      <option name="presentableId" value="LOCAL-00027" />
+      <option name="project" value="LOCAL" />
+      <updated>1765102144064</updated>
+    </task>
+    <task id="LOCAL-00028" summary="добавлен статус обработки в карточки консультации у пациента">
+      <option name="closed" value="true" />
+      <created>1765102658758</created>
+      <option name="number" value="00028" />
+      <option name="presentableId" value="LOCAL-00028" />
+      <option name="project" value="LOCAL" />
+      <updated>1765102658758</updated>
+    </task>
+    <task id="LOCAL-00029" summary="добавлен поиск пациента на веб при записи">
+      <option name="closed" value="true" />
+      <created>1765103323086</created>
+      <option name="number" value="00029" />
+      <option name="presentableId" value="LOCAL-00029" />
+      <option name="project" value="LOCAL" />
+      <updated>1765103323086</updated>
+    </task>
+    <task id="LOCAL-00030" summary="возможность скачивания в пдф">
+      <option name="closed" value="true" />
+      <created>1765104196233</created>
+      <option name="number" value="00030" />
+      <option name="presentableId" value="LOCAL-00030" />
+      <option name="project" value="LOCAL" />
+      <updated>1765104196234</updated>
+    </task>
+    <option name="localTasksCounter" value="31" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="новая ветка" />
-    <MESSAGE value="убрана на странице авторизации , вход по тедеграмм" />
-    <MESSAGE value="добавлена страница регистрации" />
-    <MESSAGE value="на моб нижнее нав меню , адаптация" />
-    <MESSAGE value="на моб адаптация новый пациент блок" />
-    <MESSAGE value="добавлен выбор пациентов на запись , адаптация под мобильные экраны" />
     <MESSAGE value="на странице история разьединение блоков" />
     <MESSAGE value="адаптация текста в блоках" />
     <MESSAGE value="запись только с выбором пациента" />
@@ -253,6 +336,18 @@
     <MESSAGE value="удаление пациента , редактирование пациента" />
     <MESSAGE value="поле ввода номера телефона , формат для бекенда" />
     <MESSAGE value="обновление комментария после редактирования" />
-    <option name="LAST_COMMIT_MESSAGE" value="обновление комментария после редактирования" />
+    <MESSAGE value="добавлен выбор пациентов на записи" />
+    <MESSAGE value="добавление записи и отчетности по пациенту" />
+    <MESSAGE value="добавление информации в истории" />
+    <MESSAGE value="добавление обновление отчета и уведомление о предупреждении" />
+    <MESSAGE value="убран проверить по протоколам покане нужно в отчете" />
+    <MESSAGE value="автосохранение для заметок врача" />
+    <MESSAGE value="увеличение блока с текстом для заметок врача" />
+    <MESSAGE value="автосохранение для блоков отчетности" />
+    <MESSAGE value="заметки врача для мобилки перед историей" />
+    <MESSAGE value="добавлен статус обработки в карточки консультации у пациента" />
+    <MESSAGE value="добавлен поиск пациента на веб при записи" />
+    <MESSAGE value="возможность скачивания в пдф" />
+    <option name="LAST_COMMIT_MESSAGE" value="возможность скачивания в пдф" />
   </component>
 </project>

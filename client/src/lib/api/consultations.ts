@@ -31,23 +31,42 @@ export const consultationsApi = {
     if (audioFile instanceof File) {
       fileToUpload = audioFile;
     } else {
-      // Определяем расширение на основе MIME типа
-      let extension = 'webm';
-      if (audioFile.type.includes('webm')) {
-        extension = 'webm';
-      } else if (audioFile.type.includes('mp4')) {
-        extension = 'mp4';
-      } else if (audioFile.type.includes('ogg')) {
-        extension = 'ogg';
-      } else if (audioFile.type.includes('wav')) {
-        extension = 'wav';
-      } else if (audioFile.type.includes('mp3')) {
-        extension = 'mp3';
+      // Определяем расширение на основе MIME типа (учитываем codecs в типе)
+      // Поддерживаемые форматы:
+      // - audio/mp4 -> .mp4 (AAC) - лучшая совместимость для воспроизведения
+      // - audio/webm;codecs=opus -> .webm (Opus) - отличное качество
+      // - audio/webm -> .webm
+      // - audio/ogg;codecs=opus -> .ogg (Opus)
+      // - audio/wav -> .wav (несжатый)
+      // - audio/mp3 -> .mp3
+      
+      let extension = 'webm'; // fallback
+      const mimeType = audioFile.type || 'audio/webm';
+      
+      if (mimeType.includes('mp4')) {
+        extension = 'mp4'; // AAC в MP4 - лучшая совместимость
+      } else if (mimeType.includes('webm')) {
+        extension = 'webm'; // WebM с Opus или без
+      } else if (mimeType.includes('ogg')) {
+        extension = 'ogg'; // OGG с Opus
+      } else if (mimeType.includes('wav')) {
+        extension = 'wav'; // WAV - универсальный, но большой
+      } else if (mimeType.includes('mp3')) {
+        extension = 'mp3'; // MP3
       }
       
       // Создаем File из Blob с правильным именем и расширением
       fileToUpload = new File([audioFile], `consultation_${Date.now()}.${extension}`, {
-        type: audioFile.type || 'audio/webm',
+        type: mimeType,
+      });
+      
+      // Логируем информацию о файле для отладки
+      console.log('Uploading audio file:', {
+        name: fileToUpload.name,
+        size: fileToUpload.size,
+        sizeMB: (fileToUpload.size / (1024 * 1024)).toFixed(2),
+        type: fileToUpload.type,
+        extension: extension,
       });
     }
     

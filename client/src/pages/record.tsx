@@ -79,6 +79,7 @@ export default function RecordPage() {
   const animationFrameRef = useRef<number | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingStopPromiseRef = useRef<{ resolve: () => void; reject: (error: Error) => void } | null>(null);
+  const mediaRecorderOptionsRef = useRef<MediaRecorderOptions | null>(null);
 
   // Анализ звука в реальном времени
   useEffect(() => {
@@ -198,10 +199,66 @@ export default function RecordPage() {
       audioContextRef.current = audioContext;
       analyserRef.current = analyser;
 
-      // Создаем MediaRecorder для записи
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4'
+      // Создаем MediaRecorder для записи с указанием bitrate
+      // Определяем поддерживаемый MIME тип с приоритетом по совместимости и качеству
+      // 
+      // Приоритет форматов для записи:
+      // 1. audio/mp4 (AAC) - ПРИОРИТЕТ: лучшая совместимость для воспроизведения (Safari, iOS, все браузеры)
+      // 2. audio/webm;codecs=opus - отличное качество, хорошая поддержка (Chrome, Firefox, Edge)
+      // 3. audio/ogg;codecs=opus - хорошее качество (Firefox)
+      // 4. audio/webm - базовый WebM формат (fallback)
+      // 5. audio/wav - универсальный, но большой размер (последний fallback)
+      
+      let mimeType = 'audio/webm'; // fallback по умолчанию
+      let preferredFormat = 'webm';
+      
+      // Проверяем поддержку форматов в порядке приоритета
+      // ПРИОРИТЕТ 1: MP4 (AAC) - лучшая совместимость для воспроизведения
+      if (MediaRecorder.isTypeSupported('audio/mp4')) {
+        // MP4 (AAC) - поддерживается в Safari, iOS, и большинстве браузеров
+        // Идеален для воспроизведения на всех устройствах
+        mimeType = 'audio/mp4';
+        preferredFormat = 'mp4';
+      } else if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+        // WebM с Opus codec - отличное качество при хорошем сжатии
+        // Поддерживается в Chrome, Firefox, Edge, Opera
+        mimeType = 'audio/webm;codecs=opus';
+        preferredFormat = 'webm';
+      } else if (MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) {
+        // OGG с Opus - хорошее качество
+        // Поддерживается в Firefox
+        mimeType = 'audio/ogg;codecs=opus';
+        preferredFormat = 'ogg';
+      } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+        // Базовый WebM формат (fallback)
+        mimeType = 'audio/webm';
+        preferredFormat = 'webm';
+      } else if (MediaRecorder.isTypeSupported('audio/wav')) {
+        // WAV - универсальный формат, но большой размер (последний fallback)
+        mimeType = 'audio/wav';
+        preferredFormat = 'wav';
+      }
+      
+      // Настройки для записи: bitrate 128 kbps для хорошего качества речи
+      // Для MP4 можно использовать 96-128 kbps, для Opus 64-128 kbps достаточно
+      const bitrate = preferredFormat === 'mp4' ? 128000 : 128000; // 128 kbps для всех форматов
+      
+      const mediaRecorderOptions: MediaRecorderOptions = {
+        mimeType: mimeType,
+        audioBitsPerSecond: bitrate,
+      };
+      
+      console.log('Selected audio format:', {
+        mimeType,
+        format: preferredFormat,
+        bitrate: `${bitrate / 1000} kbps`,
+        supported: true,
       });
+      
+      // Сохраняем настройки в ref для использования в onstop
+      mediaRecorderOptionsRef.current = mediaRecorderOptions;
+      
+      const mediaRecorder = new MediaRecorder(stream, mediaRecorderOptions);
       
       audioChunksRef.current = [];
       
@@ -213,7 +270,13 @@ export default function RecordPage() {
       
       mediaRecorder.onstop = () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType });
-        console.log('Audio recorded:', audioBlob.size, 'bytes');
+        console.log('Audio recorded:', {
+          size: audioBlob.size,
+          sizeMB: (audioBlob.size / (1024 * 1024)).toFixed(2),
+          mimeType: mediaRecorder.mimeType,
+          bitrate: mediaRecorderOptionsRef.current?.audioBitsPerSecond || 'не указан',
+          duration: duration,
+        });
         
         // Разрешаем промис ожидания окончания записи
         if (recordingStopPromiseRef.current) {
