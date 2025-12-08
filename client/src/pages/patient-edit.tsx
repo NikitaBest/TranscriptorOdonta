@@ -228,56 +228,56 @@ export default function PatientEditPage() {
 
         {/* Form */}
         <Card className="rounded-3xl border-border/50 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-xl md:text-2xl font-display">Данные пациента</CardTitle>
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-lg sm:text-xl md:text-2xl font-display">Данные пациента</CardTitle>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="firstName">Имя *</Label>
+          <CardContent className="p-4 sm:p-6">
+            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+              <div className="grid gap-3 sm:gap-4">
+                <div className="grid gap-1.5 sm:gap-2">
+                  <Label htmlFor="firstName" className="text-sm sm:text-base">Имя *</Label>
                   <Input 
                     id="firstName" 
                     value={firstName} 
                     onChange={e => setFirstName(e.target.value)} 
-                    className="rounded-xl h-12"
+                    className="rounded-xl h-11 sm:h-12 text-sm sm:text-base"
                     required
                     disabled={isSaving}
                   />
                 </div>
 
-                <div className="grid gap-2">
-                  <Label htmlFor="lastName">Фамилия *</Label>
+                <div className="grid gap-1.5 sm:gap-2">
+                  <Label htmlFor="lastName" className="text-sm sm:text-base">Фамилия *</Label>
                   <Input 
                     id="lastName" 
                     value={lastName} 
                     onChange={e => setLastName(e.target.value)} 
-                    className="rounded-xl h-12"
+                    className="rounded-xl h-11 sm:h-12 text-sm sm:text-base"
                     required
                     disabled={isSaving}
                   />
                 </div>
 
-                <div className="grid gap-2">
-                  <Label htmlFor="phone">Телефон</Label>
+                <div className="grid gap-1.5 sm:gap-2">
+                  <Label htmlFor="phone" className="text-sm sm:text-base">Телефон</Label>
                   <Input 
                     id="phone" 
                     type="tel"
                     value={phone} 
                     onChange={e => setPhone(handlePhoneInput(e.target.value))} 
-                    className="rounded-xl h-12"
+                    className="rounded-xl h-11 sm:h-12 text-sm sm:text-base"
                     placeholder="+7 (999) 123-45-67"
                     disabled={isSaving}
                   />
                 </div>
 
-                <div className="grid gap-2">
-                  <Label htmlFor="comment">Комментарий</Label>
+                <div className="grid gap-1.5 sm:gap-2">
+                  <Label htmlFor="comment" className="text-sm sm:text-base">Комментарий</Label>
                   <Input 
                     id="comment" 
                     value={comment} 
                     onChange={e => setComment(e.target.value)} 
-                    className="rounded-xl h-12"
+                    className="rounded-xl h-11 sm:h-12 text-sm sm:text-base"
                     placeholder="Дополнительная информация о пациенте"
                     disabled={isSaving}
                   />
@@ -285,12 +285,12 @@ export default function PatientEditPage() {
               </div>
 
               <div className="flex flex-col gap-3 pt-4">
-                <div className="flex gap-3">
-                  <Link href={`/patient/${id}`} className="flex-1">
+                <div className="flex gap-2 sm:gap-3">
+                  <Link href={`/patient/${id}`} className="flex-1 min-w-0">
                     <Button 
                       type="button" 
                       variant="outline" 
-                      className="w-full rounded-xl h-12"
+                      className="w-full rounded-xl h-11 sm:h-12 text-sm sm:text-base px-3 sm:px-4"
                       disabled={isSaving || isDeleting}
                     >
                       Отмена
@@ -298,16 +298,19 @@ export default function PatientEditPage() {
                   </Link>
                   <Button 
                     type="submit" 
-                    className="flex-1 rounded-xl h-12"
+                    className="flex-1 min-w-0 rounded-xl h-11 sm:h-12 text-sm sm:text-base px-3 sm:px-4"
                     disabled={isSaving || isDeleting}
                   >
                     {isSaving ? (
                       <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Сохранение...
+                        <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 animate-spin shrink-0" />
+                        <span className="truncate">Сохранение...</span>
                       </>
                     ) : (
-                      'Сохранить изменения'
+                      <>
+                        <span className="hidden sm:inline truncate">Сохранить изменения</span>
+                        <span className="sm:hidden truncate">Сохранить</span>
+                      </>
                     )}
                   </Button>
                 </div>
@@ -317,11 +320,11 @@ export default function PatientEditPage() {
                     <Button 
                       type="button"
                       variant="destructive" 
-                      className="w-full rounded-xl h-12"
+                      className="w-full rounded-xl h-11 sm:h-12 text-sm sm:text-base px-3 sm:px-4"
                       disabled={isSaving || isDeleting}
                     >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Удалить пациента
+                      <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 shrink-0" />
+                      <span className="truncate">Удалить пациента</span>
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent className="rounded-3xl">
