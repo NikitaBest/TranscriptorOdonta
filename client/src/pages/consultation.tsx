@@ -237,6 +237,13 @@ export default function ConsultationPage() {
     const audio = audioRef.current;
     if (!audio || !audioUrl) return;
 
+    // Проверяем, не был ли уже создан source для этого audio элемента
+    // Если audio элемент уже подключен к другому source, пропускаем инициализацию
+    if (sourceRef.current) {
+      // Если source уже существует, просто возвращаемся
+      return;
+    }
+
     // Создаем AudioContext и подключаем к audio элементу
     try {
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -244,17 +251,30 @@ export default function ConsultationPage() {
       analyser.fftSize = 256; // Размер FFT для анализа частот
       analyser.smoothingTimeConstant = 0.8; // Сглаживание для более плавной визуализации
       
-      const source = audioContext.createMediaElementSource(audio);
-      source.connect(analyser);
-      analyser.connect(audioContext.destination);
+      // Проверяем, не подключен ли уже audio элемент к другому source
+      // Если audio.srcObject существует, это может означать, что элемент уже подключен
+      let source: MediaElementAudioSourceNode;
+      try {
+        source = audioContext.createMediaElementSource(audio);
+        source.connect(analyser);
+        analyser.connect(audioContext.destination);
 
-      audioContextRef.current = audioContext;
-      analyserRef.current = analyser;
-      sourceRef.current = source;
+        audioContextRef.current = audioContext;
+        analyserRef.current = analyser;
+        sourceRef.current = source;
 
-      // Инициализируем массив данных для визуализации
-      const barsCount = 120; // Увеличиваем количество баров для лучшей детализации
-      setAudioData(Array(barsCount).fill(0));
+        // Инициализируем массив данных для визуализации
+        const barsCount = 120; // Увеличиваем количество баров для лучшей детализации
+        setAudioData(Array(barsCount).fill(0));
+      } catch (sourceError: any) {
+        // Если ошибка связана с тем, что элемент уже подключен, просто закрываем контекст
+        if (sourceError.message && sourceError.message.includes('already connected')) {
+          console.warn('Audio element already connected, skipping AudioContext initialization');
+          audioContext.close().catch(console.error);
+          return;
+        }
+        throw sourceError;
+      }
     } catch (error) {
       console.error('Failed to initialize AudioContext:', error);
     }
@@ -267,13 +287,20 @@ export default function ConsultationPage() {
         } catch (e) {
           // Игнорируем ошибки при отключении
         }
+        sourceRef.current = null;
+      }
+      if (analyserRef.current) {
+        try {
+          analyserRef.current.disconnect();
+        } catch (e) {
+          // Игнорируем ошибки
+        }
+        analyserRef.current = null;
       }
       if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
         audioContextRef.current.close().catch(console.error);
+        audioContextRef.current = null;
       }
-      audioContextRef.current = null;
-      analyserRef.current = null;
-      sourceRef.current = null;
     };
   }, [audioUrl]);
 
@@ -834,25 +861,25 @@ export default function ConsultationPage() {
 
         {/* Audio Player Card */}
         <Card className="rounded-3xl border-border/50 bg-secondary/30 overflow-hidden">
-          <div className="p-4 flex items-center gap-4">
+          <div className="p-2 sm:p-3 md:p-4 flex items-center gap-1 sm:gap-1.5 md:gap-4">
             <Button 
               size="icon" 
-              className="h-12 w-12 rounded-full shrink-0" 
+              className="h-9 w-9 sm:h-10 sm:w-10 md:h-12 md:w-12 rounded-full shrink-0" 
               onClick={handlePlayPause}
               disabled={!audioUrl || isLoadingAudio}
             >
               {isLoadingAudio ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 animate-spin" />
               ) : isPlaying ? (
-                <Pause className="fill-current" />
+                <Pause className="fill-current w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5" />
               ) : (
-                <Play className="fill-current ml-1" />
+                <Play className="fill-current ml-0.5 sm:ml-0.5 md:ml-1 w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5" />
               )}
             </Button>
-            <div className="flex-1 relative min-w-0">
+            <div className="flex-1 relative min-w-0 overflow-hidden">
               <div 
                 ref={progressBarRef}
-                className="h-12 flex items-center gap-0.5 opacity-50 cursor-pointer group relative w-full"
+                className="h-9 sm:h-10 md:h-12 flex items-center gap-0.5 opacity-50 cursor-pointer group relative w-full pr-1 sm:pr-1.5 md:pr-0"
                 onClick={handleProgressClick}
               >
                  {/* Real-time Audio Waveform Progress Bar */}
@@ -864,7 +891,7 @@ export default function ConsultationPage() {
                      <div 
                        key={i} 
                        className={cn(
-                         "flex-1 rounded-full transition-all duration-75 min-w-[2px]",
+                         "flex-1 rounded-full transition-all duration-75 min-w-[1px] md:min-w-[2px]",
                          isBeforeProgress 
                            ? "bg-foreground opacity-100" 
                            : "bg-foreground opacity-25"
@@ -883,7 +910,7 @@ export default function ConsultationPage() {
                  />
               </div>
             </div>
-            <span className="text-sm font-mono text-muted-foreground">
+            <span className="text-[10px] sm:text-xs md:text-sm font-mono text-muted-foreground whitespace-nowrap shrink-0 min-w-[50px] sm:min-w-[55px] md:min-w-[70px] text-right ml-1 sm:ml-1.5 md:ml-0">
               {audioUrl 
                 ? `${formatTime(currentTime)} / ${formatTime(duration || (enrichedConsultation.audioDuration ? enrichedConsultation.audioDuration : 0))}` 
                 : (enrichedConsultation.duration || (enrichedConsultation.audioDuration ? formatTime(enrichedConsultation.audioDuration) : '0:00'))
