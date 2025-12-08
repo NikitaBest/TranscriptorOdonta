@@ -218,34 +218,34 @@ export default function PatientProfile() {
             </Button>
           </Link>
           
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6 bg-card p-4 md:p-6 lg:p-8 rounded-2xl md:rounded-[2rem] border border-border/50 shadow-sm">
-            <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto">
-              <Avatar className="w-16 h-16 md:w-20 md:h-20 rounded-2xl md:rounded-[1.5rem] text-xl md:text-2xl font-bold bg-secondary shrink-0">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6 bg-card p-3 sm:p-4 md:p-6 lg:p-8 rounded-2xl md:rounded-[2rem] border border-border/50 shadow-sm">
+            <div className="flex items-center gap-3 sm:gap-4 md:gap-6 w-full md:w-auto min-w-0">
+              <Avatar className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-2xl md:rounded-[1.5rem] text-lg sm:text-xl md:text-2xl font-bold bg-secondary shrink-0">
                 <AvatarFallback className="rounded-2xl md:rounded-[1.5rem]">{patient.avatar}</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <h1 className="text-2xl md:text-3xl font-display font-bold tracking-tight mb-2 truncate">{patient.firstName} {patient.lastName}</h1>
-                <div className="flex flex-wrap items-center gap-2 md:gap-4 text-xs md:text-sm text-muted-foreground">
-                  <span className="flex items-center gap-1.5 px-2 md:px-3 py-1 rounded-full bg-secondary/50 border border-border/50 whitespace-nowrap">
-                    <Phone className="w-3 h-3" /> <span className="truncate">{patient.phone}</span>
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-display font-bold tracking-tight mb-2 truncate">{patient.firstName} {patient.lastName}</h1>
+                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 md:gap-4 text-xs md:text-sm text-muted-foreground">
+                  <span className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-full bg-secondary/50 border border-border/50 whitespace-nowrap">
+                    <Phone className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" /> <span className="truncate max-w-[120px] sm:max-w-none">{patient.phone}</span>
                   </span>
-                  <span className="flex items-center gap-1.5 px-2 md:px-3 py-1 rounded-full bg-secondary/50 border border-border/50 whitespace-nowrap">
-                    <Calendar className="w-3 h-3" /> С {format(new Date(patient.lastVisit), 'MMM yyyy', { locale: ru })}
+                  <span className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-full bg-secondary/50 border border-border/50 whitespace-nowrap">
+                    <Calendar className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" /> <span className="hidden xs:inline">С </span>{format(new Date(patient.lastVisit), 'MMM yyyy', { locale: ru })}
                   </span>
                 </div>
               </div>
             </div>
-            <div className="flex gap-2 md:gap-3 w-full md:w-auto">
-              <Link href={`/patient/${patient.id}/edit`} className="flex-1 md:flex-none">
-                <Button variant="outline" className="w-full md:w-auto rounded-xl h-11 md:h-12 border-border/50 text-sm md:text-base">
+            <div className="flex gap-1.5 sm:gap-2 md:gap-3 w-full md:w-auto shrink-0">
+              <Link href={`/patient/${patient.id}/edit`} className="flex-1 md:flex-none min-w-0">
+                <Button variant="outline" className="w-full md:w-auto rounded-xl h-10 sm:h-11 md:h-12 border-border/50 text-xs sm:text-sm md:text-base px-3 sm:px-4">
                 Редактировать
               </Button>
               </Link>
-              <Link href={`/record?patientId=${patient.id}`} className="flex-1 md:flex-none">
-                <Button className="w-full md:w-auto rounded-xl h-11 md:h-12 gap-2 shadow-lg shadow-primary/20 text-sm md:text-base">
-                  <Mic className="w-4 h-4" />
-                  <span className="hidden sm:inline">Новая консультация</span>
-                  <span className="sm:hidden">Консультация</span>
+              <Link href={`/record?patientId=${patient.id}`} className="flex-1 md:flex-none min-w-0">
+                <Button className="w-full md:w-auto rounded-xl h-10 sm:h-11 md:h-12 gap-1.5 sm:gap-2 shadow-lg shadow-primary/20 text-xs sm:text-sm md:text-base px-3 sm:px-4">
+                  <Mic className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                  <span className="hidden sm:inline truncate">Новая консультация</span>
+                  <span className="sm:hidden truncate">Консультация</span>
                 </Button>
               </Link>
             </div>
