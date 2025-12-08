@@ -14,6 +14,7 @@ import PatientEditPage from "@/pages/patient-edit";
 import RecordPage from "@/pages/record";
 import ConsultationPage from "@/pages/consultation";
 import HistoryPage from "@/pages/history";
+import ShareConsultationPage from "@/pages/share-consultation";
 
 function Router() {
   return (
@@ -27,6 +28,8 @@ function Router() {
       <Route path="/record" component={RecordPage} />
       <Route path="/consultation/:id" component={ConsultationPage} />
       <Route path="/history" component={HistoryPage} />
+      <Route path="/share/consultation/:id" component={ShareConsultationPage} />
+      <Route path="/share/consultation/:id/:token" component={ShareConsultationPage} />
       
       <Route component={NotFound} />
     </Switch>

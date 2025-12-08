@@ -513,11 +513,47 @@ export default function ConsultationPage() {
     toast({ title: "Скопировано в буфер обмена" });
   };
 
-  const handleShare = () => {
-    toast({ 
-      title: "Публичная ссылка создана", 
-      description: "Ссылка скопирована. Эта ссылка доступна только для чтения пациентам." 
-    });
+  const handleShare = async () => {
+    if (!enrichedConsultation || !id) return;
+
+    try {
+      // Генерируем публичную ссылку
+      // Для простоты используем формат /share/consultation/{id}
+      // В будущем можно добавить генерацию токена на бэкенде
+      const publicUrl = `${window.location.origin}/share/consultation/${id}`;
+      
+      // Копируем ссылку в буфер обмена
+      await navigator.clipboard.writeText(publicUrl);
+      
+      toast({ 
+        title: "Публичная ссылка создана", 
+        description: "Ссылка скопирована в буфер обмена. Эта ссылка доступна только для чтения пациентам." 
+      });
+    } catch (error) {
+      console.error('Failed to copy link:', error);
+      // Fallback для старых браузеров
+      const publicUrl = `${window.location.origin}/share/consultation/${id}`;
+      const textArea = document.createElement('textarea');
+      textArea.value = publicUrl;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        toast({ 
+          title: "Публичная ссылка создана", 
+          description: "Ссылка скопирована в буфер обмена." 
+        });
+      } catch (err) {
+        toast({ 
+          title: "Ошибка", 
+          description: "Не удалось скопировать ссылку. Ссылка: " + publicUrl,
+          variant: "destructive"
+        });
+      }
+      document.body.removeChild(textArea);
+    }
   };
 
   const handleDownloadPDF = async () => {
