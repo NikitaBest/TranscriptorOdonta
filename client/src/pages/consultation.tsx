@@ -42,10 +42,16 @@ export default function ConsultationPage() {
   
   // Состояния для аудиоплеера
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const progressBarRef = useRef<HTMLDivElement | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
+  const [audioData, setAudioData] = useState<number[]>([]);
   
   // Состояния для редактирования полей отчета
   const [complaints, setComplaints] = useState('');
@@ -226,6 +232,109 @@ export default function ConsultationPage() {
     };
   }, [id, enrichedConsultation?.processingStatus, enrichedConsultation?.status]);
 
+  // Инициализация AudioContext и AnalyserNode для визуализации
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio || !audioUrl) return;
+
+    // Создаем AudioContext и подключаем к audio элементу
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 256; // Размер FFT для анализа частот
+      analyser.smoothingTimeConstant = 0.8; // Сглаживание для более плавной визуализации
+      
+      const source = audioContext.createMediaElementSource(audio);
+      source.connect(analyser);
+      analyser.connect(audioContext.destination);
+
+      audioContextRef.current = audioContext;
+      analyserRef.current = analyser;
+      sourceRef.current = source;
+
+      // Инициализируем массив данных для визуализации
+      const barsCount = 120; // Увеличиваем количество баров для лучшей детализации
+      setAudioData(Array(barsCount).fill(0));
+    } catch (error) {
+      console.error('Failed to initialize AudioContext:', error);
+    }
+
+    return () => {
+      // Очистка при размонтировании
+      if (sourceRef.current) {
+        try {
+          sourceRef.current.disconnect();
+        } catch (e) {
+          // Игнорируем ошибки при отключении
+        }
+      }
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close().catch(console.error);
+      }
+      audioContextRef.current = null;
+      analyserRef.current = null;
+      sourceRef.current = null;
+    };
+  }, [audioUrl]);
+
+  // Визуализация звука в реальном времени
+  useEffect(() => {
+    const barsCount = 120; // Количество баров для визуализации
+    
+    if (!isPlaying || !analyserRef.current) {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+      // Когда не играет, сбрасываем данные к минимальным значениям
+      if (!isPlaying) {
+        setAudioData(Array(barsCount).fill(5));
+      }
+      return;
+    }
+
+    const analyser = analyserRef.current;
+    const dataArray = new Uint8Array(analyser.frequencyBinCount);
+    const bufferLength = analyser.frequencyBinCount;
+    const samplesPerBar = Math.floor(bufferLength / barsCount);
+
+    const updateVisualization = () => {
+      if (!analyserRef.current || !isPlaying) {
+        return;
+      }
+
+      analyser.getByteFrequencyData(dataArray);
+      
+      const newAudioData: number[] = [];
+      for (let i = 0; i < barsCount; i++) {
+        let sum = 0;
+        const start = i * samplesPerBar;
+        const end = Math.min(start + samplesPerBar, bufferLength);
+        
+        for (let j = start; j < end; j++) {
+          sum += dataArray[j];
+        }
+        const average = sum / (end - start);
+        // Нормализуем от 0 до 100 для высоты
+        const normalized = Math.min((average / 255) * 100, 100);
+        // Минимальная высота для видимости
+        newAudioData.push(Math.max(normalized, 5));
+      }
+      
+      setAudioData(newAudioData);
+      animationFrameRef.current = requestAnimationFrame(updateVisualization);
+    };
+
+    animationFrameRef.current = requestAnimationFrame(updateVisualization);
+
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+    };
+  }, [isPlaying]);
+
   // Инициализация audio элемента и обработчиков событий
   useEffect(() => {
     const audio = audioRef.current;
@@ -241,6 +350,10 @@ export default function ConsultationPage() {
 
     const handlePlay = () => {
       setIsPlaying(true);
+      // Возобновляем AudioContext если он был приостановлен
+      if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+        audioContextRef.current.resume();
+      }
     };
 
     const handlePause = () => {
@@ -286,6 +399,20 @@ export default function ConsultationPage() {
     }
   };
 
+  // Обработчик клика на прогресс-бар для перемотки
+  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const audio = audioRef.current;
+    if (!audio || !duration || !progressBarRef.current) return;
+
+    const rect = progressBarRef.current.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const percentage = clickX / rect.width;
+    const newTime = percentage * duration;
+
+    audio.currentTime = newTime;
+    setCurrentTime(newTime);
+  };
+
   // Форматирование времени
   const formatTime = (seconds: number): string => {
     if (!isFinite(seconds) || isNaN(seconds)) return '0:00';
@@ -293,6 +420,13 @@ export default function ConsultationPage() {
     const secs = Math.floor(seconds % 60);
     return `${mins}:${String(secs).padStart(2, '0')}`;
   };
+
+  // Вычисляем процент прогресса
+  const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+  // Инициализируем данные для визуализации, если они пустые
+  const barsCount = 120;
+  const displayAudioData = audioData.length > 0 ? audioData : Array(barsCount).fill(5);
   
   // Определяем статус обработки
   const processingStatus = enrichedConsultation?.processingStatus ?? 
@@ -715,23 +849,38 @@ export default function ConsultationPage() {
                 <Play className="fill-current ml-1" />
               )}
             </Button>
-            <div className="flex-1">
-              <div className="h-12 flex items-center gap-1 opacity-50">
-                 {/* Fake Waveform */}
-                 {Array.from({ length: 60 }).map((_, i) => {
-                   // Анимируем волну при воспроизведении
-                   const isActive = isPlaying && i % 3 === 0;
-                   const height = isActive 
-                     ? `${30 + Math.random() * 50}%` 
-                     : `${20 + Math.random() * 40}%`;
+            <div className="flex-1 relative min-w-0">
+              <div 
+                ref={progressBarRef}
+                className="h-12 flex items-center gap-0.5 opacity-50 cursor-pointer group relative w-full"
+                onClick={handleProgressClick}
+              >
+                 {/* Real-time Audio Waveform Progress Bar */}
+                 {displayAudioData.map((height, i) => {
+                   const barPosition = ((i + 0.5) / displayAudioData.length) * 100; // Центр бара
+                   const isBeforeProgress = barPosition < progressPercentage;
+                   
                    return (
                      <div 
                        key={i} 
-                       className="w-1 bg-foreground rounded-full transition-all duration-150" 
-                       style={{ height }}
+                       className={cn(
+                         "flex-1 rounded-full transition-all duration-75 min-w-[2px]",
+                         isBeforeProgress 
+                           ? "bg-foreground opacity-100" 
+                           : "bg-foreground opacity-25"
+                       )}
+                       style={{ 
+                         height: `${Math.max(height, 5)}%`,
+                         transition: 'opacity 0.15s ease-out, height 0.075s ease-out'
+                       }}
                      />
                    );
                  })}
+                 {/* Индикатор текущей позиции */}
+                 <div 
+                   className="absolute top-0 bottom-0 w-0.5 bg-primary opacity-90 transition-all duration-100 pointer-events-none z-10"
+                   style={{ left: `${progressPercentage}%` }}
+                 />
               </div>
             </div>
             <span className="text-sm font-mono text-muted-foreground">
