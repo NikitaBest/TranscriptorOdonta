@@ -1,4 +1,5 @@
 import { ApiClient } from './client';
+import { getApiUrl } from './config';
 import type { 
   ApiResponse, 
   UploadConsultationResponse,
@@ -258,6 +259,44 @@ export const consultationsApi = {
     }
 
     throw new Error('Неожиданный формат ответа от сервера');
+  },
+
+  /**
+   * Получение URL аудиофайла консультации
+   * GET /note/consultation-audio/{id}
+   * @param id - ID консультации
+   * @returns Promise с Blob URL для использования в audio элементе
+   */
+  async getAudioUrl(id: string | number): Promise<string> {
+    const url = getApiUrl(`note/consultation-audio/${id}`);
+    const token = ApiClient.getAuthToken();
+    
+    try {
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers,
+        credentials: 'omit',
+        mode: 'cors',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Ошибка загрузки аудио: ${response.status} ${response.statusText}`);
+      }
+      
+      // Получаем аудио как Blob
+      const blob = await response.blob();
+      
+      // Создаем object URL для использования в audio элементе
+      return URL.createObjectURL(blob);
+    } catch (error) {
+      console.error('Get audio URL error:', error);
+      throw error;
+    }
   },
 
   /**

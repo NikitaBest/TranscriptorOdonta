@@ -40,6 +40,13 @@ export default function ConsultationPage() {
   const [isReprocessing, setIsReprocessing] = useState(false);
   const [reprocessDialogOpen, setReprocessDialogOpen] = useState(false);
   
+  // Состояния для аудиоплеера
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [isLoadingAudio, setIsLoadingAudio] = useState(false);
+  
   // Состояния для редактирования полей отчета
   const [complaints, setComplaints] = useState('');
   const [objective, setObjective] = useState('');
@@ -177,6 +184,115 @@ export default function ConsultationPage() {
       }
     };
   }, [complaints, objective, treatmentPlan, summary, comment, id, enrichedConsultation, queryClient, toast]);
+
+  // Инициализация duration из данных консультации
+  useEffect(() => {
+    if (enrichedConsultation?.audioDuration && !duration) {
+      setDuration(enrichedConsultation.audioDuration);
+    }
+  }, [enrichedConsultation?.audioDuration]);
+
+  // Загрузка аудио при загрузке консультации
+  useEffect(() => {
+    if (!id || !enrichedConsultation) return;
+    
+    // Загружаем аудио только если консультация обработана
+    const processingStatus = enrichedConsultation.processingStatus ?? 
+                             (enrichedConsultation.status as ConsultationProcessingStatus) ?? 
+                             ConsultationProcessingStatus.None;
+    
+    if (processingStatus !== ConsultationProcessingStatus.Completed) {
+      return;
+    }
+
+    setIsLoadingAudio(true);
+    
+    consultationsApi.getAudioUrl(id)
+      .then((url) => {
+        setAudioUrl(url);
+        setIsLoadingAudio(false);
+      })
+      .catch((error) => {
+        console.error('Failed to load audio:', error);
+        setIsLoadingAudio(false);
+        // Не показываем ошибку пользователю, просто не загружаем аудио
+      });
+
+    // Очистка object URL при размонтировании
+    return () => {
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl);
+      }
+    };
+  }, [id, enrichedConsultation?.processingStatus, enrichedConsultation?.status]);
+
+  // Инициализация audio элемента и обработчиков событий
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio || !audioUrl) return;
+
+    const handleTimeUpdate = () => {
+      setCurrentTime(audio.currentTime);
+    };
+
+    const handleLoadedMetadata = () => {
+      setDuration(audio.duration);
+    };
+
+    const handlePlay = () => {
+      setIsPlaying(true);
+    };
+
+    const handlePause = () => {
+      setIsPlaying(false);
+    };
+
+    const handleEnded = () => {
+      setIsPlaying(false);
+      setCurrentTime(0);
+    };
+
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('play', handlePlay);
+    audio.addEventListener('pause', handlePause);
+    audio.addEventListener('ended', handleEnded);
+
+    return () => {
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('play', handlePlay);
+      audio.removeEventListener('pause', handlePause);
+      audio.removeEventListener('ended', handleEnded);
+    };
+  }, [audioUrl]);
+
+  // Обработчик воспроизведения/паузы
+  const handlePlayPause = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (isPlaying) {
+      audio.pause();
+    } else {
+      audio.play().catch((error) => {
+        console.error('Failed to play audio:', error);
+        toast({
+          title: "Ошибка воспроизведения",
+          description: "Не удалось воспроизвести аудио. Попробуйте еще раз.",
+          variant: "destructive",
+        });
+      });
+    }
+  };
+
+  // Форматирование времени
+  const formatTime = (seconds: number): string => {
+    if (!isFinite(seconds) || isNaN(seconds)) return '0:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${String(secs).padStart(2, '0')}`;
+  };
   
   // Определяем статус обработки
   const processingStatus = enrichedConsultation?.processingStatus ?? 
@@ -588,24 +704,51 @@ export default function ConsultationPage() {
             <Button 
               size="icon" 
               className="h-12 w-12 rounded-full shrink-0" 
-              onClick={() => setIsPlaying(!isPlaying)}
+              onClick={handlePlayPause}
+              disabled={!audioUrl || isLoadingAudio}
             >
-              {isPlaying ? <Pause className="fill-current" /> : <Play className="fill-current ml-1" />}
+              {isLoadingAudio ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : isPlaying ? (
+                <Pause className="fill-current" />
+              ) : (
+                <Play className="fill-current ml-1" />
+              )}
             </Button>
             <div className="flex-1">
               <div className="h-12 flex items-center gap-1 opacity-50">
                  {/* Fake Waveform */}
-                 {Array.from({ length: 60 }).map((_, i) => (
-                    <div 
-                      key={i} 
-                      className="w-1 bg-foreground rounded-full" 
-                      style={{ height: `${20 + Math.random() * 60}%` }}
-                    />
-                 ))}
+                 {Array.from({ length: 60 }).map((_, i) => {
+                   // Анимируем волну при воспроизведении
+                   const isActive = isPlaying && i % 3 === 0;
+                   const height = isActive 
+                     ? `${30 + Math.random() * 50}%` 
+                     : `${20 + Math.random() * 40}%`;
+                   return (
+                     <div 
+                       key={i} 
+                       className="w-1 bg-foreground rounded-full transition-all duration-150" 
+                       style={{ height }}
+                     />
+                   );
+                 })}
               </div>
             </div>
-            <span className="text-sm font-mono text-muted-foreground">{enrichedConsultation.duration || '0:00'}</span>
+            <span className="text-sm font-mono text-muted-foreground">
+              {audioUrl 
+                ? `${formatTime(currentTime)} / ${formatTime(duration || (enrichedConsultation.audioDuration ? enrichedConsultation.audioDuration : 0))}` 
+                : (enrichedConsultation.duration || (enrichedConsultation.audioDuration ? formatTime(enrichedConsultation.audioDuration) : '0:00'))
+              }
+            </span>
           </div>
+          {/* Скрытый audio элемент */}
+          {audioUrl && (
+            <audio
+              ref={audioRef}
+              src={audioUrl}
+              preload="metadata"
+            />
+          )}
         </Card>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
