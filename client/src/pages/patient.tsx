@@ -335,9 +335,6 @@ export default function PatientProfile() {
                               <span className="text-xs font-medium text-destructive">{getStatusText(consultation.processingStatus)}</span>
                             </div>
                           ) : null}
-                          <div className="px-3 py-1 rounded-full bg-secondary text-xs font-medium">
-                            {consultation.duration}
-                          </div>
                         </div>
                       </div>
                       <p className="text-sm text-muted-foreground line-clamp-2 mb-4 pl-[3.25rem]">
