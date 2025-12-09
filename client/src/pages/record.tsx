@@ -239,9 +239,9 @@ export default function RecordPage() {
         preferredFormat = 'wav';
       }
       
-      // Настройки для записи: bitrate 128 kbps для хорошего качества речи
-      // Для MP4 можно использовать 96-128 kbps, для Opus 64-128 kbps достаточно
-      const bitrate = preferredFormat === 'mp4' ? 128000 : 128000; // 128 kbps для всех форматов
+      // Настройки для записи: bitrate 16 kbps для экономии трафика
+      // Для MP4 можно использовать 16-32 kbps, для Opus 16-32 kbps достаточно для речи
+      const bitrate = preferredFormat === 'mp4' ? 16000 : 16000; // 16 kbps для всех форматов
       
       const mediaRecorderOptions: MediaRecorderOptions = {
         mimeType: mimeType,
