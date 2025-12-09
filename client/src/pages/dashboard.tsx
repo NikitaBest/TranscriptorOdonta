@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Search, Plus, Mic, ChevronRight, Calendar, Phone, Loader2 } from 'lucide-react';
+import { Search, Plus, Mic, ChevronRight, Calendar, Phone, Loader2, Copy } from 'lucide-react';
 import { Patient } from '@/lib/mock-data';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
@@ -64,6 +64,39 @@ export default function Dashboard() {
     p.lastName.toLowerCase().includes(search.toLowerCase()) ||
     p.phone.includes(search)
   );
+
+  const handleCopyPhone = async (e: React.MouseEvent, phone: string) => {
+    e.stopPropagation(); // Предотвращаем переход на страницу пациента
+    try {
+      await navigator.clipboard.writeText(phone);
+      toast({
+        title: "Номер скопирован",
+        description: `Номер телефона ${phone} скопирован в буфер обмена`,
+      });
+    } catch (error) {
+      // Fallback для старых браузеров
+      const textArea = document.createElement('textarea');
+      textArea.value = phone;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        toast({
+          title: "Номер скопирован",
+          description: `Номер телефона ${phone} скопирован в буфер обмена`,
+        });
+      } catch (err) {
+        toast({
+          title: "Ошибка",
+          description: "Не удалось скопировать номер телефона",
+          variant: "destructive",
+        });
+      }
+      document.body.removeChild(textArea);
+    }
+  };
 
   const handleAddPatient = async () => {
     if (!newFirstName || !newLastName) {
@@ -282,9 +315,22 @@ export default function Dashboard() {
                       </Avatar>
                       <div>
                         <h3 className="font-bold text-lg leading-none mb-1">{patient.firstName} {patient.lastName}</h3>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <div 
+                          className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer hover:text-foreground transition-colors group/phone relative z-10"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleCopyPhone(e, patient.phone);
+                          }}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }}
+                          title="Нажмите, чтобы скопировать номер"
+                        >
                           <Phone className="w-3 h-3" />
-                          {patient.phone}
+                          <span>{patient.phone}</span>
+                          <Copy className="w-3 h-3 opacity-0 group-hover/phone:opacity-100 transition-opacity" />
                         </div>
                       </div>
                     </div>

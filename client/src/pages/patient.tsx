@@ -5,7 +5,7 @@ import { Layout } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Mic, ArrowLeft, Phone, Calendar, FileText, Play, Loader2, Check, AlertCircle } from 'lucide-react';
+import { Mic, ArrowLeft, Phone, Calendar, FileText, Play, Loader2, Check, AlertCircle, Copy } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { Textarea } from '@/components/ui/textarea';
@@ -21,6 +21,38 @@ export default function PatientProfile() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [comment, setComment] = useState('');
+
+  const handleCopyPhone = async (phone: string) => {
+    try {
+      await navigator.clipboard.writeText(phone);
+      toast({
+        title: "Номер скопирован",
+        description: `Номер телефона ${phone} скопирован в буфер обмена`,
+      });
+    } catch (error) {
+      // Fallback для старых браузеров
+      const textArea = document.createElement('textarea');
+      textArea.value = phone;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        toast({
+          title: "Номер скопирован",
+          description: `Номер телефона ${phone} скопирован в буфер обмена`,
+        });
+      } catch (err) {
+        toast({
+          title: "Ошибка",
+          description: "Не удалось скопировать номер телефона",
+          variant: "destructive",
+        });
+      }
+      document.body.removeChild(textArea);
+    }
+  };
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -226,8 +258,14 @@ export default function PatientProfile() {
               <div className="flex-1 min-w-0">
                 <h1 className="text-xl sm:text-2xl md:text-3xl font-display font-bold tracking-tight mb-2 truncate">{patient.firstName} {patient.lastName}</h1>
                 <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 md:gap-4 text-xs md:text-sm text-muted-foreground">
-                  <span className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-full bg-secondary/50 border border-border/50 whitespace-nowrap">
-                    <Phone className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" /> <span className="truncate max-w-[120px] sm:max-w-none">{patient.phone}</span>
+                  <span 
+                    className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-full bg-secondary/50 border border-border/50 whitespace-nowrap cursor-pointer hover:bg-secondary/70 hover:text-foreground transition-colors group/phone"
+                    onClick={() => handleCopyPhone(patient.phone)}
+                    title="Нажмите, чтобы скопировать номер"
+                  >
+                    <Phone className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" /> 
+                    <span className="truncate max-w-[120px] sm:max-w-none">{patient.phone}</span>
+                    <Copy className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0 opacity-0 group-hover/phone:opacity-100 transition-opacity" />
                   </span>
                   <span className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-full bg-secondary/50 border border-border/50 whitespace-nowrap">
                     <Calendar className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" /> <span className="hidden xs:inline">С </span>{format(new Date(patient.lastVisit), 'MMM yyyy', { locale: ru })}
