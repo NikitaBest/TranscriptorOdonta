@@ -5,6 +5,7 @@ import {
   Mic, 
   History, 
   LogOut,
+  MessageCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { authApi } from '@/lib/api/auth';
@@ -77,6 +78,15 @@ export function Layout({ children }: LayoutProps) {
           </nav>
 
           <div className="p-4 mt-auto border-t border-border/50 space-y-2">
+            <a
+              href="https://t.me/odonta_ai_support"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 px-4 py-3 rounded-2xl transition-all hover:bg-secondary cursor-pointer text-sm"
+            >
+              <MessageCircle className="w-4 h-4" />
+              <span>Поддержка</span>
+            </a>
             <div 
               onClick={handleLogout}
               className="flex items-center gap-3 px-4 py-3 rounded-2xl transition-all hover:bg-destructive/10 hover:text-destructive cursor-pointer text-sm"
@@ -98,14 +108,25 @@ export function Layout({ children }: LayoutProps) {
           />
           <span className="font-display font-bold text-lg">Odonta AI</span>
         </div>
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="flex items-center justify-center w-9 h-9 rounded-full border border-border/70 text-muted-foreground hover:text-destructive hover:border-destructive/60 transition-colors"
-          aria-label="Выйти из аккаунта"
-        >
-          <LogOut className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          <a
+            href="https://t.me/odonta_ai_support"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center w-9 h-9 rounded-full border border-border/70 text-muted-foreground hover:text-foreground hover:border-primary/60 transition-colors"
+            aria-label="Техническая поддержка"
+          >
+            <MessageCircle className="w-4 h-4" />
+          </a>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex items-center justify-center w-9 h-9 rounded-full border border-border/70 text-muted-foreground hover:text-destructive hover:border-destructive/60 transition-colors"
+            aria-label="Выйти из аккаунта"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {/* Main Content */}
