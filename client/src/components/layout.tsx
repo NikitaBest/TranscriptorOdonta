@@ -47,7 +47,14 @@ export function Layout({ children }: LayoutProps) {
       <aside className="hidden md:block w-64 border-r border-border/50 sticky top-0 md:h-screen bg-background/50 backdrop-blur-xl z-50">
         <div className="flex flex-col h-full">
           <div className="p-6 mb-8">
-            <h1 className="text-2xl font-display font-bold tracking-tighter">Transcriptor</h1>
+            <div className="flex items-center gap-2 mb-2">
+              <img 
+                src="/OdontaLogo.svg" 
+                alt="Odonta AI Logo" 
+                className="w-8 h-8"
+              />
+              <h1 className="text-2xl font-display font-bold tracking-tighter">Odonta AI</h1>
+            </div>
             <p className="text-xs text-muted-foreground mt-1">ИИ-ассистент стоматолога</p>
           </div>
 
@@ -83,7 +90,14 @@ export function Layout({ children }: LayoutProps) {
 
       {/* Mobile Header */}
       <div className="md:hidden fixed top-0 left-0 right-0 h-14 border-b border-border/50 bg-background/95 backdrop-blur-xl z-50 flex items-center justify-between px-4">
-        <span className="font-display font-bold text-lg">Transcriptor</span>
+        <div className="flex items-center gap-2">
+          <img 
+            src="/OdontaLogo.svg" 
+            alt="Odonta AI Logo" 
+            className="w-6 h-6"
+          />
+          <span className="font-display font-bold text-lg">Odonta AI</span>
+        </div>
         <button
           type="button"
           onClick={handleLogout}

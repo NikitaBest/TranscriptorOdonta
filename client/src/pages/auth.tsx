@@ -80,7 +80,14 @@ export default function AuthPage() {
     <div className="min-h-screen w-full flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md space-y-8 animate-in slide-in-from-bottom-4 duration-700">
         <div className="text-center space-y-2">
-          <h1 className="text-4xl font-display font-bold tracking-tighter">Transcriptor</h1>
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <img 
+              src="/OdontaLogo.svg" 
+              alt="Odonta AI Logo" 
+              className="w-12 h-12"
+            />
+            <h1 className="text-4xl font-display font-bold tracking-tighter">Odonta AI</h1>
+          </div>
           <p className="text-muted-foreground">ИИ-ассистент для стоматологических консультаций</p>
         </div>
 
