@@ -2,8 +2,8 @@
  * Конфигурация API
  */
 export const API_CONFIG = {
-  baseURL: 'https://transcriptor-backend-api.odonta.burtimaxbot.ru',
-  timeout: 30000, // 30 секунд
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://transcriptor-backend-api.odonta.burtimaxbot.ru',
+  timeout: Number(import.meta.env.VITE_API_TIMEOUT) || 30000, // 30 секунд
 } as const;
 
 /**
