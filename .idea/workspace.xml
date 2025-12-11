@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="Bitrate установлен на 16 kbps">
+    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="добавлена кнопка поддержка , адаптирована под мобилку">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -77,6 +77,7 @@
       <workItem from="1765182668193" duration="900000" />
       <workItem from="1765199549783" duration="6582000" />
       <workItem from="1765281969268" duration="1224000" />
+      <workItem from="1765445071433" duration="602000" />
     </task>
     <task id="LOCAL-00001" summary="новая ветка">
       <option name="closed" value="true" />
@@ -414,14 +415,21 @@
       <option name="project" value="LOCAL" />
       <updated>1765266751101</updated>
     </task>
-    <option name="localTasksCounter" value="43" />
+    <task id="LOCAL-00043" summary="добавлена кнопка поддержка , адаптирована под мобилку">
+      <option name="closed" value="true" />
+      <created>1765354209796</created>
+      <option name="number" value="00043" />
+      <option name="presentableId" value="LOCAL-00043" />
+      <option name="project" value="LOCAL" />
+      <updated>1765354209796</updated>
+    </task>
+    <option name="localTasksCounter" value="44" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="обновление комментария после редактирования" />
     <MESSAGE value="добавлен выбор пациентов на записи" />
     <MESSAGE value="добавление записи и отчетности по пациенту" />
     <MESSAGE value="добавление информации в истории" />
@@ -446,6 +454,7 @@
     <MESSAGE value="подключена база для телеграмм все файлы" />
     <MESSAGE value="копирование номера телефона" />
     <MESSAGE value="Bitrate установлен на 16 kbps" />
-    <option name="LAST_COMMIT_MESSAGE" value="Bitrate установлен на 16 kbps" />
+    <MESSAGE value="добавлена кнопка поддержка , адаптирована под мобилку" />
+    <option name="LAST_COMMIT_MESSAGE" value="добавлена кнопка поддержка , адаптирована под мобилку" />
   </component>
 </project>

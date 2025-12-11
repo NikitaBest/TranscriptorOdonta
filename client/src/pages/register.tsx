@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { authApi } from "@/lib/api/auth";
 import { useToast } from "@/hooks/use-toast";
 import type { ApiError } from "@/lib/api/types";
@@ -22,6 +23,8 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [consentAccepted, setConsentAccepted] = useState(false);
+  const [marketingConsentAccepted, setMarketingConsentAccepted] = useState(false);
 
   const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -42,6 +45,16 @@ export default function RegisterPage() {
 
     if (password.length < 6) {
       setError("Пароль должен содержать минимум 6 символов");
+      return;
+    }
+
+    if (!consentAccepted) {
+      setError("Необходимо согласиться на обработку персональных данных");
+      return;
+    }
+
+    if (!marketingConsentAccepted) {
+      setError("Необходимо согласиться на рекламную рассылку");
       return;
     }
 
@@ -184,13 +197,71 @@ export default function RegisterPage() {
                 </div>
               </div>
 
+              <div className="space-y-3 pt-2">
+                <div className="flex items-start space-x-2">
+                  <Checkbox
+                    id="consent"
+                    checked={consentAccepted}
+                    onCheckedChange={(checked) => setConsentAccepted(checked === true)}
+                    className="mt-0.5"
+                  />
+                  <Label
+                    htmlFor="consent"
+                    className="text-sm font-normal leading-relaxed cursor-pointer"
+                  >
+                    Я даю{" "}
+                    <a
+                      href="https://disk.yandex.ru/i/v_4_gmraHoTdJA"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 underline font-medium hover:text-blue-700"
+                    >
+                      согласие
+                    </a>
+                    {" "}на обработку моих персональных данных согласно{" "}
+                    <a
+                      href="https://disk.yandex.ru/i/AsAMtZQ5NgcdBA"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 underline font-medium hover:text-blue-700"
+                    >
+                      Политике
+                    </a>
+                  </Label>
+                </div>
+
+                <div className="flex items-start space-x-2">
+                  <Checkbox
+                    id="marketing-consent"
+                    checked={marketingConsentAccepted}
+                    onCheckedChange={(checked) => setMarketingConsentAccepted(checked === true)}
+                    className="mt-0.5"
+                  />
+                  <Label
+                    htmlFor="marketing-consent"
+                    className="text-sm font-normal leading-relaxed cursor-pointer"
+                  >
+                    Я даю{" "}
+                    <a
+                      href="https://disk.yandex.ru/i/AsAMtZQ5NgcdBA"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 underline font-medium hover:text-blue-700"
+                    >
+                      согласие
+                    </a>
+                    {" "}на рекламную рассылку
+                  </Label>
+                </div>
+              </div>
+
               {error && (
                 <p className="text-sm text-destructive text-center">{error}</p>
               )}
 
               <Button
                 className="w-full h-12 rounded-xl text-base font-medium mt-4"
-                disabled={isLoading}
+                disabled={isLoading || !consentAccepted || !marketingConsentAccepted}
                 type="submit"
               >
                 {isLoading ? "Создание..." : "Создать аккаунт"}
