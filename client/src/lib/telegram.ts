@@ -29,6 +29,8 @@ declare global {
         expand: () => void;
         enableClosingConfirmation: () => void;
         disableClosingConfirmation: () => void;
+        disableVerticalSwipes: () => void;
+        enableVerticalSwipes: () => void;
         BackButton: {
           isVisible: boolean;
           show: () => void;
@@ -81,6 +83,7 @@ export function initTelegramWebApp() {
 
 /**
  * Отключает возможность закрытия приложения при свайпе вниз
+ * Использует disableVerticalSwipes() для отключения вертикальных жестов
  */
 export function disableSwipeToClose() {
   const tg = getTelegramWebApp();
@@ -88,19 +91,16 @@ export function disableSwipeToClose() {
     return;
   }
 
-  // Скрываем кнопку "Назад", чтобы предотвратить закрытие
-  if (tg.BackButton) {
-    tg.BackButton.hide();
-  }
-
-  // Включаем подтверждение перед закрытием (требует подтверждение пользователя)
-  if (tg.enableClosingConfirmation) {
-    tg.enableClosingConfirmation();
+  // Отключаем вертикальные жесты для закрытия или сворачивания мини-приложения
+  // Это предотвращает закрытие при скролле или свайпе вниз
+  if (tg.disableVerticalSwipes) {
+    tg.disableVerticalSwipes();
   }
 }
 
 /**
  * Включает возможность закрытия приложения при свайпе вниз
+ * Использует enableVerticalSwipes() для включения вертикальных жестов
  */
 export function enableSwipeToClose() {
   const tg = getTelegramWebApp();
@@ -108,14 +108,9 @@ export function enableSwipeToClose() {
     return;
   }
 
-  // Показываем кнопку "Назад"
-  if (tg.BackButton) {
-    tg.BackButton.show();
-  }
-
-  // Отключаем подтверждение перед закрытием
-  if (tg.disableClosingConfirmation) {
-    tg.disableClosingConfirmation();
+  // Включаем вертикальные жесты для закрытия или сворачивания мини-приложения
+  if (tg.enableVerticalSwipes) {
+    tg.enableVerticalSwipes();
   }
 }
 
