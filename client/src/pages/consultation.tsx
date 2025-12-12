@@ -23,6 +23,7 @@ import { ConsultationProcessingStatus } from '@/lib/api/types';
 import type { ConsultationResponse } from '@/lib/api/types';
 import { ArrowLeft, Download, Share2, Copy, Play, Pause, RefreshCw, Check, GripVertical, Loader2, AlertCircle, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -34,6 +35,7 @@ export default function ConsultationPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
   const [isPlaying, setIsPlaying] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -286,11 +288,14 @@ export default function ConsultationPage() {
             audioUrl: directUrl || 'not set',
           });
           
-          toast({
-            title: "Ошибка загрузки аудио",
-            description: errorMessage,
-            variant: "destructive",
-          });
+          // Показываем уведомление только на десктопе (аудиоплеер скрыт на мобильных)
+          if (!isMobile) {
+            toast({
+              title: "Ошибка загрузки аудио",
+              description: errorMessage,
+              variant: "destructive",
+            });
+          }
         }
       }
     };
@@ -577,11 +582,14 @@ export default function ConsultationPage() {
       // Сохраняем ошибку в состоянии для отображения в UI
       setAudioError(errorMessage);
       
-      toast({
-        title: "Ошибка воспроизведения",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      // Показываем уведомление только на десктопе (аудиоплеер скрыт на мобильных)
+      if (!isMobile) {
+        toast({
+          title: "Ошибка воспроизведения",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
       
       setIsPlaying(false);
       setIsLoadingAudio(false);
@@ -681,11 +689,14 @@ export default function ConsultationPage() {
               errorMsg += "Попробуйте обновить страницу.";
           }
           setAudioError(errorMsg);
-          toast({
-            title: "Ошибка воспроизведения",
-            description: errorMsg,
-            variant: "destructive",
-          });
+          // Показываем уведомление только на десктопе (аудиоплеер скрыт на мобильных)
+          if (!isMobile) {
+            toast({
+              title: "Ошибка воспроизведения",
+              description: errorMsg,
+              variant: "destructive",
+            });
+          }
           return;
         }
         
@@ -755,11 +766,14 @@ export default function ConsultationPage() {
         }
         
         setAudioError(errorMessage);
-        toast({
-          title: "Ошибка воспроизведения",
-          description: errorMessage,
-          variant: "destructive",
-        });
+        // Показываем уведомление только на десктопе (аудиоплеер скрыт на мобильных)
+        if (!isMobile) {
+          toast({
+            title: "Ошибка воспроизведения",
+            description: errorMessage,
+            variant: "destructive",
+          });
+        }
       }
     }
   };
@@ -1235,8 +1249,8 @@ export default function ConsultationPage() {
           </div>
         </div>
 
-        {/* Audio Player Card */}
-        <Card className="rounded-3xl border-border/50 bg-secondary/30 overflow-hidden">
+        {/* Audio Player Card - скрыт на мобильных устройствах */}
+        <Card className="hidden md:block rounded-3xl border-border/50 bg-secondary/30 overflow-hidden">
           {/* Отображение ошибки воспроизведения */}
           {audioError && (
             <div className="px-4 py-3 bg-destructive/10 border-b border-destructive/20">
