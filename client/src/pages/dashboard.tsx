@@ -9,18 +9,13 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Search, Plus, Mic, ChevronRight, Calendar, Phone, Loader2, Copy } from 'lucide-react';
 import { Patient } from '@/lib/mock-data';
 import { format } from 'date-fns';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { ru } from 'date-fns/locale';
 import { patientsApi } from '@/lib/api/patients';
 import type { ApiError, PatientResponse } from '@/lib/api/types';
-import { normalizePhone, handlePhoneInput } from '@/lib/utils/phone';
 
 export default function Dashboard() {
   const [search, setSearch] = useState('');
-  const [newPatientOpen, setNewPatientOpen] = useState(false);
-  const [isCreating, setIsCreating] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -52,12 +47,6 @@ export default function Dashboard() {
     summary: p.comment || 'Новый пациент',
     avatar: `${p.firstName[0]}${p.lastName[0]}`.toUpperCase(),
   }));
-
-  // New patient form state
-  const [newFirstName, setNewFirstName] = useState('');
-  const [newLastName, setNewLastName] = useState('');
-  const [newPhone, setNewPhone] = useState('');
-  const [newComment, setNewComment] = useState('');
 
   const filteredPatients = patients.filter(p => 
     p.firstName.toLowerCase().includes(search.toLowerCase()) || 
@@ -98,71 +87,6 @@ export default function Dashboard() {
     }
   };
 
-  const handleAddPatient = async () => {
-    if (!newFirstName || !newLastName) {
-      toast({
-        title: "Ошибка",
-        description: "Заполните имя и фамилию пациента",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsCreating(true);
-
-    try {
-      const response = await patientsApi.create({
-        firstName: newFirstName,
-        lastName: newLastName,
-        phone: normalizePhone(newPhone),
-        comment: newComment || undefined,
-      });
-
-      // Создаем объект пациента для отображения
-      const newPatient: Patient = {
-        id: response.id,
-        firstName: response.firstName,
-        lastName: response.lastName,
-        phone: response.phone,
-        lastVisit: response.createdAt || new Date().toISOString(),
-        summary: "Регистрация нового пациента",
-        avatar: `${response.firstName[0]}${response.lastName[0]}`.toUpperCase()
-      };
-
-      // Обновляем кэш React Query
-      queryClient.invalidateQueries({ queryKey: ['patients'] });
-      
-      // Закрываем диалог и очищаем форму
-      setNewPatientOpen(false);
-      setNewFirstName('');
-      setNewLastName('');
-      setNewPhone('');
-      setNewComment('');
-      
-      toast({
-        title: "Пациент добавлен",
-        description: `${response.firstName} ${response.lastName} добавлен в ваш список.`,
-      });
-    } catch (err) {
-      console.error('Create patient error:', err);
-      
-      const apiError = err as ApiError;
-      const errorMessage =
-        apiError.message ||
-        apiError.errors?.firstName?.[0] ||
-        apiError.errors?.lastName?.[0] ||
-        apiError.errors?.phone?.[0] ||
-        "Произошла ошибка при создании пациента. Попробуйте еще раз.";
-
-      toast({
-        title: "Ошибка создания пациента",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setIsCreating(false);
-    }
-  };
 
   return (
     <Layout>
@@ -182,78 +106,12 @@ export default function Dashboard() {
               </Button>
             </Link>
             
-            <Dialog open={newPatientOpen} onOpenChange={setNewPatientOpen}>
-              <DialogTrigger asChild>
-                <Button className="flex-1 sm:flex-none w-full sm:w-auto h-11 md:h-12 rounded-xl px-4 md:px-6 gap-2 font-medium shadow-lg shadow-primary/20 text-sm md:text-base">
-                  <Plus className="w-4 h-4" />
-                  Добавить пациента
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px] rounded-3xl pb-8 md:pb-6">
-                <DialogHeader>
-                  <DialogTitle className="text-xl md:text-2xl font-display">Новый пациент</DialogTitle>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="firstName">Имя</Label>
-                    <Input 
-                      id="firstName" 
-                      value={newFirstName} 
-                      onChange={e => setNewFirstName(e.target.value)} 
-                      className="rounded-xl h-11"
-                      required
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="lastName">Фамилия</Label>
-                    <Input 
-                      id="lastName" 
-                      value={newLastName} 
-                      onChange={e => setNewLastName(e.target.value)} 
-                      className="rounded-xl h-11"
-                      required
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="phone">Телефон</Label>
-                    <Input 
-                      id="phone" 
-                      type="tel"
-                      value={newPhone} 
-                      onChange={e => setNewPhone(handlePhoneInput(e.target.value))} 
-                      className="rounded-xl h-11" 
-                      placeholder="+7 (999) 123-45-67"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="comment">Комментарий (необязательно)</Label>
-                    <Input 
-                      id="comment" 
-                      value={newComment} 
-                      onChange={e => setNewComment(e.target.value)} 
-                      className="rounded-xl h-11"
-                      placeholder="Дополнительная информация о пациенте"
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button 
-                    onClick={handleAddPatient} 
-                    className="w-full rounded-xl h-11 md:h-12"
-                    disabled={isCreating}
-                  >
-                    {isCreating ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Создание...
-                      </>
-                    ) : (
-                      'Создать профиль'
-                    )}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+            <Link href="/patient/new" className="flex-1 sm:flex-none">
+              <Button className="flex-1 sm:flex-none w-full sm:w-auto h-11 md:h-12 rounded-xl px-4 md:px-6 gap-2 font-medium shadow-lg shadow-primary/20 text-sm md:text-base">
+                <Plus className="w-4 h-4" />
+                Добавить пациента
+              </Button>
+            </Link>
           </div>
         </div>
 
