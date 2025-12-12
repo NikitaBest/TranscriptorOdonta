@@ -36,15 +36,8 @@ export default function AuthPage() {
         password,
       });
 
-      toast({
-        title: 'Вход выполнен',
-        description: 'Добро пожаловать! Вы будете перенаправлены...',
-      });
-
       // Перенаправляем на дашборд после успешной авторизации
-      setTimeout(() => {
-        setLocation('/dashboard');
-      }, 1000);
+      setLocation('/dashboard');
     } catch (err) {
       console.error('Login error:', err);
       
