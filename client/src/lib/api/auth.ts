@@ -43,15 +43,11 @@ export const authApi = {
 
   /**
    * Выход из системы
-   * POST /auth/logout
+   * Удаляет токен из localStorage (endpoint /auth/logout не существует на сервере)
    */
   async logout(): Promise<void> {
-    try {
-      await ApiClient.post('auth/logout', undefined, { requireAuth: true });
-    } finally {
-      // Удаляем токен в любом случае
-      ApiClient.removeAuthToken();
-    }
+    // Просто удаляем токен, так как endpoint logout не существует на сервере
+    ApiClient.removeAuthToken();
   },
 
   /**

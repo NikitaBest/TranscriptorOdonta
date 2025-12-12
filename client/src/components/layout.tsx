@@ -28,18 +28,13 @@ export function Layout({ children }: LayoutProps) {
   const handleLogout = async (e: React.MouseEvent) => {
     e.preventDefault();
     
-    try {
-      await authApi.logout();
-      toast({
-        title: "Выход выполнен",
-        description: "Вы успешно вышли из системы",
-      });
-      setLocation('/auth');
-    } catch (error) {
-      console.error('Logout error:', error);
-      // В любом случае перенаправляем на страницу авторизации
-      setLocation('/auth');
-    }
+    // Удаляем токен и перенаправляем на страницу авторизации
+    authApi.logout();
+    toast({
+      title: "Выход выполнен",
+      description: "Вы успешно вышли из системы",
+    });
+    setLocation('/auth');
   };
 
   return (
