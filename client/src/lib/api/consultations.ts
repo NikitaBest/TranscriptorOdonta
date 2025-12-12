@@ -289,14 +289,56 @@ export const consultationsApi = {
       }
       
       // Получаем Content-Type из заголовков ответа
-      const contentType = response.headers.get('content-type') || 'audio/mpeg';
+      let contentType = response.headers.get('content-type') || '';
       
-      // Получаем аудио как Blob с явным указанием MIME типа
+      // Нормализуем MIME тип для лучшей совместимости с мобильными браузерами
+      // Поддерживаемые форматы на мобильных:
+      // - audio/mpeg, audio/mp3 - универсальная поддержка
+      // - audio/mp4, audio/m4a - iOS Safari, Chrome
+      // - audio/webm - Chrome, Firefox, Edge
+      // - audio/ogg - Firefox
+      // - audio/wav - универсальный, но большой
+      
+      // Если тип не указан или неопределенный, пытаемся определить по URL или используем универсальный
+      if (!contentType || contentType === 'application/octet-stream') {
+        // Проверяем расширение файла в URL (если есть)
+        const urlLower = url.toLowerCase();
+        if (urlLower.includes('.mp3') || urlLower.includes('.mpeg')) {
+          contentType = 'audio/mpeg';
+        } else if (urlLower.includes('.mp4') || urlLower.includes('.m4a')) {
+          contentType = 'audio/mp4';
+        } else if (urlLower.includes('.webm')) {
+          contentType = 'audio/webm';
+        } else if (urlLower.includes('.ogg')) {
+          contentType = 'audio/ogg';
+        } else if (urlLower.includes('.wav')) {
+          contentType = 'audio/wav';
+        } else {
+          // Используем универсальный тип, который поддерживается большинством браузеров
+          contentType = 'audio/mpeg';
+        }
+      }
+      
+      // Получаем аудио как Blob
       const blob = await response.blob();
       
       // Создаем Blob с правильным MIME типом для совместимости с мобильными браузерами
-      // Если тип не определен или неправильный, используем универсальный audio/mpeg
-      const audioBlob = blob.type ? blob : new Blob([blob], { type: contentType });
+      // Если blob уже имеет правильный тип, используем его, иначе создаем новый с явным типом
+      let audioBlob: Blob;
+      if (blob.type && blob.type !== 'application/octet-stream') {
+        audioBlob = blob;
+      } else {
+        // Создаем новый Blob с явным указанием типа
+        audioBlob = new Blob([blob], { type: contentType });
+      }
+      
+      console.log('Audio loaded:', {
+        originalType: blob.type,
+        contentType: contentType,
+        finalType: audioBlob.type,
+        size: audioBlob.size,
+        sizeMB: (audioBlob.size / (1024 * 1024)).toFixed(2),
+      });
       
       // Создаем object URL для использования в audio элементе
       return URL.createObjectURL(audioBlob);

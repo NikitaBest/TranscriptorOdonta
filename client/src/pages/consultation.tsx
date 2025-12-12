@@ -431,6 +431,11 @@ export default function ConsultationPage() {
       setDuration(audio.duration);
     };
 
+    const handleCanPlay = () => {
+      // Аудио готово к воспроизведению
+      console.log('Audio can play, duration:', audio.duration);
+    };
+
     const handlePlay = async () => {
       setIsPlaying(true);
       // Возобновляем AudioContext если он был приостановлен (важно для мобильных устройств)
@@ -452,20 +457,87 @@ export default function ConsultationPage() {
       setCurrentTime(0);
     };
 
+    const handleError = (e: Event) => {
+      console.error('Audio error:', e);
+      const audioError = audio.error;
+      if (audioError) {
+        let errorMessage = "Не удалось воспроизвести аудио.";
+        
+        switch (audioError.code) {
+          case MediaError.MEDIA_ERR_ABORTED:
+            errorMessage = "Воспроизведение было прервано.";
+            break;
+          case MediaError.MEDIA_ERR_NETWORK:
+            errorMessage = "Ошибка сети при загрузке аудио. Проверьте подключение к интернету.";
+            break;
+          case MediaError.MEDIA_ERR_DECODE:
+            errorMessage = "Формат аудио не поддерживается вашим браузером. Попробуйте другой браузер.";
+            break;
+          case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+            errorMessage = "Формат аудио не поддерживается. Обратитесь к администратору.";
+            break;
+        }
+        
+        toast({
+          title: "Ошибка воспроизведения",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
+      
+      setIsPlaying(false);
+      setIsLoadingAudio(false);
+    };
+
+    const handleLoadStart = () => {
+      console.log('Audio load started');
+    };
+
+    const handleLoadedData = () => {
+      console.log('Audio data loaded');
+      setIsLoadingAudio(false);
+    };
+
+    const handleWaiting = () => {
+      console.log('Audio waiting for data');
+    };
+
+    const handleStalled = () => {
+      console.warn('Audio stalled - network issue');
+    };
+
+    // Устанавливаем атрибуты для лучшей совместимости с мобильными браузерами
+    audio.setAttribute('playsinline', 'true');
+    audio.setAttribute('webkit-playsinline', 'true');
+    audio.setAttribute('preload', 'metadata');
+    
+    // Добавляем обработчики событий
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('canplay', handleCanPlay);
     audio.addEventListener('play', handlePlay);
     audio.addEventListener('pause', handlePause);
     audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('error', handleError);
+    audio.addEventListener('loadstart', handleLoadStart);
+    audio.addEventListener('loadeddata', handleLoadedData);
+    audio.addEventListener('waiting', handleWaiting);
+    audio.addEventListener('stalled', handleStalled);
 
     return () => {
       audio.removeEventListener('timeupdate', handleTimeUpdate);
       audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('canplay', handleCanPlay);
       audio.removeEventListener('play', handlePlay);
       audio.removeEventListener('pause', handlePause);
       audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('error', handleError);
+      audio.removeEventListener('loadstart', handleLoadStart);
+      audio.removeEventListener('loadeddata', handleLoadedData);
+      audio.removeEventListener('waiting', handleWaiting);
+      audio.removeEventListener('stalled', handleStalled);
     };
-  }, [audioUrl]);
+  }, [audioUrl, toast]);
 
   // Обработчик воспроизведения/паузы
   const handlePlayPause = async () => {
@@ -482,17 +554,60 @@ export default function ConsultationPage() {
           await audioContextRef.current.resume();
         }
         
-        await audio.play();
+        // Проверяем, загружено ли аудио
+        if (audio.readyState < 2) {
+          // Если аудио еще не загружено, ждем загрузки
+          setIsLoadingAudio(true);
+          await new Promise<void>((resolve, reject) => {
+            const timeout = setTimeout(() => {
+              reject(new Error('Таймаут загрузки аудио'));
+            }, 10000); // 10 секунд таймаут
+            
+            const handleCanPlay = () => {
+              clearTimeout(timeout);
+              audio.removeEventListener('canplay', handleCanPlay);
+              audio.removeEventListener('error', handleError);
+              setIsLoadingAudio(false);
+              resolve();
+            };
+            
+            const handleError = () => {
+              clearTimeout(timeout);
+              audio.removeEventListener('canplay', handleCanPlay);
+              audio.removeEventListener('error', handleError);
+              setIsLoadingAudio(false);
+              reject(new Error('Ошибка загрузки аудио'));
+            };
+            
+            audio.addEventListener('canplay', handleCanPlay, { once: true });
+            audio.addEventListener('error', handleError, { once: true });
+            
+            // Загружаем аудио
+            audio.load();
+          });
+        }
+        
+        // Пытаемся воспроизвести
+        const playPromise = audio.play();
+        
+        if (playPromise !== undefined) {
+          await playPromise;
+        }
       } catch (error) {
         console.error('Failed to play audio:', error);
+        setIsLoadingAudio(false);
         
         // Более детальное сообщение об ошибке
         let errorMessage = "Не удалось воспроизвести аудио. Попробуйте еще раз.";
         if (error instanceof Error) {
           if (error.name === 'NotAllowedError') {
-            errorMessage = "Воспроизведение заблокировано браузером. Разрешите автозапуск медиа.";
+            errorMessage = "Воспроизведение заблокировано браузером. Нажмите на кнопку воспроизведения еще раз.";
           } else if (error.name === 'NotSupportedError') {
-            errorMessage = "Формат аудио не поддерживается вашим браузером.";
+            errorMessage = "Формат аудио не поддерживается вашим браузером. Попробуйте использовать Chrome, Safari или Firefox.";
+          } else if (error.message.includes('Таймаут')) {
+            errorMessage = "Превышено время ожидания загрузки аудио. Проверьте подключение к интернету.";
+          } else if (error.message.includes('Ошибка загрузки')) {
+            errorMessage = "Не удалось загрузить аудиофайл. Проверьте подключение к интернету.";
           }
         }
         
@@ -1034,9 +1149,10 @@ export default function ConsultationPage() {
             <audio
               ref={audioRef}
               src={audioUrl}
-              preload="auto"
+              preload="metadata"
               crossOrigin="anonymous"
               playsInline
+              controls={false}
             />
           )}
         </Card>
