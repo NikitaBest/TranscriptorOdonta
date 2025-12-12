@@ -27,6 +27,15 @@ declare global {
         colorScheme: 'light' | 'dark';
         ready: () => void;
         expand: () => void;
+        enableClosingConfirmation: () => void;
+        disableClosingConfirmation: () => void;
+        BackButton: {
+          isVisible: boolean;
+          show: () => void;
+          hide: () => void;
+          onClick: (callback: () => void) => void;
+          offClick: (callback: () => void) => void;
+        };
       };
     };
   }
@@ -61,10 +70,53 @@ export function initTelegramWebApp() {
   // Расширяем приложение на весь экран
   tg.expand();
   
+  // Отключаем закрытие при свайпе вниз
+  disableSwipeToClose();
+  
   // Уведомляем Telegram, что приложение готово
   tg.ready();
   
   return tg;
+}
+
+/**
+ * Отключает возможность закрытия приложения при свайпе вниз
+ */
+export function disableSwipeToClose() {
+  const tg = getTelegramWebApp();
+  if (!tg) {
+    return;
+  }
+
+  // Скрываем кнопку "Назад", чтобы предотвратить закрытие
+  if (tg.BackButton) {
+    tg.BackButton.hide();
+  }
+
+  // Включаем подтверждение перед закрытием (требует подтверждение пользователя)
+  if (tg.enableClosingConfirmation) {
+    tg.enableClosingConfirmation();
+  }
+}
+
+/**
+ * Включает возможность закрытия приложения при свайпе вниз
+ */
+export function enableSwipeToClose() {
+  const tg = getTelegramWebApp();
+  if (!tg) {
+    return;
+  }
+
+  // Показываем кнопку "Назад"
+  if (tg.BackButton) {
+    tg.BackButton.show();
+  }
+
+  // Отключаем подтверждение перед закрытием
+  if (tg.disableClosingConfirmation) {
+    tg.disableClosingConfirmation();
+  }
 }
 
 /**
