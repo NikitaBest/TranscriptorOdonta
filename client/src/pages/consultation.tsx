@@ -222,7 +222,12 @@ export default function ConsultationPage() {
       .catch((error) => {
         console.error('Failed to load audio:', error);
         setIsLoadingAudio(false);
-        // Не показываем ошибку пользователю, просто не загружаем аудио
+        // Показываем ошибку пользователю для диагностики проблем на мобильных
+        toast({
+          title: "Ошибка загрузки аудио",
+          description: "Не удалось загрузить аудиофайл. Проверьте подключение к интернету.",
+          variant: "destructive",
+        });
       });
 
     // Очистка object URL при размонтировании
@@ -426,11 +431,15 @@ export default function ConsultationPage() {
       setDuration(audio.duration);
     };
 
-    const handlePlay = () => {
+    const handlePlay = async () => {
       setIsPlaying(true);
-      // Возобновляем AudioContext если он был приостановлен
+      // Возобновляем AudioContext если он был приостановлен (важно для мобильных устройств)
       if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
-        audioContextRef.current.resume();
+        try {
+          await audioContextRef.current.resume();
+        } catch (error) {
+          console.error('Failed to resume AudioContext:', error);
+        }
       }
     };
 
@@ -459,21 +468,40 @@ export default function ConsultationPage() {
   }, [audioUrl]);
 
   // Обработчик воспроизведения/паузы
-  const handlePlayPause = () => {
+  const handlePlayPause = async () => {
     const audio = audioRef.current;
     if (!audio) return;
 
     if (isPlaying) {
       audio.pause();
     } else {
-      audio.play().catch((error) => {
+      try {
+        // На мобильных устройствах AudioContext может быть приостановлен
+        // Активируем его перед воспроизведением
+        if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+          await audioContextRef.current.resume();
+        }
+        
+        await audio.play();
+      } catch (error) {
         console.error('Failed to play audio:', error);
+        
+        // Более детальное сообщение об ошибке
+        let errorMessage = "Не удалось воспроизвести аудио. Попробуйте еще раз.";
+        if (error instanceof Error) {
+          if (error.name === 'NotAllowedError') {
+            errorMessage = "Воспроизведение заблокировано браузером. Разрешите автозапуск медиа.";
+          } else if (error.name === 'NotSupportedError') {
+            errorMessage = "Формат аудио не поддерживается вашим браузером.";
+          }
+        }
+        
         toast({
           title: "Ошибка воспроизведения",
-          description: "Не удалось воспроизвести аудио. Попробуйте еще раз.",
+          description: errorMessage,
           variant: "destructive",
         });
-      });
+      }
     }
   };
 
@@ -1006,7 +1034,9 @@ export default function ConsultationPage() {
             <audio
               ref={audioRef}
               src={audioUrl}
-              preload="metadata"
+              preload="auto"
+              crossOrigin="anonymous"
+              playsInline
             />
           )}
         </Card>

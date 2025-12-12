@@ -288,11 +288,18 @@ export const consultationsApi = {
         throw new Error(`Ошибка загрузки аудио: ${response.status} ${response.statusText}`);
       }
       
-      // Получаем аудио как Blob
+      // Получаем Content-Type из заголовков ответа
+      const contentType = response.headers.get('content-type') || 'audio/mpeg';
+      
+      // Получаем аудио как Blob с явным указанием MIME типа
       const blob = await response.blob();
       
+      // Создаем Blob с правильным MIME типом для совместимости с мобильными браузерами
+      // Если тип не определен или неправильный, используем универсальный audio/mpeg
+      const audioBlob = blob.type ? blob : new Blob([blob], { type: contentType });
+      
       // Создаем object URL для использования в audio элементе
-      return URL.createObjectURL(blob);
+      return URL.createObjectURL(audioBlob);
     } catch (error) {
       console.error('Get audio URL error:', error);
       throw error;
