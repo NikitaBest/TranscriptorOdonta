@@ -1,8 +1,19 @@
 /**
  * Конфигурация API
  */
+const getBaseURL = (): string => {
+  const url = import.meta.env.VITE_API_BASE_URL;
+  if (!url) {
+    throw new Error(
+      'VITE_API_BASE_URL не установлен в переменных окружения. ' +
+      'Пожалуйста, создайте файл .env и укажите VITE_API_BASE_URL.'
+    );
+  }
+  return url;
+};
+
 export const API_CONFIG = {
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://transcriptor-backend-api.odonta.burtimaxbot.ru',
+  baseURL: getBaseURL(),
   timeout: Number(import.meta.env.VITE_API_TIMEOUT) || 30000, // 30 секунд
 } as const;
 
