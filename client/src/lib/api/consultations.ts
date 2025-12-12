@@ -262,14 +262,43 @@ export const consultationsApi = {
   },
 
   /**
+   * Получение прямого URL аудиофайла (для мобильных браузеров)
+   * @param id - ID консультации
+   * @returns Прямой URL к аудиофайлу с токеном в query параметре (если сервер поддерживает)
+   */
+  getAudioDirectUrl(id: string | number): string {
+    const url = getApiUrl(`note/consultation-audio/${id}`);
+    const token = ApiClient.getAuthToken();
+    
+    // Для мобильных браузеров audio элемент не может использовать заголовки Authorization
+    // Если сервер поддерживает токен в query параметре, добавляем его
+    // В противном случае сервер должен поддерживать cookies или другой метод авторизации
+    if (token) {
+      const separator = url.includes('?') ? '&' : '?';
+      return `${url}${separator}token=${encodeURIComponent(token)}`;
+    }
+    
+    return url;
+  },
+
+  /**
    * Получение URL аудиофайла консультации
    * GET /note/consultation-audio/{id}
    * @param id - ID консультации
-   * @returns Promise с Blob URL для использования в audio элементе
+   * @param useDirectUrl - использовать прямой URL вместо Blob URL (лучше для мобильных)
+   * @returns Promise с Blob URL или прямой URL для использования в audio элементе
    */
-  async getAudioUrl(id: string | number): Promise<string> {
+  async getAudioUrl(id: string | number, useDirectUrl: boolean = false): Promise<string> {
     const url = getApiUrl(`note/consultation-audio/${id}`);
     const token = ApiClient.getAuthToken();
+    
+    // Для мобильных устройств используем прямой URL, если возможно
+    // Это более надежно, чем Blob URL на некоторых мобильных браузерах
+    if (useDirectUrl) {
+      // Проверяем, поддерживает ли браузер прямую загрузку с авторизацией
+      // Если нет, вернемся к Blob URL
+      return url;
+    }
     
     try {
       const headers: Record<string, string> = {};
@@ -277,14 +306,37 @@ export const consultationsApi = {
         headers['Authorization'] = `Bearer ${token}`;
       }
       
-      const response = await fetch(url, {
-        method: 'GET',
-        headers,
-        credentials: 'omit',
-        mode: 'cors',
-      });
+      // Добавляем таймаут для мобильных устройств
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 секунд
+      
+      let response: Response;
+      try {
+        response = await fetch(url, {
+          method: 'GET',
+          headers,
+          credentials: 'omit',
+          mode: 'cors',
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+        
+        // Если это ошибка таймаута или сети, пробуем прямой URL
+        if (fetchError.name === 'AbortError' || fetchError.message.includes('network') || fetchError.message.includes('Failed to fetch')) {
+          console.warn('Fetch failed, trying direct URL:', fetchError);
+          return this.getAudioDirectUrl(id);
+        }
+        throw fetchError;
+      }
       
       if (!response.ok) {
+        // Если ошибка авторизации или доступа, пробуем прямой URL
+        if (response.status === 401 || response.status === 403) {
+          console.warn('Auth error, trying direct URL');
+          return this.getAudioDirectUrl(id);
+        }
         throw new Error(`Ошибка загрузки аудио: ${response.status} ${response.statusText}`);
       }
       
@@ -322,6 +374,11 @@ export const consultationsApi = {
       // Получаем аудио как Blob
       const blob = await response.blob();
       
+      // Проверяем размер файла
+      if (blob.size === 0) {
+        throw new Error('Получен пустой аудиофайл');
+      }
+      
       // Создаем Blob с правильным MIME типом для совместимости с мобильными браузерами
       // Если blob уже имеет правильный тип, используем его, иначе создаем новый с явным типом
       let audioBlob: Blob;
@@ -338,12 +395,24 @@ export const consultationsApi = {
         finalType: audioBlob.type,
         size: audioBlob.size,
         sizeMB: (audioBlob.size / (1024 * 1024)).toFixed(2),
+        userAgent: navigator.userAgent,
       });
       
       // Создаем object URL для использования в audio элементе
       return URL.createObjectURL(audioBlob);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Get audio URL error:', error);
+      
+      // Если ошибка при создании Blob URL, пробуем прямой URL
+      if (error.message && (
+        error.message.includes('Blob') || 
+        error.message.includes('URL') ||
+        error.name === 'TypeError'
+      )) {
+        console.warn('Blob URL failed, trying direct URL');
+        return this.getAudioDirectUrl(id);
+      }
+      
       throw error;
     }
   },

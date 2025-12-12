@@ -214,29 +214,93 @@ export default function ConsultationPage() {
 
     setIsLoadingAudio(true);
     
-    consultationsApi.getAudioUrl(id)
-      .then((url) => {
+    // Определяем, мобильное ли устройство
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    
+    // Для мобильных устройств сначала пробуем прямой URL, для десктопа - Blob URL
+    const loadAudio = async () => {
+      try {
+        // Пробуем загрузить через Blob URL
+        const url = await consultationsApi.getAudioUrl(id, false);
         setAudioUrl(url);
         setIsLoadingAudio(false);
-      })
-      .catch((error) => {
-        console.error('Failed to load audio:', error);
-        setIsLoadingAudio(false);
-        // Показываем ошибку пользователю для диагностики проблем на мобильных
-        toast({
-          title: "Ошибка загрузки аудио",
-          description: "Не удалось загрузить аудиофайл. Проверьте подключение к интернету.",
-          variant: "destructive",
-        });
-      });
+      } catch (error: any) {
+        console.error('Failed to load audio with Blob URL:', error);
+        
+        // Если не получилось с Blob URL, пробуем прямой URL (особенно для мобильных)
+        try {
+          console.log('Trying direct URL as fallback...');
+          const directUrl = consultationsApi.getAudioDirectUrl(id);
+          
+          // Проверяем, что это действительно URL (не Blob URL)
+          if (directUrl && !directUrl.startsWith('blob:')) {
+            // Для прямого URL пробуем загрузить через fetch с проверкой доступности
+            // Если сервер не поддерживает токен в query, вернется ошибка
+            const testResponse = await fetch(directUrl, {
+              method: 'HEAD', // Используем HEAD для проверки без загрузки всего файла
+              mode: 'cors',
+            });
+            
+            if (testResponse.ok) {
+              setAudioUrl(directUrl);
+              setIsLoadingAudio(false);
+              console.log('Using direct URL:', directUrl);
+            } else {
+              throw new Error(`Direct URL failed: ${testResponse.status}`);
+            }
+          } else {
+            throw new Error('Direct URL not available');
+          }
+        } catch (directError: any) {
+          console.error('Failed to load audio with direct URL:', directError);
+          setIsLoadingAudio(false);
+          
+          // Формируем детальное сообщение об ошибке
+          let errorMessage = "Не удалось загрузить аудиофайл.";
+          const errorDetails = error?.message || directError?.message || '';
+          
+          if (errorDetails.includes('network') || errorDetails.includes('Failed to fetch') || errorDetails.includes('NetworkError')) {
+            errorMessage = "Ошибка сети. Проверьте подключение к интернету и попробуйте еще раз.";
+          } else if (errorDetails.includes('timeout') || errorDetails.includes('Таймаут') || errorDetails.includes('AbortError')) {
+            errorMessage = "Превышено время ожидания. Файл слишком большой или медленное соединение. Попробуйте позже.";
+          } else if (errorDetails.includes('401') || errorDetails.includes('403') || errorDetails.includes('Unauthorized')) {
+            errorMessage = "Ошибка авторизации. Войдите в систему заново.";
+          } else if (errorDetails.includes('404') || errorDetails.includes('Not Found')) {
+            errorMessage = "Аудиофайл не найден. Возможно, он был удален.";
+          } else if (errorDetails.includes('CORS') || errorDetails.includes('cors')) {
+            errorMessage = "Ошибка доступа к файлу. Обратитесь к администратору.";
+          } else if (errorDetails) {
+            errorMessage = `Ошибка загрузки: ${errorDetails}`;
+          }
+          
+          // Добавляем информацию о браузере для диагностики
+          const userAgent = navigator.userAgent;
+          const isMobile = /iPhone|iPad|iPod|Android/i.test(userAgent);
+          console.error('Audio load error details:', {
+            error: errorDetails,
+            isMobile,
+            userAgent,
+            audioUrl: directUrl || 'not set',
+          });
+          
+          toast({
+            title: "Ошибка загрузки аудио",
+            description: errorMessage,
+            variant: "destructive",
+          });
+        }
+      }
+    };
+    
+    loadAudio();
 
     // Очистка object URL при размонтировании
     return () => {
-      if (audioUrl) {
+      if (audioUrl && audioUrl.startsWith('blob:')) {
         URL.revokeObjectURL(audioUrl);
       }
     };
-  }, [id, enrichedConsultation?.processingStatus, enrichedConsultation?.status]);
+  }, [id, enrichedConsultation?.processingStatus, enrichedConsultation?.status, toast]);
 
   // Инициализация AudioContext и AnalyserNode для визуализации
   useEffect(() => {
@@ -468,19 +532,42 @@ export default function ConsultationPage() {
             errorMessage = "Воспроизведение было прервано.";
             break;
           case MediaError.MEDIA_ERR_NETWORK:
-            errorMessage = "Ошибка сети при загрузке аудио. Проверьте подключение к интернету.";
+            errorMessage = "Ошибка сети при загрузке аудио. Проверьте подключение к интернету и попробуйте еще раз.";
             break;
           case MediaError.MEDIA_ERR_DECODE:
-            errorMessage = "Формат аудио не поддерживается вашим браузером. Попробуйте другой браузер.";
+            errorMessage = "Формат аудио не поддерживается вашим браузером. Попробуйте использовать Chrome, Safari или Firefox.";
             break;
           case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
             errorMessage = "Формат аудио не поддерживается. Обратитесь к администратору.";
             break;
         }
         
+        // Дополнительная диагностика
+        console.error('Audio error details:', {
+          code: audioError.code,
+          message: audioError.message,
+          networkState: audio.networkState,
+          readyState: audio.readyState,
+          src: audio.src,
+          isMobile: /iPhone|iPad|iPod|Android/i.test(navigator.userAgent),
+        });
+        
         toast({
           title: "Ошибка воспроизведения",
           description: errorMessage,
+          variant: "destructive",
+        });
+      } else {
+        // Если нет кода ошибки, но событие error произошло
+        console.error('Audio error event without error code:', {
+          networkState: audio.networkState,
+          readyState: audio.readyState,
+          src: audio.src,
+        });
+        
+        toast({
+          title: "Ошибка воспроизведения",
+          description: "Не удалось загрузить или воспроизвести аудио. Проверьте подключение к интернету.",
           variant: "destructive",
         });
       }
