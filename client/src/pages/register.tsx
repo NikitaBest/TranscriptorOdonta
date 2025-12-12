@@ -53,11 +53,6 @@ export default function RegisterPage() {
       return;
     }
 
-    if (!marketingConsentAccepted) {
-      setError("Необходимо согласиться на рекламную рассылку");
-      return;
-    }
-
     setError(null);
     setIsLoading(true);
 
@@ -250,7 +245,7 @@ export default function RegisterPage() {
                     >
                       согласие
                     </a>
-                    {" "}на рекламную рассылку
+                    {" "}на рекламную рассылку <span className="text-muted-foreground">(необязательно)</span>
                   </Label>
                 </div>
               </div>
@@ -261,7 +256,7 @@ export default function RegisterPage() {
 
               <Button
                 className="w-full h-12 rounded-xl text-base font-medium mt-4"
-                disabled={isLoading || !consentAccepted || !marketingConsentAccepted}
+                disabled={isLoading || !consentAccepted}
                 type="submit"
               >
                 {isLoading ? "Создание..." : "Создать аккаунт"}
