@@ -53,6 +53,7 @@ export default function ConsultationPage() {
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
   const [audioData, setAudioData] = useState<number[]>([]);
   const [staticWaveform, setStaticWaveform] = useState<number[]>([]);
+  const [audioError, setAudioError] = useState<string | null>(null);
   
   // Состояния для редактирования полей отчета
   const [complaints, setComplaints] = useState('');
@@ -224,6 +225,7 @@ export default function ConsultationPage() {
         const url = await consultationsApi.getAudioUrl(id, false);
         setAudioUrl(url);
         setIsLoadingAudio(false);
+        setAudioError(null); // Очищаем ошибку при успешной загрузке
       } catch (error: any) {
         console.error('Failed to load audio with Blob URL:', error);
         
@@ -244,6 +246,7 @@ export default function ConsultationPage() {
             if (testResponse.ok) {
               setAudioUrl(directUrl);
               setIsLoadingAudio(false);
+              setAudioError(null); // Очищаем ошибку при успешной загрузке
               console.log('Using direct URL:', directUrl);
             } else {
               throw new Error(`Direct URL failed: ${testResponse.status}`);
@@ -498,6 +501,8 @@ export default function ConsultationPage() {
     const handleCanPlay = () => {
       // Аудио готово к воспроизведению
       console.log('Audio can play, duration:', audio.duration);
+      setAudioError(null); // Очищаем ошибку, если аудио готово
+      setIsLoadingAudio(false);
     };
 
     const handlePlay = async () => {
@@ -523,11 +528,11 @@ export default function ConsultationPage() {
 
     const handleError = (e: Event) => {
       console.error('Audio error:', e);
-      const audioError = audio.error;
-      if (audioError) {
-        let errorMessage = "Не удалось воспроизвести аудио.";
-        
-        switch (audioError.code) {
+      const audioErrorObj = audio.error;
+      let errorMessage = "Не удалось воспроизвести аудио.";
+      
+      if (audioErrorObj) {
+        switch (audioErrorObj.code) {
           case MediaError.MEDIA_ERR_ABORTED:
             errorMessage = "Воспроизведение было прервано.";
             break;
@@ -544,33 +549,39 @@ export default function ConsultationPage() {
         
         // Дополнительная диагностика
         console.error('Audio error details:', {
-          code: audioError.code,
-          message: audioError.message,
+          code: audioErrorObj.code,
+          message: audioErrorObj.message,
           networkState: audio.networkState,
           readyState: audio.readyState,
-          src: audio.src,
+          src: audio.src.substring(0, 100), // Ограничиваем длину для безопасности
           isMobile: /iPhone|iPad|iPod|Android/i.test(navigator.userAgent),
-        });
-        
-        toast({
-          title: "Ошибка воспроизведения",
-          description: errorMessage,
-          variant: "destructive",
         });
       } else {
         // Если нет кода ошибки, но событие error произошло
         console.error('Audio error event without error code:', {
           networkState: audio.networkState,
           readyState: audio.readyState,
-          src: audio.src,
+          src: audio.src.substring(0, 100),
         });
         
-        toast({
-          title: "Ошибка воспроизведения",
-          description: "Не удалось загрузить или воспроизвести аудио. Проверьте подключение к интернету.",
-          variant: "destructive",
-        });
+        // Проверяем состояние audio элемента
+        if (audio.networkState === HTMLMediaElement.NETWORK_NO_SOURCE) {
+          errorMessage = "Источник аудио не найден. Попробуйте обновить страницу.";
+        } else if (audio.readyState === HTMLMediaElement.HAVE_NOTHING) {
+          errorMessage = "Аудио не загружено. Проверьте подключение к интернету.";
+        } else {
+          errorMessage = "Не удалось загрузить или воспроизвести аудио. Проверьте подключение к интернету.";
+        }
       }
+      
+      // Сохраняем ошибку в состоянии для отображения в UI
+      setAudioError(errorMessage);
+      
+      toast({
+        title: "Ошибка воспроизведения",
+        description: errorMessage,
+        variant: "destructive",
+      });
       
       setIsPlaying(false);
       setIsLoadingAudio(false);
@@ -629,26 +640,67 @@ export default function ConsultationPage() {
   // Обработчик воспроизведения/паузы
   const handlePlayPause = async () => {
     const audio = audioRef.current;
-    if (!audio) return;
+    if (!audio) {
+      setAudioError("Аудиоплеер не инициализирован. Обновите страницу.");
+      return;
+    }
 
     if (isPlaying) {
       audio.pause();
     } else {
       try {
+        // Очищаем предыдущую ошибку
+        setAudioError(null);
+        
         // На мобильных устройствах AudioContext может быть приостановлен
         // Активируем его перед воспроизведением
         if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
-          await audioContextRef.current.resume();
+          try {
+            await audioContextRef.current.resume();
+          } catch (ctxError) {
+            console.warn('Failed to resume AudioContext:', ctxError);
+            // Продолжаем попытку воспроизведения даже если AudioContext не удалось возобновить
+          }
+        }
+        
+        // Проверяем состояние audio элемента
+        if (audio.error) {
+          const errorCode = audio.error.code;
+          let errorMsg = "Ошибка загрузки аудио. ";
+          switch (errorCode) {
+            case MediaError.MEDIA_ERR_NETWORK:
+              errorMsg += "Проверьте подключение к интернету.";
+              break;
+            case MediaError.MEDIA_ERR_DECODE:
+              errorMsg += "Формат не поддерживается. Попробуйте другой браузер.";
+              break;
+            case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+              errorMsg += "Формат не поддерживается.";
+              break;
+            default:
+              errorMsg += "Попробуйте обновить страницу.";
+          }
+          setAudioError(errorMsg);
+          toast({
+            title: "Ошибка воспроизведения",
+            description: errorMsg,
+            variant: "destructive",
+          });
+          return;
         }
         
         // Проверяем, загружено ли аудио
-        if (audio.readyState < 2) {
+        if (audio.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
           // Если аудио еще не загружено, ждем загрузки
           setIsLoadingAudio(true);
+          setAudioError(null);
+          
           await new Promise<void>((resolve, reject) => {
             const timeout = setTimeout(() => {
+              audio.removeEventListener('canplay', handleCanPlay);
+              audio.removeEventListener('error', handleError);
               reject(new Error('Таймаут загрузки аудио'));
-            }, 10000); // 10 секунд таймаут
+            }, 15000); // 15 секунд таймаут для мобильных
             
             const handleCanPlay = () => {
               clearTimeout(timeout);
@@ -669,8 +721,10 @@ export default function ConsultationPage() {
             audio.addEventListener('canplay', handleCanPlay, { once: true });
             audio.addEventListener('error', handleError, { once: true });
             
-            // Загружаем аудио
-            audio.load();
+            // Загружаем аудио, если еще не загружено
+            if (audio.readyState === HTMLMediaElement.HAVE_NOTHING) {
+              audio.load();
+            }
           });
         }
         
@@ -679,8 +733,10 @@ export default function ConsultationPage() {
         
         if (playPromise !== undefined) {
           await playPromise;
+          // Если воспроизведение началось успешно, очищаем ошибки
+          setAudioError(null);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Failed to play audio:', error);
         setIsLoadingAudio(false);
         
@@ -692,12 +748,13 @@ export default function ConsultationPage() {
           } else if (error.name === 'NotSupportedError') {
             errorMessage = "Формат аудио не поддерживается вашим браузером. Попробуйте использовать Chrome, Safari или Firefox.";
           } else if (error.message.includes('Таймаут')) {
-            errorMessage = "Превышено время ожидания загрузки аудио. Проверьте подключение к интернету.";
+            errorMessage = "Превышено время ожидания загрузки аудио. Проверьте подключение к интернету и попробуйте еще раз.";
           } else if (error.message.includes('Ошибка загрузки')) {
             errorMessage = "Не удалось загрузить аудиофайл. Проверьте подключение к интернету.";
           }
         }
         
+        setAudioError(errorMessage);
         toast({
           title: "Ошибка воспроизведения",
           description: errorMessage,
@@ -1180,12 +1237,38 @@ export default function ConsultationPage() {
 
         {/* Audio Player Card */}
         <Card className="rounded-3xl border-border/50 bg-secondary/30 overflow-hidden">
+          {/* Отображение ошибки воспроизведения */}
+          {audioError && (
+            <div className="px-4 py-3 bg-destructive/10 border-b border-destructive/20">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-destructive">Ошибка воспроизведения</p>
+                  <p className="text-xs text-destructive/80 mt-0.5">{audioError}</p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-xs shrink-0"
+                  onClick={() => {
+                    setAudioError(null);
+                    // Пробуем перезагрузить аудио
+                    if (audioRef.current && audioUrl) {
+                      audioRef.current.load();
+                    }
+                  }}
+                >
+                  Повторить
+                </Button>
+              </div>
+            </div>
+          )}
           <div className="p-2 sm:p-3 md:p-4 flex items-center gap-1 sm:gap-1.5 md:gap-4">
             <Button 
               size="icon" 
               className="h-9 w-9 sm:h-10 sm:w-10 md:h-12 md:w-12 rounded-full shrink-0" 
               onClick={handlePlayPause}
-              disabled={!audioUrl || isLoadingAudio}
+              disabled={!audioUrl || isLoadingAudio || !!audioError}
             >
               {isLoadingAudio ? (
                 <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 animate-spin" />
@@ -1198,8 +1281,11 @@ export default function ConsultationPage() {
             <div className="flex-1 relative min-w-0 overflow-hidden">
               <div 
                 ref={progressBarRef}
-                className="h-9 sm:h-10 md:h-12 flex items-center gap-0.5 cursor-pointer group relative w-full pr-1 sm:pr-1.5 md:pr-0"
-                onClick={handleProgressClick}
+                className={cn(
+                  "h-9 sm:h-10 md:h-12 flex items-center gap-0.5 group relative w-full pr-1 sm:pr-1.5 md:pr-0",
+                  audioError ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+                )}
+                onClick={audioError ? undefined : handleProgressClick}
               >
                  {/* Audio Waveform Progress Bar */}
                  {displayAudioData.map((height, i) => {
