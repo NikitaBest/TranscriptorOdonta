@@ -75,6 +75,14 @@ export function initTelegramWebApp() {
   // Отключаем закрытие при свайпе вниз
   disableSwipeToClose();
   
+  // Принудительно устанавливаем светлую цветовую схему для правильного цвета курсора
+  // Даже если Telegram определяет темную схему, мы используем светлую для UI
+  if (typeof document !== 'undefined') {
+    document.documentElement.style.colorScheme = 'light';
+    // Также устанавливаем для body и всех input/textarea
+    document.body.style.colorScheme = 'light';
+  }
+  
   // Уведомляем Telegram, что приложение готово
   tg.ready();
   

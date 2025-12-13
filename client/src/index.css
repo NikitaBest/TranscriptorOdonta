@@ -45,6 +45,7 @@
 
 /* LIGHT MODE - Black & White Minimalist */
 :root {
+  color-scheme: light;
   --background: 0 0% 98%; /* #FAFAFA */
   --foreground: 0 0% 9%; /* #171717 */
   
@@ -133,6 +134,13 @@
     /* Предотвращаем закрытие при свайпе вниз для Telegram Web App */
     overscroll-behavior-y: none;
     touch-action: pan-y;
+    /* Явно указываем светлую цветовую схему для правильного цвета курсора */
+    color-scheme: light;
+  }
+  
+  /* Принудительно устанавливаем светлую схему для всех input и textarea */
+  input, textarea {
+    color-scheme: light;
   }
   
   html {
