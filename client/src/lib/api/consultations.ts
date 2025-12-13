@@ -74,6 +74,31 @@ export const consultationsApi = {
     formData.append('file', fileToUpload);
 
     try {
+      // Динамический таймаут на основе размера файла
+      // Расчет: предполагаем минимальную скорость загрузки 10 KB/s (очень медленный интернет)
+      // Добавляем запас 50% для надежности
+      const fileSizeBytes = fileToUpload.size;
+      const fileSizeMB = fileSizeBytes / (1024 * 1024);
+      
+      // Минимальная скорость загрузки: 10 KB/s (для очень медленного интернета)
+      const minUploadSpeedKBps = 10;
+      const estimatedUploadTimeSeconds = (fileSizeBytes / 1024) / minUploadSpeedKBps;
+      
+      // Добавляем запас 50% + минимум 2 минуты для обработки на сервере
+      const timeoutSeconds = Math.max(
+        estimatedUploadTimeSeconds * 1.5 + 120, // 50% запас + 2 минуты на обработку
+        300 // Минимум 5 минут
+      );
+      
+      // Максимальный таймаут: 30 минут (для очень больших файлов на очень медленном интернете)
+      const timeoutMs = Math.min(timeoutSeconds * 1000, 1800000); // 30 минут максимум
+      
+      console.log('Calculated upload timeout:', {
+        fileSizeMB: fileSizeMB.toFixed(2),
+        estimatedUploadTimeSeconds: estimatedUploadTimeSeconds.toFixed(0),
+        timeoutMinutes: (timeoutMs / 60000).toFixed(1),
+      });
+
       const response = await ApiClient.request<ApiResponse<UploadConsultationResponse>>(
         'POST',
         `note/upload-consultation/${clientId}`,
@@ -81,6 +106,7 @@ export const consultationsApi = {
         {
           requireAuth: true,
           isFormData: true,
+          timeout: timeoutMs,
         }
       );
 

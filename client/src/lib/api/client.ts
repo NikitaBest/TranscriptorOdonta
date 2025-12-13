@@ -1,4 +1,4 @@
-import { getApiUrl } from './config';
+import { getApiUrl, API_CONFIG } from './config';
 import type { ApiError } from './types';
 
 /**
@@ -16,6 +16,7 @@ export class ApiClient {
       headers?: Record<string, string>;
       requireAuth?: boolean;
       isFormData?: boolean;
+      timeout?: number; // Таймаут в миллисекундах (по умолчанию из конфига)
     }
   ): Promise<T> {
     const url = getApiUrl(path);
@@ -36,8 +37,29 @@ export class ApiClient {
       }
     }
 
+    // Определяем таймаут: для загрузки файлов используем увеличенный таймаут
+    const timeout = options?.timeout || (options?.isFormData ? 300000 : API_CONFIG.timeout); // 5 минут для файлов, иначе из конфига
+
+    // Создаем AbortController для таймаута
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+    }, timeout);
+
     try {
-      console.log(`[API] ${method} ${url}`, options?.isFormData ? '[FormData]' : data ? { body: data } : '');
+      // Логируем размер файла если это FormData
+      if (options?.isFormData && data instanceof FormData) {
+        const file = data.get('file') as File | Blob;
+        if (file) {
+          const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+          console.log(`[API] ${method} ${url} [FormData]`, {
+            fileSize: `${sizeMB} MB`,
+            timeout: `${timeout / 1000}s`,
+          });
+        }
+      } else {
+        console.log(`[API] ${method} ${url}`, options?.isFormData ? '[FormData]' : data ? { body: data } : '');
+      }
       console.log(`[API] Headers:`, headers);
       
       // Не используем credentials для всех запросов, так как мы используем Bearer token в заголовке
@@ -51,7 +73,11 @@ export class ApiClient {
         body: options?.isFormData ? (data as FormData) : (data ? JSON.stringify(data) : undefined),
         credentials: useCredentials ? 'include' : 'omit',
         mode: 'cors', // Явно указываем CORS режим
+        signal: controller.signal, // Добавляем signal для возможности отмены
       });
+
+      // Очищаем таймаут если запрос успешно завершился
+      clearTimeout(timeoutId);
 
       console.log(`[API] Response status: ${response.status}`, response);
 
@@ -70,7 +96,21 @@ export class ApiClient {
       console.log(`[API] Response data:`, jsonData);
       return jsonData;
     } catch (error) {
+      // Очищаем таймаут в случае ошибки
+      clearTimeout(timeoutId);
+      
       console.error(`[API] Request failed:`, error);
+      
+      // Обработка ошибки таймаута
+      if (error instanceof Error && error.name === 'AbortError') {
+        const apiError: ApiError = {
+          message: options?.isFormData 
+            ? `Превышено время ожидания загрузки файла (${timeout / 1000} сек). Файл слишком большой или медленное соединение. Попробуйте записать более короткое аудио или проверьте подключение к интернету.`
+            : `Превышено время ожидания ответа от сервера (${timeout / 1000} сек).`,
+          status: 0,
+        };
+        throw apiError;
+      }
       
       // Обработка сетевых ошибок (CORS, нет интернета, таймаут и т.д.)
       if (error instanceof TypeError && error.message === 'Failed to fetch') {

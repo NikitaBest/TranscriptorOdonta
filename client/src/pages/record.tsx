@@ -239,9 +239,11 @@ export default function RecordPage() {
         preferredFormat = 'wav';
       }
       
-      // Настройки для записи: bitrate 16 kbps для экономии трафика
-      // Для MP4 можно использовать 16-32 kbps, для Opus 16-32 kbps достаточно для речи
-      const bitrate = preferredFormat === 'mp4' ? 16000 : 16000; // 16 kbps для всех форматов
+      // Настройки для записи: bitrate 16-32 kbps для экономии трафика и быстрой загрузки
+      // Для мобильных устройств используем более низкий bitrate для уменьшения размера файла
+      // 16 kbps достаточно для качественной записи речи
+      const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      const bitrate = isMobileDevice ? 16000 : 24000; // 16 kbps для мобильных, 24 kbps для десктопов
       
       const mediaRecorderOptions: MediaRecorderOptions = {
         mimeType: mimeType,
@@ -286,7 +288,10 @@ export default function RecordPage() {
       };
       
       mediaRecorderRef.current = mediaRecorder;
-      mediaRecorder.start(1000); // Сохраняем данные каждую секунду
+      // Для мобильных устройств используем более частые сохранения (каждые 500мс)
+      // чтобы избежать проблем с памятью при длинных записях
+      const timeslice = isMobileDevice ? 500 : 1000; // 500мс для мобильных, 1с для десктопов
+      mediaRecorder.start(timeslice);
       
       setIsRecording(true);
       setStatus('recording');
@@ -354,12 +359,37 @@ export default function RecordPage() {
       await stopPromise;
 
       // Отправляем файл на бэкенд
+      // Очищаем chunks из памяти после создания Blob для экономии памяти на мобильных
       const audioBlob = new Blob(audioChunksRef.current, { 
         type: mediaRecorderRef.current?.mimeType || 'audio/webm' 
       });
       
+      // Очищаем chunks сразу после создания Blob для освобождения памяти
+      const chunksSize = audioChunksRef.current.length;
+      audioChunksRef.current = [];
+      
       if (audioBlob.size === 0) {
         throw new Error('Запись пуста');
+      }
+
+      // Логируем информацию о файле для отладки
+      const sizeMB = (audioBlob.size / (1024 * 1024)).toFixed(2);
+      const durationMinutes = (duration / 60).toFixed(1);
+      
+      console.log('Preparing to upload audio:', {
+        size: `${sizeMB} MB`,
+        duration: `${duration} seconds (${durationMinutes} minutes)`,
+        chunks: chunksSize,
+        mimeType: audioBlob.type,
+      });
+
+      // Предупреждение для очень длинных записей
+      if (duration > 1800) { // Более 30 минут
+        toast({
+          title: "Длинная запись",
+          description: `Запись длится ${durationMinutes} минут (${sizeMB} MB). Загрузка может занять некоторое время.`,
+          duration: 5000,
+        });
       }
 
       const response = await consultationsApi.uploadConsultation(selectedPatientId, audioBlob);
@@ -424,9 +454,33 @@ export default function RecordPage() {
         audioContextRef.current = null;
       }
       
+      // Улучшенная обработка ошибок с понятными сообщениями
+      let errorMessage = "Не удалось отправить аудиофайл. Попробуйте еще раз.";
+      
+      if (error instanceof Error) {
+        const errorText = error.message.toLowerCase();
+        
+        // Обработка ошибок таймаута
+        if (errorText.includes('превышено время') || errorText.includes('timeout') || errorText.includes('таймаут')) {
+          errorMessage = `Загрузка файла заняла слишком много времени (более 5 минут). Это может быть связано с медленным интернетом или большим размером файла. Попробуйте записать более короткое аудио или проверьте подключение к интернету.`;
+        }
+        // Обработка ошибок сети
+        else if (errorText.includes('не удалось подключиться') || errorText.includes('failed to fetch') || errorText.includes('network')) {
+          errorMessage = "Ошибка подключения к серверу. Проверьте подключение к интернету и попробуйте еще раз.";
+        }
+        // Обработка ошибок размера файла
+        else if (errorText.includes('размер') || errorText.includes('size') || errorText.includes('too large')) {
+          errorMessage = "Файл слишком большой. Попробуйте записать более короткое аудио.";
+        }
+        // Другие ошибки
+        else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
         title: "Ошибка загрузки",
-        description: error instanceof Error ? error.message : "Не удалось отправить аудиофайл. Попробуйте еще раз.",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
