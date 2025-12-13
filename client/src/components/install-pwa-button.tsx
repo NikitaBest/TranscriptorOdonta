@@ -3,13 +3,68 @@ import { Download, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { showInstallPrompt, isPWAInstalled } from '@/lib/pwa';
+import { ApiClient } from '@/lib/api/client';
+
+const PWA_DISMISSED_KEY = 'pwa_install_dismissed';
+
+/**
+ * Проверка, было ли уведомление отклонено пользователем
+ */
+function isPWAInstallDismissed(): boolean {
+  try {
+    return localStorage.getItem(PWA_DISMISSED_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Сохранить информацию о том, что пользователь отклонил уведомление
+ */
+function setPWAInstallDismissed(): void {
+  try {
+    localStorage.setItem(PWA_DISMISSED_KEY, 'true');
+  } catch (error) {
+    console.error('Ошибка при сохранении статуса отклонения PWA:', error);
+  }
+}
+
+/**
+ * Проверка, авторизован ли пользователь
+ */
+function isUserAuthenticated(): boolean {
+  const token = ApiClient.getAuthToken();
+  return !!token;
+}
 
 export function InstallPWAButton() {
   const [showPrompt, setShowPrompt] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
+    // Проверяем авторизацию пользователя
+    const checkAuth = () => {
+      const authenticated = isUserAuthenticated();
+      setIsAuthenticated(authenticated);
+      return authenticated;
+    };
+
+    // Проверяем сразу
+    checkAuth();
+
+    // Проверяем авторизацию при изменении токена (слушаем изменения в localStorage)
+    const handleStorageChange = () => {
+      checkAuth();
+    };
+
+    // Слушаем изменения в localStorage (для синхронизации между вкладками)
+    window.addEventListener('storage', handleStorageChange);
+
+    // Также проверяем периодически (на случай если токен изменился в той же вкладке)
+    const authCheckInterval = setInterval(checkAuth, 1000);
+
     // Проверяем, установлено ли уже приложение
     setIsInstalled(isPWAInstalled());
 
@@ -17,9 +72,16 @@ export function InstallPWAButton() {
     const handleBeforeInstallPrompt = (e: Event) => {
       // Предотвращаем автоматический показ промпта
       e.preventDefault();
-      // Сохраняем событие
-      setDeferredPrompt(e);
-      setShowPrompt(true);
+      
+      // Показываем только если пользователь авторизован и не отклонял уведомление
+      if (isUserAuthenticated() && !isPWAInstallDismissed()) {
+        // Сохраняем событие
+        setDeferredPrompt(e);
+        setShowPrompt(true);
+      } else {
+        // Сохраняем событие для показа позже, если пользователь авторизуется
+        (window as any).deferredPrompt = e;
+      }
     };
 
     // Обработка успешной установки
@@ -32,8 +94,8 @@ export function InstallPWAButton() {
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
 
-    // Проверяем, есть ли уже сохраненный deferredPrompt
-    if ((window as any).deferredPrompt) {
+    // Проверяем, есть ли уже сохраненный deferredPrompt и можно ли его показать
+    if ((window as any).deferredPrompt && isUserAuthenticated() && !isPWAInstallDismissed()) {
       setDeferredPrompt((window as any).deferredPrompt);
       setShowPrompt(true);
     }
@@ -41,8 +103,18 @@ export function InstallPWAButton() {
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(authCheckInterval);
     };
   }, []);
+
+  // Отслеживаем изменения авторизации и показываем промпт если нужно
+  useEffect(() => {
+    if (isAuthenticated && !isPWAInstallDismissed() && !isInstalled && (window as any).deferredPrompt) {
+      setDeferredPrompt((window as any).deferredPrompt);
+      setShowPrompt(true);
+    }
+  }, [isAuthenticated, isInstalled]);
 
   const handleInstallClick = async () => {
     if (deferredPrompt) {
@@ -61,12 +133,24 @@ export function InstallPWAButton() {
 
   const handleDismiss = () => {
     setShowPrompt(false);
-    // Сохраняем deferredPrompt для показа позже
+    // Сохраняем информацию о том, что пользователь отклонил уведомление
+    setPWAInstallDismissed();
+    // Сохраняем deferredPrompt для показа позже (если пользователь захочет установить вручную)
     (window as any).deferredPrompt = deferredPrompt;
   };
 
-  // Не показываем, если уже установлено или нет промпта
-  if (isInstalled || !showPrompt || !deferredPrompt) {
+  // Не показываем, если:
+  // - уже установлено
+  // - нет промпта
+  // - пользователь не авторизован
+  // - пользователь ранее отклонил уведомление
+  if (
+    isInstalled || 
+    !showPrompt || 
+    !deferredPrompt || 
+    !isAuthenticated ||
+    isPWAInstallDismissed()
+  ) {
     return null;
   }
 
