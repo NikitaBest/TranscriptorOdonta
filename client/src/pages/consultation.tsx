@@ -65,7 +65,20 @@ export default function ConsultationPage() {
   const [comment, setComment] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [savingStatus, setSavingStatus] = useState<Record<string, { isSaving: boolean; isSaved: boolean }>>({
+    complaints: { isSaving: false, isSaved: false },
+    objective: { isSaving: false, isSaved: false },
+    treatmentPlan: { isSaving: false, isSaved: false },
+    summary: { isSaving: false, isSaved: false },
+    comment: { isSaving: false, isSaved: false },
+  });
+  const saveTimeoutRefs = useRef<Record<string, NodeJS.Timeout | null>>({
+    complaints: null,
+    objective: null,
+    treatmentPlan: null,
+    summary: null,
+    comment: null,
+  });
 
   // Загрузка данных консультации с периодической проверкой статуса
   const { data: consultationData, isLoading, error } = useQuery({
@@ -125,32 +138,16 @@ export default function ConsultationPage() {
     }
   }, [enrichedConsultation?.complaints, enrichedConsultation?.objective, enrichedConsultation?.plan, enrichedConsultation?.summary, enrichedConsultation?.comments]);
 
-  // Автосохранение полей отчета с debounce
+  // Автосохранение для поля "Жалобы"
   useEffect(() => {
     if (!id || !enrichedConsultation) return;
-    
-    // Очищаем предыдущий таймер
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
+    if (saveTimeoutRefs.current.complaints) {
+      clearTimeout(saveTimeoutRefs.current.complaints);
     }
-
-    // Проверяем, изменились ли какие-либо поля
-    const hasChanges = 
-      complaints !== (enrichedConsultation.complaints || '') ||
-      objective !== (enrichedConsultation.objective || '') ||
-      treatmentPlan !== (enrichedConsultation.plan || '') ||
-      summary !== (enrichedConsultation.summary || '') ||
-      comment !== (enrichedConsultation.comments || '');
-
-    if (!hasChanges) {
-      return;
-    }
-
-    // Устанавливаем новый таймер для автосохранения (через 1 секунду после последнего изменения)
-    saveTimeoutRef.current = setTimeout(async () => {
-      setIsSaving(true);
-      setIsSaved(false);
-      
+    const hasChanges = complaints !== (enrichedConsultation.complaints || '');
+    if (!hasChanges) return;
+    saveTimeoutRefs.current.complaints = setTimeout(async () => {
+      setSavingStatus(prev => ({ ...prev, complaints: { isSaving: true, isSaved: false } }));
       try {
         await consultationsApi.update({
           id,
@@ -160,8 +157,6 @@ export default function ConsultationPage() {
           summary: summary.trim() || undefined,
           comment: comment.trim() || undefined,
         });
-
-        // Обновляем кэш
         queryClient.setQueryData(['consultation', id], {
           ...enrichedConsultation,
           complaints: complaints.trim() || null,
@@ -170,30 +165,168 @@ export default function ConsultationPage() {
           summary: summary.trim() || null,
           comments: comment.trim() || null,
         });
-
-        setIsSaved(true);
-        
-        // Скрываем индикатор сохранения через 2 секунды
-        setTimeout(() => setIsSaved(false), 2000);
+        setSavingStatus(prev => ({ ...prev, complaints: { isSaving: false, isSaved: true } }));
+        setTimeout(() => setSavingStatus(prev => ({ ...prev, complaints: { isSaving: false, isSaved: false } })), 2000);
       } catch (error) {
         console.error('Auto-save consultation error:', error);
-        toast({
-          title: "Ошибка сохранения",
-          description: "Не удалось сохранить изменения. Попробуйте еще раз.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsSaving(false);
+        setSavingStatus(prev => ({ ...prev, complaints: { isSaving: false, isSaved: false } }));
+        toast({ title: "Ошибка сохранения", description: "Не удалось сохранить изменения. Попробуйте еще раз.", variant: "destructive" });
       }
-    }, 1000); // Сохраняем через 1 секунду после последнего изменения
+    }, 1000);
+    return () => { if (saveTimeoutRefs.current.complaints) clearTimeout(saveTimeoutRefs.current.complaints!); };
+  }, [complaints, id, enrichedConsultation, queryClient, toast, objective, treatmentPlan, summary, comment]);
 
-    // Очистка при размонтировании
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
+  // Автосохранение для поля "Объективный статус"
+  useEffect(() => {
+    if (!id || !enrichedConsultation) return;
+    if (saveTimeoutRefs.current.objective) {
+      clearTimeout(saveTimeoutRefs.current.objective);
+    }
+    const hasChanges = objective !== (enrichedConsultation.objective || '');
+    if (!hasChanges) return;
+    saveTimeoutRefs.current.objective = setTimeout(async () => {
+      setSavingStatus(prev => ({ ...prev, objective: { isSaving: true, isSaved: false } }));
+      try {
+        await consultationsApi.update({
+          id,
+          complaints: complaints.trim() || undefined,
+          objective: objective.trim() || undefined,
+          treatmentPlan: treatmentPlan.trim() || undefined,
+          summary: summary.trim() || undefined,
+          comment: comment.trim() || undefined,
+        });
+        queryClient.setQueryData(['consultation', id], {
+          ...enrichedConsultation,
+          complaints: complaints.trim() || null,
+          objective: objective.trim() || null,
+          plan: treatmentPlan.trim() || null,
+          summary: summary.trim() || null,
+          comments: comment.trim() || null,
+        });
+        setSavingStatus(prev => ({ ...prev, objective: { isSaving: false, isSaved: true } }));
+        setTimeout(() => setSavingStatus(prev => ({ ...prev, objective: { isSaving: false, isSaved: false } })), 2000);
+      } catch (error) {
+        console.error('Auto-save consultation error:', error);
+        setSavingStatus(prev => ({ ...prev, objective: { isSaving: false, isSaved: false } }));
+        toast({ title: "Ошибка сохранения", description: "Не удалось сохранить изменения. Попробуйте еще раз.", variant: "destructive" });
       }
-    };
-  }, [complaints, objective, treatmentPlan, summary, comment, id, enrichedConsultation, queryClient, toast]);
+    }, 1000);
+    return () => { if (saveTimeoutRefs.current.objective) clearTimeout(saveTimeoutRefs.current.objective!); };
+  }, [objective, id, enrichedConsultation, queryClient, toast, complaints, treatmentPlan, summary, comment]);
+
+  // Автосохранение для поля "План лечения"
+  useEffect(() => {
+    if (!id || !enrichedConsultation) return;
+    if (saveTimeoutRefs.current.treatmentPlan) {
+      clearTimeout(saveTimeoutRefs.current.treatmentPlan);
+    }
+    const hasChanges = treatmentPlan !== (enrichedConsultation.plan || '');
+    if (!hasChanges) return;
+    saveTimeoutRefs.current.treatmentPlan = setTimeout(async () => {
+      setSavingStatus(prev => ({ ...prev, treatmentPlan: { isSaving: true, isSaved: false } }));
+      try {
+        await consultationsApi.update({
+          id,
+          complaints: complaints.trim() || undefined,
+          objective: objective.trim() || undefined,
+          treatmentPlan: treatmentPlan.trim() || undefined,
+          summary: summary.trim() || undefined,
+          comment: comment.trim() || undefined,
+        });
+        queryClient.setQueryData(['consultation', id], {
+          ...enrichedConsultation,
+          complaints: complaints.trim() || null,
+          objective: objective.trim() || null,
+          plan: treatmentPlan.trim() || null,
+          summary: summary.trim() || null,
+          comments: comment.trim() || null,
+        });
+        setSavingStatus(prev => ({ ...prev, treatmentPlan: { isSaving: false, isSaved: true } }));
+        setTimeout(() => setSavingStatus(prev => ({ ...prev, treatmentPlan: { isSaving: false, isSaved: false } })), 2000);
+      } catch (error) {
+        console.error('Auto-save consultation error:', error);
+        setSavingStatus(prev => ({ ...prev, treatmentPlan: { isSaving: false, isSaved: false } }));
+        toast({ title: "Ошибка сохранения", description: "Не удалось сохранить изменения. Попробуйте еще раз.", variant: "destructive" });
+      }
+    }, 1000);
+    return () => { if (saveTimeoutRefs.current.treatmentPlan) clearTimeout(saveTimeoutRefs.current.treatmentPlan!); };
+  }, [treatmentPlan, id, enrichedConsultation, queryClient, toast, complaints, objective, summary, comment]);
+
+  // Автосохранение для поля "Выжимка"
+  useEffect(() => {
+    if (!id || !enrichedConsultation) return;
+    if (saveTimeoutRefs.current.summary) {
+      clearTimeout(saveTimeoutRefs.current.summary);
+    }
+    const hasChanges = summary !== (enrichedConsultation.summary || '');
+    if (!hasChanges) return;
+    saveTimeoutRefs.current.summary = setTimeout(async () => {
+      setSavingStatus(prev => ({ ...prev, summary: { isSaving: true, isSaved: false } }));
+      try {
+        await consultationsApi.update({
+          id,
+          complaints: complaints.trim() || undefined,
+          objective: objective.trim() || undefined,
+          treatmentPlan: treatmentPlan.trim() || undefined,
+          summary: summary.trim() || undefined,
+          comment: comment.trim() || undefined,
+        });
+        queryClient.setQueryData(['consultation', id], {
+          ...enrichedConsultation,
+          complaints: complaints.trim() || null,
+          objective: objective.trim() || null,
+          plan: treatmentPlan.trim() || null,
+          summary: summary.trim() || null,
+          comments: comment.trim() || null,
+        });
+        setSavingStatus(prev => ({ ...prev, summary: { isSaving: false, isSaved: true } }));
+        setTimeout(() => setSavingStatus(prev => ({ ...prev, summary: { isSaving: false, isSaved: false } })), 2000);
+      } catch (error) {
+        console.error('Auto-save consultation error:', error);
+        setSavingStatus(prev => ({ ...prev, summary: { isSaving: false, isSaved: false } }));
+        toast({ title: "Ошибка сохранения", description: "Не удалось сохранить изменения. Попробуйте еще раз.", variant: "destructive" });
+      }
+    }, 1000);
+    return () => { if (saveTimeoutRefs.current.summary) clearTimeout(saveTimeoutRefs.current.summary!); };
+  }, [summary, id, enrichedConsultation, queryClient, toast, complaints, objective, treatmentPlan, comment]);
+
+  // Автосохранение для поля "Комментарий врача"
+  useEffect(() => {
+    if (!id || !enrichedConsultation) return;
+    if (saveTimeoutRefs.current.comment) {
+      clearTimeout(saveTimeoutRefs.current.comment);
+    }
+    const hasChanges = comment !== (enrichedConsultation.comments || '');
+    if (!hasChanges) return;
+    saveTimeoutRefs.current.comment = setTimeout(async () => {
+      setSavingStatus(prev => ({ ...prev, comment: { isSaving: true, isSaved: false } }));
+      try {
+        await consultationsApi.update({
+          id,
+          complaints: complaints.trim() || undefined,
+          objective: objective.trim() || undefined,
+          treatmentPlan: treatmentPlan.trim() || undefined,
+          summary: summary.trim() || undefined,
+          comment: comment.trim() || undefined,
+        });
+        queryClient.setQueryData(['consultation', id], {
+          ...enrichedConsultation,
+          complaints: complaints.trim() || null,
+          objective: objective.trim() || null,
+          plan: treatmentPlan.trim() || null,
+          summary: summary.trim() || null,
+          comments: comment.trim() || null,
+        });
+        setSavingStatus(prev => ({ ...prev, comment: { isSaving: false, isSaved: true } }));
+        setTimeout(() => setSavingStatus(prev => ({ ...prev, comment: { isSaving: false, isSaved: false } })), 2000);
+      } catch (error) {
+        console.error('Auto-save consultation error:', error);
+        setSavingStatus(prev => ({ ...prev, comment: { isSaving: false, isSaved: false } }));
+        toast({ title: "Ошибка сохранения", description: "Не удалось сохранить изменения. Попробуйте еще раз.", variant: "destructive" });
+      }
+    }, 1000);
+    return () => { if (saveTimeoutRefs.current.comment) clearTimeout(saveTimeoutRefs.current.comment!); };
+  }, [comment, id, enrichedConsultation, queryClient, toast, complaints, objective, treatmentPlan, summary]);
 
   // Инициализация duration из данных консультации
   useEffect(() => {
@@ -1403,41 +1536,33 @@ export default function ConsultationPage() {
                   </Card>
                 ) : (
                   <>
-                    {isSaving && (
-                      <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-4">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Сохранение изменений...</span>
-                      </div>
-                    )}
-                    {isSaved && !isSaving && (
-                      <div className="flex items-center justify-center gap-2 text-sm text-green-600 mb-4">
-                        <Check className="w-4 h-4" />
-                        <span>Изменения сохранены</span>
-                      </div>
-                    )}
                     <ReportSection 
                       title="Жалобы" 
                       content={complaints} 
                       onChange={setComplaints}
                       placeholder="Не указано"
+                      savingStatus={savingStatus.complaints}
                     />
                     <ReportSection 
                       title="Объективный статус" 
                       content={objective} 
                       onChange={setObjective}
                       placeholder="Не указано"
+                      savingStatus={savingStatus.objective}
                     />
                     <ReportSection 
                       title="План лечения" 
                       content={treatmentPlan} 
                       onChange={setTreatmentPlan}
                       placeholder="Не указано"
+                      savingStatus={savingStatus.treatmentPlan}
                     />
                     <ReportSection 
                       title="Выжимка" 
                       content={summary} 
                       onChange={setSummary}
                       placeholder="Не указано"
+                      savingStatus={savingStatus.summary}
                     />
                     <ReportSection 
                       title="Комментарий врача" 
@@ -1445,6 +1570,7 @@ export default function ConsultationPage() {
                       onChange={setComment}
                       placeholder="Не указано"
                       isPrivate 
+                      savingStatus={savingStatus.comment}
                     />
                   </>
                 )}
@@ -1555,13 +1681,15 @@ function ReportSection({
   content, 
   onChange,
   placeholder = '',
-  isPrivate = false 
+  isPrivate = false,
+  savingStatus
 }: { 
   title: string; 
   content: string; 
   onChange?: (value: string) => void;
   placeholder?: string;
   isPrivate?: boolean;
+  savingStatus?: { isSaving: boolean; isSaved: boolean };
 }) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const isEditable = !!onChange;
@@ -1591,9 +1719,23 @@ function ReportSection({
   return (
     <Card className={cn("rounded-3xl border-border/50 transition-all hover:border-primary/20 overflow-hidden", isPrivate && "bg-secondary/20 border-dashed")}>
       <div className="p-4 pb-2 border-b border-border/50">
-        <div className="flex justify-between items-center">
-           <h3 className="text-lg font-bold">{title}</h3>
-           {isPrivate && <span className="text-[10px] uppercase tracking-wider font-bold bg-secondary px-2 py-1 rounded text-muted-foreground">Личное</span>}
+        <div className="flex justify-between items-center gap-2">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <h3 className="text-lg font-bold">{title}</h3>
+            {savingStatus?.isSaving && (
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                <span>Сохранение...</span>
+              </div>
+            )}
+            {savingStatus?.isSaved && !savingStatus?.isSaving && (
+              <div className="flex items-center gap-1.5 text-xs text-green-600">
+                <Check className="w-3 h-3" />
+                <span>Сохранено</span>
+              </div>
+            )}
+          </div>
+          {isPrivate && <span className="text-[10px] uppercase tracking-wider font-bold bg-secondary px-2 py-1 rounded text-muted-foreground shrink-0">Личное</span>}
         </div>
       </div>
       <div className="relative">
