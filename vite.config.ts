@@ -24,7 +24,15 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist"),
     emptyOutDir: true,
+    // Убеждаемся, что service worker и manifest копируются правильно
+    rollupOptions: {
+      input: {
+        main: path.resolve(import.meta.dirname, "client", "index.html"),
+      },
+    },
   },
+  // Копируем файлы из public в dist
+  publicDir: path.resolve(import.meta.dirname, "client", "public"),
   server: {
     host: "0.0.0.0",
     port: 5005,

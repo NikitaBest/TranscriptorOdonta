@@ -5,9 +5,11 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuthRefresh } from "@/hooks/use-auth-refresh";
+import { useOnline } from "@/hooks/use-online";
 import { ApiClient } from "@/lib/api/client";
 import { authApi } from "@/lib/api/auth";
-import { Loader2 } from "lucide-react";
+import { Loader2, WifiOff } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import NotFound from "@/pages/not-found";
 
 import AuthPage from "@/pages/auth";
@@ -142,10 +144,23 @@ function Router() {
 function AppContent() {
   // Автоматическое обновление токена
   useAuthRefresh();
+  // Отслеживание онлайн/оффлайн статуса
+  const { isOffline } = useOnline();
 
   return (
     <TooltipProvider>
       <Toaster />
+      {/* Индикатор оффлайн режима */}
+      {isOffline && (
+        <div className="fixed top-0 left-0 right-0 z-50 p-2">
+          <Alert variant="default" className="bg-muted border-border">
+            <WifiOff className="h-4 w-4" />
+            <AlertDescription className="flex items-center gap-2">
+              <span>Работа в оффлайн режиме. Некоторые функции могут быть недоступны.</span>
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
       <Router />
     </TooltipProvider>
   );

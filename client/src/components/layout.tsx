@@ -10,6 +10,7 @@ import {
 import { cn } from '@/lib/utils';
 import { authApi } from '@/lib/api/auth';
 import { useToast } from '@/hooks/use-toast';
+import { InstallPWAButton } from '@/components/install-pwa-button';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -152,6 +153,9 @@ export function Layout({ children }: LayoutProps) {
           </Link>
         ))}
       </nav>
+
+      {/* PWA Install Button */}
+      <InstallPWAButton />
     </div>
   );
 }

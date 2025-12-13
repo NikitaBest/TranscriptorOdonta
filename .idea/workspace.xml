@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="server" />
+    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="добавлен метод для свайпа не закрытия 1" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -77,78 +77,6 @@
       <workItem from="1765281969268" duration="1224000" />
       <workItem from="1765445071433" duration="602000" />
       <workItem from="1765479286600" duration="1715000" />
-    </task>
-    <task id="LOCAL-00001" summary="новая ветка">
-      <option name="closed" value="true" />
-      <created>1764343302387</created>
-      <option name="number" value="00001" />
-      <option name="presentableId" value="LOCAL-00001" />
-      <option name="project" value="LOCAL" />
-      <updated>1764343302387</updated>
-    </task>
-    <task id="LOCAL-00002" summary="убрана на странице авторизации , вход по тедеграмм">
-      <option name="closed" value="true" />
-      <created>1764582012765</created>
-      <option name="number" value="00002" />
-      <option name="presentableId" value="LOCAL-00002" />
-      <option name="project" value="LOCAL" />
-      <updated>1764582012765</updated>
-    </task>
-    <task id="LOCAL-00003" summary="добавлена страница регистрации">
-      <option name="closed" value="true" />
-      <created>1764582499444</created>
-      <option name="number" value="00003" />
-      <option name="presentableId" value="LOCAL-00003" />
-      <option name="project" value="LOCAL" />
-      <updated>1764582499444</updated>
-    </task>
-    <task id="LOCAL-00004" summary="на моб нижнее нав меню , адаптация">
-      <option name="closed" value="true" />
-      <created>1764593119372</created>
-      <option name="number" value="00004" />
-      <option name="presentableId" value="LOCAL-00004" />
-      <option name="project" value="LOCAL" />
-      <updated>1764593119372</updated>
-    </task>
-    <task id="LOCAL-00005" summary="на моб адаптация новый пациент блок">
-      <option name="closed" value="true" />
-      <created>1764593607245</created>
-      <option name="number" value="00005" />
-      <option name="presentableId" value="LOCAL-00005" />
-      <option name="project" value="LOCAL" />
-      <updated>1764593607245</updated>
-    </task>
-    <task id="LOCAL-00006" summary="добавлен выбор пациентов на запись , адаптация под мобильные экраны">
-      <option name="closed" value="true" />
-      <created>1764671648317</created>
-      <option name="number" value="00006" />
-      <option name="presentableId" value="LOCAL-00006" />
-      <option name="project" value="LOCAL" />
-      <updated>1764671648317</updated>
-    </task>
-    <task id="LOCAL-00007" summary="на странице история разьединение блоков">
-      <option name="closed" value="true" />
-      <created>1764672680629</created>
-      <option name="number" value="00007" />
-      <option name="presentableId" value="LOCAL-00007" />
-      <option name="project" value="LOCAL" />
-      <updated>1764672680629</updated>
-    </task>
-    <task id="LOCAL-00008" summary="адаптация текста в блоках">
-      <option name="closed" value="true" />
-      <created>1764674995892</created>
-      <option name="number" value="00008" />
-      <option name="presentableId" value="LOCAL-00008" />
-      <option name="project" value="LOCAL" />
-      <updated>1764674995892</updated>
-    </task>
-    <task id="LOCAL-00009" summary="запись только с выбором пациента">
-      <option name="closed" value="true" />
-      <created>1764751693871</created>
-      <option name="number" value="00009" />
-      <option name="presentableId" value="LOCAL-00009" />
-      <option name="project" value="LOCAL" />
-      <updated>1764751693871</updated>
     </task>
     <task id="LOCAL-00010" summary="с истории убрана функция без пациента">
       <option name="closed" value="true" />
@@ -430,26 +358,125 @@
       <option name="project" value="LOCAL" />
       <updated>1765480372623</updated>
     </task>
-    <option name="localTasksCounter" value="45" />
+    <task id="LOCAL-00045" summary="воспроизведение аудио на телефоне">
+      <option name="closed" value="true" />
+      <created>1765526208643</created>
+      <option name="number" value="00045" />
+      <option name="presentableId" value="LOCAL-00045" />
+      <option name="project" value="LOCAL" />
+      <updated>1765526208643</updated>
+    </task>
+    <task id="LOCAL-00046" summary="енв включен в гит игнор">
+      <option name="closed" value="true" />
+      <created>1765530534001</created>
+      <option name="number" value="00046" />
+      <option name="presentableId" value="LOCAL-00046" />
+      <option name="project" value="LOCAL" />
+      <updated>1765530534002</updated>
+    </task>
+    <task id="LOCAL-00047" summary="согласие на рекламную рассылку необязательно">
+      <option name="closed" value="true" />
+      <created>1765531635346</created>
+      <option name="number" value="00047" />
+      <option name="presentableId" value="LOCAL-00047" />
+      <option name="project" value="LOCAL" />
+      <updated>1765531635347</updated>
+    </task>
+    <task id="LOCAL-00048" summary="убрано уведомление при входе , смахивание уведомлений">
+      <option name="closed" value="true" />
+      <created>1765532088116</created>
+      <option name="number" value="00048" />
+      <option name="presentableId" value="LOCAL-00048" />
+      <option name="project" value="LOCAL" />
+      <updated>1765532088117</updated>
+    </task>
+    <task id="LOCAL-00049" summary="поддержка прослушивания аудио для мобилки в разных браузерах">
+      <option name="closed" value="true" />
+      <created>1765532567575</created>
+      <option name="number" value="00049" />
+      <option name="presentableId" value="LOCAL-00049" />
+      <option name="project" value="LOCAL" />
+      <updated>1765532567575</updated>
+    </task>
+    <task id="LOCAL-00050" summary="прослушка аудио через мобилку 1">
+      <option name="closed" value="true" />
+      <created>1765533148497</created>
+      <option name="number" value="00050" />
+      <option name="presentableId" value="LOCAL-00050" />
+      <option name="project" value="LOCAL" />
+      <updated>1765533148502</updated>
+    </task>
+    <task id="LOCAL-00051" summary="прослушка аудио через мобилку 2">
+      <option name="closed" value="true" />
+      <created>1765534224026</created>
+      <option name="number" value="00051" />
+      <option name="presentableId" value="LOCAL-00051" />
+      <option name="project" value="LOCAL" />
+      <updated>1765534224028</updated>
+    </task>
+    <task id="LOCAL-00052" summary="прослушка аудио через мобилку 2">
+      <option name="closed" value="true" />
+      <created>1765537303697</created>
+      <option name="number" value="00052" />
+      <option name="presentableId" value="LOCAL-00052" />
+      <option name="project" value="LOCAL" />
+      <updated>1765537303697</updated>
+    </task>
+    <task id="LOCAL-00053" summary="скрытие аудио плеера">
+      <option name="closed" value="true" />
+      <created>1765538786487</created>
+      <option name="number" value="00053" />
+      <option name="presentableId" value="LOCAL-00053" />
+      <option name="project" value="LOCAL" />
+      <updated>1765538786487</updated>
+    </task>
+    <task id="LOCAL-00054" summary="удален эндпоин выхода логаут, проверка токена">
+      <option name="closed" value="true" />
+      <created>1765540293650</created>
+      <option name="number" value="00054" />
+      <option name="presentableId" value="LOCAL-00054" />
+      <option name="project" value="LOCAL" />
+      <updated>1765540293653</updated>
+    </task>
+    <task id="LOCAL-00055" summary="время скрытия уведомлений 2 секунды">
+      <option name="closed" value="true" />
+      <created>1765542602089</created>
+      <option name="number" value="00055" />
+      <option name="presentableId" value="LOCAL-00055" />
+      <option name="project" value="LOCAL" />
+      <updated>1765542602089</updated>
+    </task>
+    <task id="LOCAL-00056" summary="вместо модалки добавление пациента страница">
+      <option name="closed" value="true" />
+      <created>1765542916304</created>
+      <option name="number" value="00056" />
+      <option name="presentableId" value="LOCAL-00056" />
+      <option name="project" value="LOCAL" />
+      <updated>1765542916305</updated>
+    </task>
+    <task id="LOCAL-00057" summary="добавлен метод для свайпа не закрытия">
+      <option name="closed" value="true" />
+      <created>1765543479737</created>
+      <option name="number" value="00057" />
+      <option name="presentableId" value="LOCAL-00057" />
+      <option name="project" value="LOCAL" />
+      <updated>1765543479738</updated>
+    </task>
+    <task id="LOCAL-00058" summary="добавлен метод для свайпа не закрытия 1">
+      <option name="closed" value="true" />
+      <created>1765543988276</created>
+      <option name="number" value="00058" />
+      <option name="presentableId" value="LOCAL-00058" />
+      <option name="project" value="LOCAL" />
+      <updated>1765543988276</updated>
+    </task>
+    <option name="localTasksCounter" value="59" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="добавление записи и отчетности по пациенту" />
-    <MESSAGE value="добавление информации в истории" />
-    <MESSAGE value="добавление обновление отчета и уведомление о предупреждении" />
-    <MESSAGE value="убран проверить по протоколам покане нужно в отчете" />
-    <MESSAGE value="автосохранение для заметок врача" />
-    <MESSAGE value="увеличение блока с текстом для заметок врача" />
-    <MESSAGE value="автосохранение для блоков отчетности" />
-    <MESSAGE value="заметки врача для мобилки перед историей" />
-    <MESSAGE value="добавлен статус обработки в карточки консультации у пациента" />
-    <MESSAGE value="добавлен поиск пациента на веб при записи" />
-    <MESSAGE value="возможность скачивания в пдф" />
-    <MESSAGE value="убрано время с блоа в карточке пациента" />
-    <MESSAGE value="добавление аудио , прослушивание аудио в отчете" />
     <MESSAGE value="работа с аудио плеером" />
     <MESSAGE value="работа с аудио плеером, адаптация под мобилку" />
     <MESSAGE value="поделится отчетом публичная страница" />
@@ -462,6 +489,19 @@
     <MESSAGE value="Bitrate установлен на 16 kbps" />
     <MESSAGE value="добавлена кнопка поддержка , адаптирована под мобилку" />
     <MESSAGE value="server" />
-    <option name="LAST_COMMIT_MESSAGE" value="server" />
+    <MESSAGE value="воспроизведение аудио на телефоне" />
+    <MESSAGE value="енв включен в гит игнор" />
+    <MESSAGE value="согласие на рекламную рассылку необязательно" />
+    <MESSAGE value="убрано уведомление при входе , смахивание уведомлений" />
+    <MESSAGE value="поддержка прослушивания аудио для мобилки в разных браузерах" />
+    <MESSAGE value="прослушка аудио через мобилку 1" />
+    <MESSAGE value="прослушка аудио через мобилку 2" />
+    <MESSAGE value="скрытие аудио плеера" />
+    <MESSAGE value="удален эндпоин выхода логаут, проверка токена" />
+    <MESSAGE value="время скрытия уведомлений 2 секунды" />
+    <MESSAGE value="вместо модалки добавление пациента страница" />
+    <MESSAGE value="добавлен метод для свайпа не закрытия" />
+    <MESSAGE value="добавлен метод для свайпа не закрытия 1" />
+    <option name="LAST_COMMIT_MESSAGE" value="добавлен метод для свайпа не закрытия 1" />
   </component>
 </project>

@@ -1,0 +1,44 @@
+{
+  "name": "Odonta AI - ИИ-ассистент для стоматологических консультаций",
+  "short_name": "Odonta AI",
+  "description": "Автоматическая транскрипция и создание медицинских отчетов из аудиозаписей консультаций",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAFAFA",
+  "theme_color": "#171717",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["medical", "health", "productivity"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Новая запись",
+      "short_name": "Запись",
+      "description": "Начать новую запись консультации",
+      "url": "/record",
+      "icons": [{ "src": "/favicon.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Пациенты",
+      "short_name": "Пациенты",
+      "description": "Просмотр списка пациентов",
+      "url": "/dashboard",
+      "icons": [{ "src": "/favicon.png", "sizes": "192x192" }]
+    }
+  ]
+}
+
