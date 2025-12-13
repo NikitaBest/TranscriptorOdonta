@@ -239,11 +239,10 @@ export default function RecordPage() {
         preferredFormat = 'wav';
       }
       
-      // Настройки для записи: bitrate 16-32 kbps для экономии трафика и быстрой загрузки
-      // Для мобильных устройств используем более низкий bitrate для уменьшения размера файла
-      // 16 kbps достаточно для качественной записи речи
+      // Настройки для записи: bitrate 64 kbps для высокого качества записи
+      // 64 kbps обеспечивает отличное качество записи речи
       const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      const bitrate = isMobileDevice ? 16000 : 24000; // 16 kbps для мобильных, 24 kbps для десктопов
+      const bitrate = 64000; // 64 kbps для всех устройств
       
       const mediaRecorderOptions: MediaRecorderOptions = {
         mimeType: mimeType,
