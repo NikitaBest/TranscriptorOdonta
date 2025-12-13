@@ -139,7 +139,7 @@ export function Layout({ children }: LayoutProps) {
           <Link key={item.href} href={item.href} className="flex-1">
             <div 
               className={cn(
-                "flex flex-col items-center justify-center gap-1 py-2 rounded-xl transition-all duration-200",
+                "flex flex-col items-center justify-center gap-1 pt-1.5 pb-2 rounded-xl transition-all duration-200",
                 location === item.href 
                   ? "text-primary" 
                   : "text-muted-foreground"
