@@ -1693,6 +1693,7 @@ function ReportSection({
 }) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const isEditable = !!onChange;
+  const { toast } = useToast();
 
   // Автоматическое изменение высоты textarea при изменении содержимого
   useEffect(() => {
@@ -1716,6 +1717,47 @@ function ReportSection({
     }
   };
 
+  const handleCopy = async () => {
+    if (!content || content.trim() === '') {
+      toast({
+        title: "Нет текста для копирования",
+        description: "Блок пуст",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(content);
+      toast({
+        title: "Скопировано",
+        description: `Текст из блока "${title}" скопирован в буфер обмена`,
+      });
+    } catch (error) {
+      // Fallback для старых браузеров
+      const textArea = document.createElement('textarea');
+      textArea.value = content;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        toast({
+          title: "Скопировано",
+          description: `Текст из блока "${title}" скопирован в буфер обмена`,
+        });
+      } catch (err) {
+        toast({
+          title: "Ошибка",
+          description: "Не удалось скопировать текст",
+          variant: "destructive",
+        });
+      }
+      document.body.removeChild(textArea);
+    }
+  };
+
   return (
     <Card className={cn("rounded-3xl border-border/50 transition-all hover:border-primary/20 overflow-hidden", isPrivate && "bg-secondary/20 border-dashed")}>
       <div className="p-4 pb-2 border-b border-border/50">
@@ -1735,7 +1777,18 @@ function ReportSection({
               </div>
             )}
           </div>
-          {isPrivate && <span className="text-[10px] uppercase tracking-wider font-bold bg-secondary px-2 py-1 rounded text-muted-foreground shrink-0">Личное</span>}
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 w-7 p-0 hover:bg-secondary"
+              onClick={handleCopy}
+              title="Копировать текст"
+            >
+              <Copy className="w-3.5 h-3.5 text-muted-foreground" />
+            </Button>
+            {isPrivate && <span className="text-[10px] uppercase tracking-wider font-bold bg-secondary px-2 py-1 rounded text-muted-foreground">Личное</span>}
+          </div>
         </div>
       </div>
       <div className="relative">
