@@ -1628,12 +1628,13 @@ export default function ConsultationPage() {
                   <AlertDialogContent className="rounded-3xl">
                     <AlertDialogHeader>
                       <AlertDialogTitle>Пересоздать отчет?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Вы уверены, что хотите пересоздать отчет? 
-                        <strong className="block mt-2 text-foreground">
-                          Все внесенные правки будут удалены и заменены результатами новой обработки.
-                        </strong>
-                        Консультация будет отправлена на повторную обработку, и данные обновятся автоматически после завершения.
+                      <AlertDialogDescription className="space-y-3">
+                        <p>
+                          Вы уверены, что хотите пересоздать отчет?
+                          <strong className="block text-foreground">
+                            Все внесенные правки будут удалены и заменены результатами новой обработки.
+                          </strong>
+                        </p>
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -1655,6 +1656,27 @@ export default function ConsultationPage() {
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Сейчас это первая версия Odonta AI, поэтому в редких случаях возможны неточности
+                  в распознавании или формулировках. Если вы заметили ошибочную транскрибацию
+                  или некорректный отчет, пожалуйста, напишите в службу поддержки — мы разберемся
+                  и улучшим модель.
+                </p>
+                <Button
+                  asChild
+                  variant="outline"
+                  className="w-full justify-start rounded-xl h-10 gap-2"
+                >
+                  <a
+                    href="https://t.me/odonta_ai_support"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2"
+                  >
+                    <Share2 className="w-4 h-4" />
+                    <span>Поддержка в Telegram</span>
+                  </a>
+                </Button>
               </CardContent>
             </Card>
 
