@@ -36,7 +36,7 @@ export default function RecordPage() {
   });
 
   // Загрузка данных выбранного пациента
-  const { data: selectedPatientData } = useQuery({
+  const { data: selectedPatientData, isLoading: isLoadingPatient } = useQuery({
     queryKey: ['patient', selectedPatientId],
     queryFn: () => {
       if (!selectedPatientId) return null;
@@ -46,13 +46,25 @@ export default function RecordPage() {
   });
 
   // Преобразуем данные пациента для отображения
-  const patient = selectedPatientData ? {
+  // Сначала пытаемся использовать данные из списка пациентов (быстрее)
+  // Если не найдено, используем загруженные данные
+  const patientFromList = selectedPatientId 
+    ? patientsData.find((p: PatientResponse) => String(p.id) === selectedPatientId)
+    : null;
+  
+  const patient = patientFromList ? {
+    id: String(patientFromList.id),
+    firstName: patientFromList.firstName,
+    lastName: patientFromList.lastName,
+    phone: patientFromList.phone || '',
+    avatar: `${patientFromList.firstName[0]}${patientFromList.lastName[0]}`.toUpperCase(),
+  } : (selectedPatientData ? {
     id: String(selectedPatientData.id),
     firstName: selectedPatientData.firstName,
     lastName: selectedPatientData.lastName,
     phone: selectedPatientData.phone || '',
     avatar: `${selectedPatientData.firstName[0]}${selectedPatientData.lastName[0]}`.toUpperCase(),
-  } : null;
+  } : null);
 
   // Фильтруем пациентов для поиска
   const filteredPatients = patientsData.filter((p: PatientResponse) => {
@@ -513,8 +525,10 @@ export default function RecordPage() {
   };
 
   const handlePatientSelect = (patientId: string) => {
+    console.log('Selecting patient:', patientId);
     setSelectedPatientId(patientId);
     setPatientSheetOpen(false);
+    setPatientPopoverOpen(false);
     setPatientSearch('');
   };
 
@@ -581,10 +595,9 @@ export default function RecordPage() {
                                   <CommandItem
                                     key={p.id}
                                     value={`${p.firstName} ${p.lastName} ${p.phone || ''}`}
-                                    onSelect={() => {
-                                      setSelectedPatientId(String(p.id));
-                                      setPatientPopoverOpen(false);
-                                      setPatientSearch('');
+                                    onSelect={(currentValue) => {
+                                      // currentValue может быть строкой поиска, поэтому используем p.id напрямую
+                                      handlePatientSelect(String(p.id));
                                     }}
                                     className="rounded-lg cursor-pointer"
                                   >
