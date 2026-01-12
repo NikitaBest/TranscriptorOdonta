@@ -529,7 +529,7 @@ export default function ConsultationPage() {
                       savingStatus={savingStatus.treatmentPlan}
                     />
                     <ReportSection 
-                      title="Выжимка" 
+                      title="Резюме консультации" 
                       content={summary} 
                       onChange={setSummary}
                       placeholder="Не указано"
