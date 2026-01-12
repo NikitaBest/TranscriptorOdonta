@@ -176,4 +176,35 @@
     -moz-user-select: text;
     -ms-user-select: text;
   }
+  
+  /* Оптимизация для кликабельных элементов на мобильных устройствах */
+  button, [role="button"], a[href] {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+  }
+  
+  /* Плавные переходы для активных состояний на мобильных и десктопе */
+  button:active, [role="button"]:active, a:active {
+    transition: transform 0.1s ease-out, opacity 0.1s ease-out, scale 0.1s ease-out;
+  }
+  
+  /* Улучшенная поддержка active состояния на мобильных устройствах */
+  /* Используем media query для определения touch-устройств */
+  @media (hover: none) and (pointer: coarse) {
+    /* На мобильных устройствах делаем эффект немного более заметным и плавным */
+    button:active, [role="button"]:active, a:active {
+      transition: transform 0.15s ease-out, opacity 0.15s ease-out, scale 0.15s ease-out;
+    }
+  }
+  
+  /* Для десктопа также убеждаемся, что эффекты работают */
+  @media (hover: hover) and (pointer: fine) {
+    button:active, [role="button"]:active, a:active {
+      transition: transform 0.1s ease-out, opacity 0.1s ease-out, scale 0.1s ease-out;
+    }
+  }
 }
