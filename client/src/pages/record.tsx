@@ -15,6 +15,20 @@ import { ConsultationProcessingStatus } from '@/lib/api/types';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
+import { ru } from 'date-fns/locale';
+import { 
+  saveAudioChunk, 
+  buildAudioBlob, 
+  deleteChunks, 
+  generateRecordingId,
+  saveRecordingMetadata,
+  getRecordingMetadata,
+  deleteRecordingMetadata,
+  getLatestSavedRecording,
+  getAllChunks,
+  type RecordingMetadata
+} from '@/lib/utils/audio-storage';
 
 export default function RecordPage() {
   const [location, setLocation] = useLocation();
@@ -80,8 +94,9 @@ export default function RecordPage() {
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [duration, setDuration] = useState(0);
-  const [status, setStatus] = useState<'idle' | 'recording' | 'uploading' | 'transcribing' | 'processing'>('idle');
+  const [status, setStatus] = useState<'idle' | 'recording' | 'saved' | 'uploading' | 'transcribing' | 'processing'>('idle');
   const [audioData, setAudioData] = useState<number[]>(Array(40).fill(0));
+  const [savedRecording, setSavedRecording] = useState<RecordingMetadata | null>(null);
   
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -92,6 +107,8 @@ export default function RecordPage() {
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingStopPromiseRef = useRef<{ resolve: () => void; reject: (error: Error) => void } | null>(null);
   const mediaRecorderOptionsRef = useRef<MediaRecorderOptions | null>(null);
+  const recordingIdRef = useRef<string | null>(null); // ID записи для IndexedDB
+  const chunkIndexRef = useRef<number>(0); // Счетчик chunks для IndexedDB
 
   // Анализ звука в реальном времени
   useEffect(() => {
@@ -152,6 +169,40 @@ export default function RecordPage() {
     };
   }, [isRecording, isPaused]);
 
+  // Восстановление сохраненной записи при загрузке страницы
+  useEffect(() => {
+    const restoreSavedRecording = async () => {
+      try {
+        const latestRecording = await getLatestSavedRecording();
+        if (latestRecording) {
+          // Проверяем, что chunks действительно существуют
+          const chunks = await getAllChunks(latestRecording.id);
+          if (chunks.length > 0) {
+            // Восстанавливаем состояние сохраненной записи
+            setSavedRecording(latestRecording);
+            setStatus('saved');
+            setDuration(latestRecording.duration);
+            recordingIdRef.current = latestRecording.id;
+            
+            // Восстанавливаем выбранного пациента из сохраненной записи
+            if (latestRecording.patientId) {
+              setSelectedPatientId(latestRecording.patientId);
+            }
+            
+            console.log('Restored saved recording:', latestRecording);
+          } else {
+            // Если chunks отсутствуют, удаляем метаданные
+            await deleteRecordingMetadata(latestRecording.id);
+          }
+        }
+      } catch (error) {
+        console.error('Error restoring saved recording:', error);
+      }
+    };
+
+    restoreSavedRecording();
+  }, []); // Выполняем только при монтировании
+
   // Очистка при размонтировании
   useEffect(() => {
     return () => {
@@ -184,6 +235,20 @@ export default function RecordPage() {
         variant: "destructive"
       });
       return;
+    }
+
+    // Если есть сохраненная запись, очищаем её перед началом новой
+    if (savedRecording) {
+      await deleteChunks(savedRecording.id);
+      await deleteRecordingMetadata(savedRecording.id);
+      setSavedRecording(null);
+      recordingIdRef.current = null;
+      toast({
+        title: "Предупреждение",
+        description: "Предыдущая неотправленная запись удалена. Начинается новая запись.",
+        variant: "default",
+        duration: 3000,
+      });
     }
 
     try {
@@ -275,9 +340,30 @@ export default function RecordPage() {
       
       audioChunksRef.current = [];
       
-      mediaRecorder.ondataavailable = (event) => {
+      // Генерируем уникальный ID для записи
+      recordingIdRef.current = generateRecordingId();
+      chunkIndexRef.current = 0;
+      
+      mediaRecorder.ondataavailable = async (event) => {
         if (event.data.size > 0) {
+          // Сохраняем в память (для обратной совместимости)
           audioChunksRef.current.push(event.data);
+          
+          // Сохраняем в IndexedDB для защиты от потери данных
+          if (recordingIdRef.current && selectedPatientId) {
+            try {
+              await saveAudioChunk(
+                recordingIdRef.current,
+                chunkIndexRef.current++,
+                event.data,
+                mimeType,
+                selectedPatientId
+              );
+            } catch (error) {
+              console.error('Failed to save chunk to IndexedDB:', error);
+              // Продолжаем работу даже если сохранение в IndexedDB не удалось
+            }
+          }
         }
       };
       
@@ -346,7 +432,7 @@ export default function RecordPage() {
     }
 
     setIsRecording(false);
-    setStatus('uploading');
+    setStatus('saved');
     setAudioData(Array(40).fill(0));
 
     // Создаем промис для ожидания окончания записи
@@ -369,13 +455,22 @@ export default function RecordPage() {
       // Ждем окончания записи
       await stopPromise;
 
-      // Отправляем файл на бэкенд
-      // Очищаем chunks из памяти после создания Blob для экономии памяти на мобильных
-      const audioBlob = new Blob(audioChunksRef.current, { 
-        type: mediaRecorderRef.current?.mimeType || 'audio/webm' 
-      });
+      // Пытаемся собрать Blob из IndexedDB (более надежно)
+      // Если не получилось, используем chunks из памяти
+      let audioBlob: Blob | null = null;
       
-      // Очищаем chunks сразу после создания Blob для освобождения памяти
+      if (recordingIdRef.current) {
+        audioBlob = await buildAudioBlob(recordingIdRef.current);
+      }
+      
+      // Fallback на chunks из памяти, если IndexedDB не сработал
+      if (!audioBlob || audioBlob.size === 0) {
+        audioBlob = new Blob(audioChunksRef.current, { 
+          type: mediaRecorderRef.current?.mimeType || 'audio/webm' 
+        });
+      }
+      
+      // Очищаем chunks из памяти после создания Blob для экономии памяти на мобильных
       const chunksSize = audioChunksRef.current.length;
       audioChunksRef.current = [];
       
@@ -394,18 +489,21 @@ export default function RecordPage() {
         mimeType: audioBlob.type,
       });
 
-      // Предупреждение для очень длинных записей
-      if (duration > 1800) { // Более 30 минут
-        toast({
-          title: "Длинная запись",
-          description: `Запись длится ${durationMinutes} минут (${sizeMB} MB). Загрузка может занять некоторое время.`,
-          duration: 5000,
-        });
+      // Сохраняем метаданные о записи
+      if (recordingIdRef.current) {
+        const metadata: RecordingMetadata = {
+          id: recordingIdRef.current,
+          patientId: selectedPatientId,
+          patientName: patient ? `${patient.firstName} ${patient.lastName}` : undefined,
+          timestamp: Date.now(),
+          duration: duration,
+          size: audioBlob.size,
+          mimeType: audioBlob.type,
+        };
+        
+        await saveRecordingMetadata(metadata);
+        setSavedRecording(metadata);
       }
-
-      const response = await consultationsApi.uploadConsultation(selectedPatientId, audioBlob);
-      
-      console.log('Consultation uploaded:', response);
       
       // Останавливаем поток
       if (mediaStreamRef.current) {
@@ -418,40 +516,12 @@ export default function RecordPage() {
         audioContextRef.current = null;
       }
       
-      // Обрабатываем статус
-      if (response.status === ConsultationProcessingStatus.Completed) {
-        setStatus('idle');
-        toast({
-          title: "Консультация загружена",
-          description: "Аудиофайл успешно отправлен и обработан.",
-        });
-        
-        // Переходим на страницу пациента
-        setTimeout(() => {
-          setLocation(`/patient/${selectedPatientId}`);
-        }, 1000);
-      } else if (response.status === ConsultationProcessingStatus.Failed) {
-        setStatus('idle');
-        toast({
-          title: "Ошибка обработки",
-          description: "Не удалось обработать консультацию. Попробуйте еще раз.",
-          variant: "destructive"
-        });
-      } else {
-        // InProgress или None - показываем статус обработки
-        setStatus('processing');
-        toast({
-          title: "Консультация загружена",
-          description: "Аудиофайл отправлен. Обработка началась.",
-        });
-        
-        // Переходим на страницу пациента через некоторое время
-        setTimeout(() => {
-          setLocation(`/patient/${selectedPatientId}`);
-        }, 2000);
-      }
+      toast({
+        title: "Запись завершена",
+        description: "Аудиофайл сохранен локально. Вы можете отправить его на сервер.",
+      });
     } catch (error) {
-      console.error('Error uploading consultation:', error);
+      console.error('Error finishing recording:', error);
       setStatus('idle');
       
       // Останавливаем поток даже при ошибке
@@ -465,27 +535,134 @@ export default function RecordPage() {
         audioContextRef.current = null;
       }
       
+      toast({
+        title: "Ошибка завершения записи",
+        description: "Не удалось завершить запись. Попробуйте еще раз.",
+        variant: "destructive"
+      });
+    } finally {
+      // Очищаем запись из памяти
+      audioChunksRef.current = [];
+      recordingStopPromiseRef.current = null;
+      chunkIndexRef.current = 0;
+      // НЕ очищаем recordingIdRef и duration - они нужны для отправки
+    }
+  };
+
+  // Отправка сохраненной записи на бэкенд
+  const handleSend = async () => {
+    if (!savedRecording || !selectedPatientId) {
+      toast({
+        title: "Ошибка",
+        description: "Нет сохраненной записи для отправки",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setStatus('uploading');
+
+    try {
+      // Собираем Blob из IndexedDB
+      const audioBlob = await buildAudioBlob(savedRecording.id);
+      
+      if (!audioBlob || audioBlob.size === 0) {
+        throw new Error('Не удалось восстановить аудиофайл из сохранения');
+      }
+
+      const sizeMB = (audioBlob.size / (1024 * 1024)).toFixed(2);
+      const durationMinutes = (savedRecording.duration / 60).toFixed(1);
+      
+      console.log('Sending saved recording:', {
+        id: savedRecording.id,
+        size: `${sizeMB} MB`,
+        duration: `${savedRecording.duration} seconds (${durationMinutes} minutes)`,
+      });
+
+      // Предупреждение для очень длинных записей
+      if (savedRecording.duration > 1800) { // Более 30 минут
+        toast({
+          title: "Длинная запись",
+          description: `Запись длится ${durationMinutes} минут (${sizeMB} MB). Загрузка может занять некоторое время.`,
+          duration: 5000,
+        });
+      }
+
+      const response = await consultationsApi.uploadConsultation(selectedPatientId, audioBlob);
+      
+      console.log('Consultation uploaded:', response);
+      
+      // Обрабатываем статус
+      if (response.status === ConsultationProcessingStatus.Completed) {
+        // Очищаем IndexedDB только после успешной обработки
+        await deleteChunks(savedRecording.id);
+        await deleteRecordingMetadata(savedRecording.id);
+        recordingIdRef.current = null;
+        setSavedRecording(null);
+        setStatus('idle');
+        setDuration(0);
+        toast({
+          title: "Консультация загружена",
+          description: "Аудиофайл успешно отправлен и обработан.",
+        });
+        
+        // Переходим на страницу пациента
+        setTimeout(() => {
+          setLocation(`/patient/${selectedPatientId}`);
+        }, 1000);
+      } else if (response.status === ConsultationProcessingStatus.Failed) {
+        // При ошибке обработки запись остается сохраненной
+        setStatus('saved');
+        toast({
+          title: "Ошибка обработки",
+          description: "Не удалось обработать консультацию. Запись сохранена, попробуйте еще раз.",
+          variant: "destructive"
+        });
+      } else {
+        // InProgress или None - запись отправлена, но обработка еще идет
+        // Очищаем только после успешной обработки, но пока оставляем сохраненной
+        // Можно очистить сразу, так как запись уже на сервере
+        await deleteChunks(savedRecording.id);
+        await deleteRecordingMetadata(savedRecording.id);
+        recordingIdRef.current = null;
+        setSavedRecording(null);
+        setStatus('idle');
+        setDuration(0);
+        toast({
+          title: "Консультация загружена",
+          description: "Аудиофайл отправлен. Обработка началась.",
+        });
+        
+        // Переходим на страницу пациента через некоторое время
+        setTimeout(() => {
+          setLocation(`/patient/${selectedPatientId}`);
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Error uploading consultation:', error);
+      setStatus('saved'); // Возвращаемся к состоянию сохраненной записи
+      
       // Улучшенная обработка ошибок с понятными сообщениями
-      let errorMessage = "Не удалось отправить аудиофайл. Попробуйте еще раз.";
+      let errorMessage = "Не удалось отправить аудиофайл. Запись сохранена, попробуйте еще раз.";
       
       if (error instanceof Error) {
         const errorText = error.message.toLowerCase();
         
         // Обработка ошибок таймаута
         if (errorText.includes('превышено время') || errorText.includes('timeout') || errorText.includes('таймаут')) {
-          errorMessage = `Загрузка файла заняла слишком много времени (более 5 минут). Это может быть связано с медленным интернетом или большим размером файла. Попробуйте записать более короткое аудио или проверьте подключение к интернету.`;
+          errorMessage = `Загрузка файла заняла слишком много времени (более 5 минут). Запись сохранена. Это может быть связано с медленным интернетом или большим размером файла. Попробуйте позже или проверьте подключение к интернету.`;
         }
         // Обработка ошибок сети
         else if (errorText.includes('не удалось подключиться') || errorText.includes('failed to fetch') || errorText.includes('network')) {
-          errorMessage = "Ошибка подключения к серверу. Проверьте подключение к интернету и попробуйте еще раз.";
+          errorMessage = "Ошибка подключения к серверу. Запись сохранена. Проверьте подключение к интернету и попробуйте еще раз.";
         }
         // Обработка ошибок размера файла
         else if (errorText.includes('размер') || errorText.includes('size') || errorText.includes('too large')) {
-          errorMessage = "Файл слишком большой. Попробуйте записать более короткое аудио.";
+          errorMessage = "Файл слишком большой. Запись сохранена. Попробуйте записать более короткое аудио.";
         }
         // Другие ошибки
         else {
-          errorMessage = error.message;
+          errorMessage = `Запись сохранена. ${error.message}`;
         }
       }
       
@@ -494,15 +671,11 @@ export default function RecordPage() {
         description: errorMessage,
         variant: "destructive"
       });
-    } finally {
-      // Очищаем запись
-      audioChunksRef.current = [];
-      setDuration(0);
-      recordingStopPromiseRef.current = null;
     }
   };
 
-  const handleCancel = () => {
+  const handleCancel = async () => {
+    // Если идет запись, останавливаем её
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
     }
@@ -517,10 +690,31 @@ export default function RecordPage() {
       audioContextRef.current = null;
     }
     
+    // Очищаем только текущую незавершенную запись
+    // НЕ трогаем уже сохраненную запись (savedRecording)
+    if (recordingIdRef.current && !savedRecording) {
+      // Если нет сохраненной записи, удаляем текущую незавершенную
+      await deleteChunks(recordingIdRef.current);
+      recordingIdRef.current = null;
+    } else if (recordingIdRef.current && savedRecording && recordingIdRef.current !== savedRecording.id) {
+      // Если есть сохраненная запись, но текущая запись другая - удаляем только текущую
+      await deleteChunks(recordingIdRef.current);
+      recordingIdRef.current = null;
+    }
+    
     audioChunksRef.current = [];
+    chunkIndexRef.current = 0;
     setIsRecording(false);
-    setDuration(0);
-    setStatus('idle');
+    
+    // Если есть сохраненная запись, возвращаемся к ней, иначе сбрасываем
+    if (savedRecording) {
+      setStatus('saved');
+      setDuration(savedRecording.duration);
+    } else {
+      setDuration(0);
+      setStatus('idle');
+    }
+    
     setAudioData(Array(40).fill(0));
   };
 
@@ -740,7 +934,7 @@ export default function RecordPage() {
           </div>
 
           {/* Status Messages */}
-          {status !== 'recording' && status !== 'idle' && (
+          {status !== 'recording' && status !== 'idle' && status !== 'saved' && (
             <div className="flex flex-col items-center gap-3 animate-in fade-in slide-in-from-bottom-4">
               <Loader2 className="w-6 h-6 md:w-8 md:h-8 animate-spin text-primary" />
               <p className="text-base md:text-lg font-medium px-4">
@@ -784,13 +978,49 @@ export default function RecordPage() {
                 </Button>
               </div>
               
-              {/* Нижний ряд: Отправить */}
+              {/* Нижний ряд: Завершить */}
               <Button 
                 className="h-12 md:h-14 px-6 md:px-8 rounded-full bg-primary text-primary-foreground hover:scale-105 transition-transform shadow-2xl shadow-primary/30 text-sm md:text-base font-medium"
                 onClick={handleStop}
               >
-                Отправить
+                Завершить
               </Button>
+            </div>
+          )}
+
+          {/* Сохраненная запись */}
+          {status === 'saved' && savedRecording && (
+            <div className="flex flex-col items-center gap-4 md:gap-6 animate-in fade-in slide-in-from-bottom-4">
+              <div className="w-full max-w-md space-y-3 p-4 md:p-6 rounded-2xl bg-secondary/30 border border-border/50">
+                <div className="space-y-2">
+                  <p className="text-sm md:text-base text-muted-foreground">Сохраненная запись</p>
+                  <div className="space-y-1">
+                    <p className="text-base md:text-lg font-semibold">
+                      {savedRecording.patientName || `Пациент ID: ${savedRecording.patientId}`}
+                    </p>
+                    <p className="text-sm md:text-base text-muted-foreground">
+                      {format(new Date(savedRecording.timestamp), 'd MMMM yyyy, HH:mm', { locale: ru })}
+                    </p>
+                    <p className="text-xs md:text-sm text-muted-foreground">
+                      Длительность: {formatTime(savedRecording.duration)} • Размер: {(savedRecording.size / (1024 * 1024)).toFixed(2)} MB
+                    </p>
+                  </div>
+                </div>
+                <Button 
+                  className="w-full h-12 md:h-14 rounded-full bg-primary text-primary-foreground hover:scale-105 transition-transform shadow-2xl shadow-primary/30 text-sm md:text-base font-medium"
+                  onClick={handleSend}
+                  disabled={status !== 'saved'}
+                >
+                  {status !== 'saved' ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Отправка...
+                    </>
+                  ) : (
+                    'Отправить'
+                  )}
+                </Button>
+              </div>
             </div>
           )}
           
