@@ -457,7 +457,10 @@ export default function ConsultationPage() {
         <div className="flex flex-col gap-4">
           <div>
             <Link href={enrichedConsultation.patientId ? `/patient/${enrichedConsultation.patientId}` : '/dashboard'}>
-              <Button variant="ghost" className="pl-0 mb-2 hover:bg-transparent hover:text-primary gap-2 text-muted-foreground text-sm md:text-base">
+              <Button 
+                variant="ghost" 
+                className="pl-0 mb-2 hover:bg-transparent hover:text-primary gap-2 text-muted-foreground text-sm md:text-base transition-all active:scale-95 active:opacity-70"
+              >
                 <ArrowLeft className="w-4 h-4" />
                 Назад
               </Button>
@@ -486,12 +489,16 @@ export default function ConsultationPage() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" className="flex-1 md:flex-none rounded-xl gap-2 h-11 md:h-12 text-sm md:text-base" onClick={handleShare}>
+            <Button 
+              variant="outline" 
+              className="flex-1 md:flex-none rounded-xl gap-2 h-11 md:h-12 text-sm md:text-base transition-all active:scale-95 active:opacity-70" 
+              onClick={handleShare}
+            >
               <Share2 className="w-4 h-4" /> <span className="hidden sm:inline">Поделиться</span>
             </Button>
             <Button 
               variant="outline" 
-              className="flex-1 md:flex-none rounded-xl gap-2 h-11 md:h-12 text-sm md:text-base"
+              className="flex-1 md:flex-none rounded-xl gap-2 h-11 md:h-12 text-sm md:text-base transition-all active:scale-95 active:opacity-70 disabled:active:scale-100 disabled:active:opacity-50"
               onClick={handleDownloadPDF}
               disabled={isProcessing}
             >
@@ -501,7 +508,7 @@ export default function ConsultationPage() {
               <AlertDialogTrigger asChild>
                 <Button 
                   variant="destructive" 
-                  className="flex-1 md:flex-none rounded-xl gap-2 h-11 md:h-12 text-sm md:text-base"
+                  className="flex-1 md:flex-none rounded-xl gap-2 h-11 md:h-12 text-sm md:text-base transition-all active:scale-95 active:opacity-80 disabled:active:scale-100 disabled:active:opacity-50"
                   disabled={isDeleting}
                 >
                   <Trash2 className="w-4 h-4" /> <span className="hidden sm:inline">Удалить</span>
@@ -516,11 +523,16 @@ export default function ConsultationPage() {
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel disabled={isDeleting}>Отмена</AlertDialogCancel>
+                  <AlertDialogCancel 
+                    disabled={isDeleting}
+                    className="transition-all active:scale-95 active:opacity-70 disabled:active:scale-100 disabled:active:opacity-50"
+                  >
+                    Отмена
+                  </AlertDialogCancel>
                   <AlertDialogAction
                     onClick={handleDelete}
                     disabled={isDeleting}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-all active:scale-95 active:opacity-80 disabled:active:scale-100 disabled:active:opacity-50"
                   >
                     {isDeleting ? (
                       <>
@@ -582,6 +594,7 @@ export default function ConsultationPage() {
                       </p>
                       <Button 
                         variant="outline" 
+                        className="transition-all active:scale-95 active:opacity-70"
                         onClick={async () => {
                           if (!id) return;
                           try {
@@ -662,7 +675,12 @@ export default function ConsultationPage() {
                     ) : (
                       <>
                     <div className="flex justify-end mb-4">
-                      <Button variant="ghost" size="sm" className="gap-2" onClick={handleCopy}>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="gap-2 transition-all active:scale-95 active:opacity-70" 
+                        onClick={handleCopy}
+                      >
                         <Copy className="w-3 h-3" /> Копировать текст
                       </Button>
                     </div>
@@ -697,7 +715,7 @@ export default function ConsultationPage() {
                   <AlertDialogTrigger asChild>
                     <Button 
                       variant="secondary" 
-                      className="w-full justify-start rounded-xl h-12 gap-3"
+                      className="w-full justify-start rounded-xl h-12 gap-3 transition-all active:scale-95 active:opacity-70 disabled:active:scale-100 disabled:active:opacity-50"
                       disabled={isReprocessing || isDeleting}
                     >
                       <RefreshCw className={cn("w-4 h-4", isReprocessing && "animate-spin")} /> 
@@ -717,11 +735,16 @@ export default function ConsultationPage() {
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      <AlertDialogCancel disabled={isReprocessing}>Отмена</AlertDialogCancel>
+                      <AlertDialogCancel 
+                        disabled={isReprocessing}
+                        className="transition-all active:scale-95 active:opacity-70 disabled:active:scale-100 disabled:active:opacity-50"
+                      >
+                        Отмена
+                      </AlertDialogCancel>
                       <AlertDialogAction
                         onClick={handleReprocess}
                         disabled={isReprocessing}
-                        className="bg-primary text-primary-foreground hover:bg-primary/90"
+                        className="bg-primary text-primary-foreground hover:bg-primary/90 transition-all active:scale-95 active:opacity-80 disabled:active:scale-100 disabled:active:opacity-50"
                       >
                         {isReprocessing ? (
                           <>
@@ -744,7 +767,7 @@ export default function ConsultationPage() {
                 <Button
                   asChild
                   variant="outline"
-                  className="w-full justify-start rounded-xl h-10 gap-2"
+                  className="w-full justify-start rounded-xl h-10 gap-2 transition-all active:scale-95 active:opacity-70"
                 >
                   <a
                     href="https://t.me/odonta_ai_support"
@@ -766,7 +789,12 @@ export default function ConsultationPage() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground mb-4">Эта консультация не привязана ни к одной карточке пациента.</p>
-                  <Button className="w-full rounded-xl" variant="destructive">Привязать к пациенту</Button>
+                  <Button 
+                    className="w-full rounded-xl transition-all active:scale-95 active:opacity-80" 
+                    variant="destructive"
+                  >
+                    Привязать к пациенту
+                  </Button>
                 </CardContent>
               </Card>
             )}
@@ -950,7 +978,7 @@ function ReportSection({
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 w-7 p-0 hover:bg-secondary"
+              className="h-7 w-7 p-0 hover:bg-secondary transition-all active:scale-95 active:opacity-70"
               onClick={handleCopy}
               title="Копировать текст"
             >
