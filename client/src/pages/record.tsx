@@ -752,48 +752,45 @@ export default function RecordPage() {
           )}
 
           {/* Controls */}
-          {(status === 'idle' || status === 'recording') && (
-            <div className="flex items-center justify-center gap-4 md:gap-6">
-              {status === 'recording' && (
+          {status === 'idle' && (
+            <div className="flex items-center justify-center">
+              <Button 
+                size="icon" 
+                className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-primary text-primary-foreground hover:scale-105 transition-transform shadow-2xl shadow-primary/30 disabled:opacity-60 disabled:hover:scale-100"
+                disabled={!selectedPatientId}
+                onClick={handleStart}
+              >
+                <Mic className="w-8 h-8 md:w-10 md:h-10" />
+              </Button>
+            </div>
+          )}
+
+          {status === 'recording' && (
+            <div className="flex flex-col items-center justify-center gap-4 md:gap-6">
+              {/* Верхний ряд: Отмена и Пауза */}
+              <div className="flex items-center justify-center gap-4 md:gap-6">
                 <Button 
-                  variant="outline" 
-                  size="icon" 
-                  className="w-12 h-12 md:w-16 md:h-16 rounded-full border-2"
+                  className="h-12 md:h-14 px-6 md:px-8 rounded-full bg-destructive text-destructive-foreground hover:scale-105 transition-transform shadow-2xl shadow-destructive/30 text-sm md:text-base font-medium"
                   onClick={handleCancel}
                 >
-                  <X className="w-5 h-5 md:w-6 md:h-6" />
+                  Отмена
                 </Button>
-              )}
-
-              {!isRecording ? (
-                <Button 
-                  size="icon" 
-                  className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-primary text-primary-foreground hover:scale-105 transition-transform shadow-2xl shadow-primary/30 disabled:opacity-60 disabled:hover:scale-100"
-                  disabled={!selectedPatientId}
-                  onClick={handleStart}
-                >
-                  <Mic className="w-8 h-8 md:w-10 md:h-10" />
-                </Button>
-              ) : (
-                <Button 
-                  size="icon" 
-                  className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-destructive text-destructive-foreground hover:scale-105 transition-transform shadow-2xl shadow-destructive/30"
-                  onClick={handleStop}
-                >
-                  <Square className="w-6 h-6 md:w-8 md:h-8 fill-current" />
-                </Button>
-              )}
-
-              {status === 'recording' && (
                 <Button 
                   variant="outline" 
-                  size="icon" 
-                  className="w-12 h-12 md:w-16 md:h-16 rounded-full border-2"
+                  className="h-12 md:h-14 px-6 md:px-8 rounded-full border-2 text-sm md:text-base font-medium"
                   onClick={handlePause}
                 >
-                  {isPaused ? <Play className="w-5 h-5 md:w-6 md:h-6 fill-current" /> : <Pause className="w-5 h-5 md:w-6 md:h-6 fill-current" />}
+                  {isPaused ? 'Возобновить' : 'Пауза'}
                 </Button>
-              )}
+              </div>
+              
+              {/* Нижний ряд: Отправить */}
+              <Button 
+                className="h-12 md:h-14 px-6 md:px-8 rounded-full bg-primary text-primary-foreground hover:scale-105 transition-transform shadow-2xl shadow-primary/30 text-sm md:text-base font-medium"
+                onClick={handleStop}
+              >
+                Отправить
+              </Button>
             </div>
           )}
           

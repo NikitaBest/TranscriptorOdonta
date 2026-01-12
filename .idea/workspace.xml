@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="добавлен метод для свайпа не закрытия 1" />
+    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="рефакторинг кода" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -13,7 +13,7 @@
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="nikita" />
+        <entry key="$PROJECT_DIR$" value="main" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -24,12 +24,12 @@
     &quot;assignee&quot;: &quot;NikitaBest&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/NikitaBest/TranscriptorOdonta.git",
-    "accountId": "4205f12b-35a1-459f-b1bd-b5b49b679fc5"
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/NikitaBest/TranscriptorOdonta.git&quot;,
+    &quot;accountId&quot;: &quot;4205f12b-35a1-459f-b1bd-b5b49b679fc5&quot;
   }
-}]]></component>
+}</component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 7
 }</component>
@@ -45,7 +45,7 @@
     "RunOnceActivity.git.unshallow": "true",
     "RunOnceActivity.typescript.service.memoryLimit.init": "true",
     "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
-    "git-widget-placeholder": "main",
+    "git-widget-placeholder": "nikita",
     "junie.onboarding.icon.badge.shown": "true",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
@@ -83,14 +83,7 @@
       <workItem from="1765445071433" duration="602000" />
       <workItem from="1765479286600" duration="1715000" />
       <workItem from="1767823165119" duration="782000" />
-    </task>
-    <task id="LOCAL-00010" summary="с истории убрана функция без пациента">
-      <option name="closed" value="true" />
-      <created>1764752055752</created>
-      <option name="number" value="00010" />
-      <option name="presentableId" value="LOCAL-00010" />
-      <option name="project" value="LOCAL" />
-      <updated>1764752055752</updated>
+      <workItem from="1767913654752" duration="2491000" />
     </task>
     <task id="LOCAL-00011" summary="добавлено к блокам отчет о консультации растянуть блок">
       <option name="closed" value="true" />
@@ -476,14 +469,21 @@
       <option name="project" value="LOCAL" />
       <updated>1765543988276</updated>
     </task>
-    <option name="localTasksCounter" value="59" />
+    <task id="LOCAL-00059" summary="рефакторинг кода">
+      <option name="closed" value="true" />
+      <created>1768160454648</created>
+      <option name="number" value="00059" />
+      <option name="presentableId" value="LOCAL-00059" />
+      <option name="project" value="LOCAL" />
+      <updated>1768160454648</updated>
+    </task>
+    <option name="localTasksCounter" value="60" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="работа с аудио плеером" />
     <MESSAGE value="работа с аудио плеером, адаптация под мобилку" />
     <MESSAGE value="поделится отчетом публичная страница" />
     <MESSAGE value="поделится отчетом публичная страница 1" />
@@ -508,6 +508,7 @@
     <MESSAGE value="вместо модалки добавление пациента страница" />
     <MESSAGE value="добавлен метод для свайпа не закрытия" />
     <MESSAGE value="добавлен метод для свайпа не закрытия 1" />
-    <option name="LAST_COMMIT_MESSAGE" value="добавлен метод для свайпа не закрытия 1" />
+    <MESSAGE value="рефакторинг кода" />
+    <option name="LAST_COMMIT_MESSAGE" value="рефакторинг кода" />
   </component>
 </project>
