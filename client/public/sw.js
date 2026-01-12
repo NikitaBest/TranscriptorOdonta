@@ -1,6 +1,6 @@
 // Service Worker для PWA
 // Версия кэша - обновляйте при изменении стратегии кэширования
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2'; // Обновлено: пропускаем внешние API запросы
 const CACHE_NAME = `odonta-ai-${CACHE_VERSION}`;
 
 // Ресурсы для предварительного кэширования при установке
@@ -56,17 +56,21 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Функция проверки, является ли запрос API запросом
-function isApiRequest(url) {
+// Функция проверки, является ли запрос внешним API запросом
+function isExternalApiRequest(url) {
   try {
     const urlObj = new URL(url);
-    // Проверяем, что это не статический ресурс
-    const isStatic = urlObj.pathname.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/);
-    // Проверяем, что это не наш домен (для статики) или это явно API запрос
-    const apiBaseUrl = self.location.origin;
-    const isExternalApi = !url.startsWith(apiBaseUrl) || url.includes('/api/');
+    const currentOrigin = self.location.origin;
     
-    return !isStatic && (isExternalApi || urlObj.pathname.startsWith('/api/'));
+    // Если запрос идет на другой домен - это внешний API
+    if (urlObj.origin !== currentOrigin) {
+      // Проверяем, что это не статический ресурс
+      const isStatic = urlObj.pathname.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|webp|mp3|mp4|wav)$/);
+      return !isStatic;
+    }
+    
+    // Для запросов на тот же домен проверяем путь
+    return urlObj.pathname.startsWith('/api/');
   } catch {
     return false;
   }
@@ -88,7 +92,7 @@ function isHtmlRequest(url) {
     const urlObj = new URL(url);
     return urlObj.pathname === '/' || 
            urlObj.pathname.endsWith('.html') || 
-           (!urlObj.pathname.includes('.') && !isApiRequest(url));
+           (!urlObj.pathname.includes('.') && !isExternalApiRequest(url));
   } catch {
     return false;
   }
@@ -156,16 +160,10 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
   
-  // Пропускаем запросы к внешним API в реальном времени (не кэшируем)
-  // Но можем кэшировать GET запросы для оффлайн просмотра
-  if (isApiRequest(request.url)) {
-    // Для API используем Network First, но кэшируем только GET запросы
-    if (request.method === 'GET') {
-      event.respondWith(networkFirst(request, CACHE_NAME));
-    } else {
-      // Для POST/PUT/DELETE не используем кэш, только сеть
-      event.respondWith(fetch(request));
-    }
+  // ВАЖНО: Полностью пропускаем внешние API запросы мимо Service Worker
+  // Это необходимо для корректной работы CORS и избежания проблем с таймаутами
+  if (isExternalApiRequest(request.url)) {
+    // Не перехватываем запрос, позволяем браузеру обработать его напрямую
     return;
   }
   

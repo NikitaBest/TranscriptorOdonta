@@ -198,34 +198,133 @@ export default function ConsultationPage() {
       return;
     }
 
-    try {
-      await navigator.clipboard.writeText(enrichedConsultation.transcript);
-      toast({
-        title: "Скопировано",
-        description: "Транскрипция скопирована в буфер обмена",
-      });
-    } catch (error) {
-      // Fallback для старых браузеров
-      const textArea = document.createElement('textarea');
-      textArea.value = enrichedConsultation.transcript;
-      textArea.style.position = 'fixed';
-      textArea.style.left = '-999999px';
-      document.body.appendChild(textArea);
-      textArea.select();
+    const textToCopy = enrichedConsultation.transcript;
+
+    // Проверяем доступность Clipboard API
+    if (navigator.clipboard && window.isSecureContext) {
       try {
-        document.execCommand('copy');
+        await navigator.clipboard.writeText(textToCopy);
         toast({
           title: "Скопировано",
           description: "Транскрипция скопирована в буфер обмена",
         });
-      } catch (err) {
-        toast({
-          title: "Ошибка",
-          description: "Не удалось скопировать транскрипцию",
-          variant: "destructive",
-        });
+        return;
+      } catch (error) {
+        console.warn('Clipboard API failed, trying fallback:', error);
       }
-      document.body.removeChild(textArea);
+    }
+
+    // Улучшенный fallback для мобильных устройств
+    try {
+      // Определяем, мобильное ли устройство
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      
+      // Создаем textarea для копирования
+      const textArea = document.createElement('textarea');
+      textArea.value = textToCopy;
+      
+      if (isMobile) {
+        // Для мобильных устройств делаем textarea видимым на короткое время
+        // Это необходимо для корректной работы execCommand
+        textArea.style.position = 'fixed';
+        textArea.style.top = '50%';
+        textArea.style.left = '50%';
+        textArea.style.transform = 'translate(-50%, -50%)';
+        textArea.style.width = '90%';
+        textArea.style.maxHeight = '200px';
+        textArea.style.padding = '12px';
+        textArea.style.border = '1px solid #ccc';
+        textArea.style.borderRadius = '8px';
+        textArea.style.fontSize = '14px';
+        textArea.style.zIndex = '9999';
+        textArea.style.background = '#fff';
+        textArea.style.opacity = '0.01'; // Почти невидим, но видим для браузера
+      } else {
+        // Для десктопа используем скрытый textarea
+        textArea.style.position = 'fixed';
+        textArea.style.top = '0';
+        textArea.style.left = '0';
+        textArea.style.width = '2em';
+        textArea.style.height = '2em';
+        textArea.style.padding = '0';
+        textArea.style.border = 'none';
+        textArea.style.outline = 'none';
+        textArea.style.boxShadow = 'none';
+        textArea.style.background = 'transparent';
+        textArea.style.opacity = '0';
+        textArea.style.zIndex = '-1';
+      }
+      
+      textArea.setAttribute('readonly', '');
+      textArea.setAttribute('aria-hidden', 'true');
+      
+      document.body.appendChild(textArea);
+      
+      // Для мобильных устройств важно использовать focus и select
+      // Небольшая задержка для мобильных, чтобы браузер успел отрендерить элемент
+      if (isMobile) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
+      textArea.focus();
+      textArea.select();
+      textArea.setSelectionRange(0, textToCopy.length);
+      
+      // Пробуем использовать execCommand
+      const successful = document.execCommand('copy');
+      
+      // Для мобильных удаляем с небольшой задержкой
+      if (isMobile) {
+        setTimeout(() => {
+          document.body.removeChild(textArea);
+        }, 200);
+      } else {
+        document.body.removeChild(textArea);
+      }
+      
+      if (successful) {
+        toast({
+          title: "Скопировано",
+          description: "Транскрипция скопирована в буфер обмена",
+        });
+        return;
+      } else {
+        throw new Error('execCommand failed');
+      }
+    } catch (error) {
+      console.error('Copy failed:', error);
+      
+      // Последний fallback: пытаемся выделить текст в элементе для ручного копирования
+      const transcriptElement = document.querySelector('[data-transcript]');
+      if (transcriptElement) {
+        try {
+          const range = document.createRange();
+          range.selectNodeContents(transcriptElement);
+          const selection = window.getSelection();
+          if (selection) {
+            selection.removeAllRanges();
+            selection.addRange(range);
+            
+            // Показываем подсказку
+            toast({
+              title: "Текст выделен",
+              description: "Текст выделен. Используйте контекстное меню для копирования.",
+              duration: 4000,
+            });
+            return;
+          }
+        } catch (err) {
+          console.error('Selection failed:', err);
+        }
+      }
+      
+      // Если ничего не помогло
+      toast({
+        title: "Копирование не поддерживается",
+        description: "Пожалуйста, выделите текст вручную и скопируйте его",
+        variant: "destructive",
+        duration: 5000,
+      });
     }
   };
 
@@ -567,9 +666,18 @@ export default function ConsultationPage() {
                         <Copy className="w-3 h-3" /> Копировать текст
                       </Button>
                     </div>
-                    <p className="whitespace-pre-wrap leading-relaxed text-muted-foreground font-mono text-sm">
-                          {enrichedConsultation.transcript || 'Транскрипция пока не готова'}
-                    </p>
+                    <div 
+                      className="whitespace-pre-wrap leading-relaxed text-muted-foreground font-mono text-sm select-text"
+                      data-transcript
+                      style={{ 
+                        userSelect: 'text', 
+                        WebkitUserSelect: 'text',
+                        MozUserSelect: 'text',
+                        msUserSelect: 'text'
+                      }}
+                    >
+                      {enrichedConsultation.transcript || 'Транскрипция пока не готова'}
+                    </div>
                       </>
                     )}
                   </CardContent>
@@ -720,34 +828,102 @@ function ReportSection({
       return;
     }
 
-    try {
-      await navigator.clipboard.writeText(content);
-      toast({
-        title: "Скопировано",
-        description: `Текст из блока "${title}" скопирован в буфер обмена`,
-      });
-    } catch (error) {
-      // Fallback для старых браузеров
-      const textArea = document.createElement('textarea');
-      textArea.value = content;
-      textArea.style.position = 'fixed';
-      textArea.style.left = '-999999px';
-      document.body.appendChild(textArea);
-      textArea.select();
+    // Проверяем доступность Clipboard API
+    if (navigator.clipboard && window.isSecureContext) {
       try {
-        document.execCommand('copy');
+        await navigator.clipboard.writeText(content);
         toast({
           title: "Скопировано",
           description: `Текст из блока "${title}" скопирован в буфер обмена`,
         });
-      } catch (err) {
-        toast({
-          title: "Ошибка",
-          description: "Не удалось скопировать текст",
-          variant: "destructive",
-        });
+        return;
+      } catch (error) {
+        console.warn('Clipboard API failed, trying fallback:', error);
       }
-      document.body.removeChild(textArea);
+    }
+
+    // Улучшенный fallback для мобильных устройств
+    try {
+      // Определяем, мобильное ли устройство
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      
+      // Создаем textarea для копирования
+      const textArea = document.createElement('textarea');
+      textArea.value = content;
+      
+      if (isMobile) {
+        // Для мобильных устройств делаем textarea видимым на короткое время
+        textArea.style.position = 'fixed';
+        textArea.style.top = '50%';
+        textArea.style.left = '50%';
+        textArea.style.transform = 'translate(-50%, -50%)';
+        textArea.style.width = '90%';
+        textArea.style.maxHeight = '200px';
+        textArea.style.padding = '12px';
+        textArea.style.border = '1px solid #ccc';
+        textArea.style.borderRadius = '8px';
+        textArea.style.fontSize = '14px';
+        textArea.style.zIndex = '9999';
+        textArea.style.background = '#fff';
+        textArea.style.opacity = '0.01';
+      } else {
+        // Для десктопа используем скрытый textarea
+        textArea.style.position = 'fixed';
+        textArea.style.top = '0';
+        textArea.style.left = '0';
+        textArea.style.width = '2em';
+        textArea.style.height = '2em';
+        textArea.style.padding = '0';
+        textArea.style.border = 'none';
+        textArea.style.outline = 'none';
+        textArea.style.boxShadow = 'none';
+        textArea.style.background = 'transparent';
+        textArea.style.opacity = '0';
+        textArea.style.zIndex = '-1';
+      }
+      
+      textArea.setAttribute('readonly', '');
+      textArea.setAttribute('aria-hidden', 'true');
+      
+      document.body.appendChild(textArea);
+      
+      // Для мобильных устройств задержка для рендеринга
+      if (isMobile) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
+      textArea.focus();
+      textArea.select();
+      textArea.setSelectionRange(0, content.length);
+      
+      // Пробуем использовать execCommand
+      const successful = document.execCommand('copy');
+      
+      // Для мобильных удаляем с задержкой
+      if (isMobile) {
+        setTimeout(() => {
+          document.body.removeChild(textArea);
+        }, 200);
+      } else {
+        document.body.removeChild(textArea);
+      }
+      
+      if (successful) {
+        toast({
+          title: "Скопировано",
+          description: `Текст из блока "${title}" скопирован в буфер обмена`,
+        });
+      } else {
+        throw new Error('execCommand failed');
+      }
+    } catch (error) {
+      console.error('Copy failed:', error);
+      toast({
+        title: "Копирование не поддерживается",
+        description: "Пожалуйста, выделите текст вручную и скопируйте его",
+        variant: "destructive",
+        duration: 5000,
+      });
     }
   };
 
