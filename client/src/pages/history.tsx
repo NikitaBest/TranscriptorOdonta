@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'wouter';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useOnline } from '@/hooks/use-online';
 import { Layout } from '@/components/layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -19,6 +20,7 @@ export default function HistoryPage() {
   const [search, setSearch] = useState('');
   const [localRecordings, setLocalRecordings] = useState<RecordingMetadata[]>([]);
   const queryClient = useQueryClient();
+  const { isOffline } = useOnline();
 
   // Загрузка локальных записей из IndexedDB
   useEffect(() => {
@@ -58,8 +60,15 @@ export default function HistoryPage() {
       order: '-createdAt', // Сначала новые (по дате создания в убывающем порядке)
       // Не отправляем clientIds, чтобы получить все консультации
     }),
+    // В оффлайн режиме не пытаемся загружать данные с сервера
+    enabled: !isOffline, // Отключаем запрос, если нет интернета
     // Не показываем ошибку как критичную, если есть локальные записи
-    retry: 1, // Пробуем повторить запрос один раз
+    retry: (failureCount, error) => {
+      // Не повторяем запрос, если нет интернета
+      if (isOffline) return false;
+      // Пробуем повторить один раз только если есть интернет
+      return failureCount < 1;
+    },
     retryDelay: 2000, // Через 2 секунды
     // Автоматически обновляем список, если есть консультации в обработке
     refetchInterval: (query) => {
@@ -88,6 +97,10 @@ export default function HistoryPage() {
       return false; // Если все консультации готовы, не проверяем
     },
     refetchOnWindowFocus: true, // Обновляем при возврате на вкладку
+    // В оффлайн режиме не пытаемся обновлять данные
+    refetchOnReconnect: true, // Обновляем при восстановлении соединения
+    // Не показываем ошибку как критичную - позволяем работать в оффлайн режиме
+    throwOnError: false, // Не выбрасываем ошибку, позволяем работать с локальными данными
   });
 
   // Собираем уникальные clientId из консультаций, у которых нет patientName
@@ -245,7 +258,7 @@ export default function HistoryPage() {
           )}
 
           {/* Показываем ошибку только если нет локальных записей и нет загруженных консультаций */}
-          {error && !isLoading && consultations.length === 0 && localRecordings.length === 0 && (
+          {error && !isLoading && consultations.length === 0 && localRecordings.length === 0 && !isOffline && (
             <div className="text-center py-20">
               <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Filter className="w-8 h-8 text-destructive" />
@@ -255,11 +268,24 @@ export default function HistoryPage() {
             </div>
           )}
 
+          {/* Показываем сообщение об оффлайн режиме, если нет интернета */}
+          {isOffline && localRecordings.length === 0 && consultations.length === 0 && !isLoading && (
+            <div className="text-center py-20">
+              <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                <Filter className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-bold">Оффлайн режим</h3>
+              <p className="text-muted-foreground">Нет подключения к интернету. Локальные записи будут показаны после сохранения.</p>
+            </div>
+          )}
+
           {/* Показываем предупреждение, если есть ошибка, но есть локальные записи или загруженные консультации */}
-          {error && !isLoading && (consultations.length > 0 || localRecordings.length > 0) && (
+          {(error || isOffline) && !isLoading && (consultations.length > 0 || localRecordings.length > 0) && (
             <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
               <p className="text-sm text-yellow-800">
-                ⚠️ Не удалось загрузить все консультации с сервера. Показаны локальные записи и ранее загруженные консультации.
+                {isOffline 
+                  ? "📴 Работа в оффлайн режиме. Показаны локальные записи и ранее загруженные консультации. Записи будут отправлены автоматически при восстановлении соединения."
+                  : "⚠️ Не удалось загрузить все консультации с сервера. Показаны локальные записи и ранее загруженные консультации."}
               </p>
             </div>
           )}

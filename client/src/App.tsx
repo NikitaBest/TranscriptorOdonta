@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuthRefresh } from "@/hooks/use-auth-refresh";
 import { useOnline } from "@/hooks/use-online";
+import type { ApiError } from "@/lib/api/types";
 import { useBackgroundUpload } from "@/hooks/use-background-upload";
 import { ApiClient } from "@/lib/api/client";
 import { authApi } from "@/lib/api/auth";
@@ -68,14 +69,44 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
           setLocation('/dashboard');
         }
       } catch (error) {
-        // Токен невалиден или истек
-        console.error('Token validation failed:', error);
-        ApiClient.removeAuthToken();
-        setIsAuthenticated(false);
+        // Проверяем тип ошибки
+        const apiError = error as ApiError;
         
-        // Перенаправляем на авторизацию, если не на публичной странице
-        if (location !== '/auth' && location !== '/register') {
-          setLocation('/auth');
+        // Если это сетевая ошибка (нет интернета) - разрешаем работу в оффлайн режиме
+        // Пользователь остается авторизованным, если есть токен
+        if (apiError.status === 0 || 
+            (error instanceof Error && (
+              error.message.includes('Failed to fetch') || 
+              error.message.includes('network') ||
+              error.message.includes('ERR_INTERNET_DISCONNECTED')
+            ))) {
+          console.warn('Token validation failed due to network error. Allowing offline mode:', error);
+          // Разрешаем работу в оффлайн режиме - токен остается, пользователь остается авторизованным
+          setIsAuthenticated(true);
+          
+          // Если пользователь на странице авторизации/регистрации, перенаправляем на дашборд
+          if (location === '/' || location === '/auth' || location === '/register') {
+            setLocation('/dashboard');
+          }
+        } else if (apiError.status === 401) {
+          // Токен невалиден или истек (401 Unauthorized)
+          console.error('Token validation failed: Unauthorized (401)', error);
+          ApiClient.removeAuthToken();
+          setIsAuthenticated(false);
+          
+          // Перенаправляем на авторизацию, если не на публичной странице
+          if (location !== '/auth' && location !== '/register') {
+            setLocation('/auth');
+          }
+        } else {
+          // Другие ошибки (500, 503 и т.д.) - разрешаем работу, возможно временная проблема сервера
+          console.warn('Token validation failed with non-auth error. Allowing access:', error);
+          setIsAuthenticated(true);
+          
+          // Если пользователь на странице авторизации/регистрации, перенаправляем на дашборд
+          if (location === '/' || location === '/auth' || location === '/register') {
+            setLocation('/dashboard');
+          }
         }
       } finally {
         setIsChecking(false);
