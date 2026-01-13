@@ -7,7 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Mic, Square, Pause, Play, Loader2, X, User, ChevronRight } from 'lucide-react';
+import { Mic, Square, Pause, Play, Loader2, X, User, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { patientsApi } from '@/lib/api/patients';
 import { consultationsApi } from '@/lib/api/consultations';
 import type { PatientResponse } from '@/lib/api/types';
@@ -97,6 +97,7 @@ export default function RecordPage() {
   const [status, setStatus] = useState<'idle' | 'recording' | 'saved' | 'uploading' | 'transcribing' | 'processing'>('idle');
   const [audioData, setAudioData] = useState<number[]>(Array(40).fill(0));
   const [savedRecording, setSavedRecording] = useState<RecordingMetadata | null>(null);
+  const [isRecommendationsOpen, setIsRecommendationsOpen] = useState(false);
   
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -958,32 +959,47 @@ export default function RecordPage() {
               </Button>
               
               {/* Рекомендации по использованию (только до начала записи) */}
-              <div className="w-full max-w-md mx-auto px-4 animate-in fade-in slide-in-from-bottom-4">
-                <div className="p-4 md:p-5 rounded-2xl bg-secondary/30 border border-border/50 space-y-3">
-                  <h3 className="text-sm md:text-base font-semibold text-foreground">
-                    Рекомендации для качественной записи
-                  </h3>
-                  <ul className="space-y-2 text-xs md:text-sm text-muted-foreground">
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary mt-0.5">•</span>
-                      <span>Держите телефон/микрофон близко к говорящему </span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary mt-0.5">•</span>
-                      <span>Не кладите устройство в карман, тумбочку или в сумку</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary mt-0.5">•</span>
-                      <span>Расположите устройство на столе или держите в руке</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-primary mt-0.5">•</span>
-                      <span>Избегайте фонового шума и посторонних разговоров</span>
-                    </li>
-                  </ul>
-                  <p className="text-xs md:text-sm text-muted-foreground pt-2 border-t border-border/50">
-                    Чем лучше качество звука, тем точнее будет транскрипция и медицинский отчет
-                  </p>
+              <div className="w-full max-w-full md:max-w-md mx-auto px-2 md:px-4 animate-in fade-in slide-in-from-bottom-4">
+                <div className="rounded-2xl bg-card border border-border/50 overflow-hidden shadow-sm">
+                  <button
+                    onClick={() => setIsRecommendationsOpen(!isRecommendationsOpen)}
+                    className="w-full p-4 md:p-5 flex items-center justify-between gap-3 transition-colors"
+                  >
+                    <h3 className="font-semibold text-foreground text-center whitespace-nowrap flex-1 min-w-0" style={{ fontSize: 'clamp(0.7rem, 3vw, 1rem)' }}>
+                      Рекомендации для качественной записи
+                    </h3>
+                    {isRecommendationsOpen ? (
+                      <ChevronUp className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                    )}
+                  </button>
+                  
+                  {isRecommendationsOpen && (
+                    <div className="px-4 md:px-5 pb-4 md:pb-5 space-y-3 animate-in slide-in-from-top-2 fade-in duration-200">
+                      <ul className="space-y-2 text-xs md:text-sm text-muted-foreground">
+                        <li className="flex items-start gap-2">
+                          <span className="text-primary mt-0.5">•</span>
+                          <span>Держите телефон/микрофон близко к говорящему </span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-primary mt-0.5">•</span>
+                          <span>Не кладите устройство в карман, тумбочку или в сумку</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-primary mt-0.5">•</span>
+                          <span>Расположите устройство на столе или держите в руке</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-primary mt-0.5">•</span>
+                          <span>Избегайте фонового шума и посторонних разговоров</span>
+                        </li>
+                      </ul>
+                      <p className="text-xs md:text-sm text-muted-foreground pt-2 border-t border-border/50">
+                        Чем лучше качество звука, тем точнее будет транскрипция и медицинский отчет
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
