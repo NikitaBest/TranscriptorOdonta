@@ -1016,66 +1016,14 @@ export default function RecordPage() {
           {status === 'recording' && (
             <div className="flex items-center justify-center gap-6 md:gap-8">
               {/* Кнопка Отменить */}
-              <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
-                <AlertDialogTrigger asChild>
-                <Button 
-                  size="icon" 
-                    className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-destructive text-destructive-foreground hover:scale-105 transition-transform shadow-2xl shadow-destructive/30"
-                >
-                    <X className="w-6 h-6 md:w-7 md:h-7" />
-                </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent className="rounded-3xl">
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Отменить запись?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Вы уверены, что хотите отменить запись? Все записанные данные будут удалены.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Нет</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={handleCancelConfirm}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    >
-                      Да, отменить
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-              
-              {/* Кнопка Пауза */}
-                <Button 
-                  size="icon" 
-                className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-primary text-primary-foreground hover:scale-105 transition-transform shadow-2xl shadow-primary/30"
-                  onClick={handleStop}
-                >
-                <Pause className="w-6 h-6 md:w-7 md:h-7" />
-                </Button>
-            </div>
-              )}
-
-          {/* Состояние после остановки записи */}
-          {status === 'stopped' && (
-            <div className="flex flex-col items-center justify-center gap-6 md:gap-8">
-              {/* Кнопка Продолжить */}
-                <Button 
-                className="h-12 md:h-14 px-6 md:px-8 rounded-full bg-primary text-primary-foreground hover:scale-105 transition-transform shadow-2xl shadow-primary/30 text-sm md:text-base font-medium gap-2"
-                onClick={handleStart}
-              >
-                <Play className="w-5 h-5 md:w-6 md:h-6" />
-                Продолжить
-                </Button>
-              
-              {/* Кнопки Отправить и Отменить */}
-              <div className="flex items-center justify-center gap-4 md:gap-6">
+              <div className="flex flex-col items-center gap-2">
                 <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
                   <AlertDialogTrigger asChild>
                     <Button 
-                      className="h-12 md:h-14 px-6 md:px-8 rounded-full bg-destructive text-destructive-foreground hover:scale-105 transition-transform shadow-2xl shadow-destructive/30 text-sm md:text-base font-medium"
+                      size="icon"
+                      className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-destructive text-destructive-foreground hover:scale-105 transition-transform shadow-2xl shadow-destructive/30"
                     >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Отменить
+                      <X className="w-6 h-6 md:w-7 md:h-7" />
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent className="rounded-3xl">
@@ -1096,23 +1044,87 @@ export default function RecordPage() {
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
+                <span className="text-xs text-muted-foreground font-light">Отменить</span>
+              </div>
+              
+              {/* Кнопка Пауза */}
+              <div className="flex flex-col items-center gap-2">
                 <Button 
-                  className="h-12 md:h-14 px-6 md:px-8 rounded-full bg-primary text-primary-foreground hover:scale-105 transition-transform shadow-2xl shadow-primary/30 text-sm md:text-base font-medium"
-                  onClick={handleSend}
-                  disabled={isUploading}
+                  size="icon"
+                  className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-primary text-primary-foreground hover:scale-105 transition-transform shadow-2xl shadow-primary/30"
+                  onClick={handleStop}
                 >
-                  {isUploading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Отправка...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="w-4 h-4 mr-2" />
-                      Отправить
-                    </>
-                  )}
+                  <Pause className="w-6 h-6 md:w-7 md:h-7" />
                 </Button>
+                <span className="text-xs text-muted-foreground font-light">Пауза</span>
+              </div>
+            </div>
+          )}
+
+          {/* Состояние после остановки записи */}
+          {status === 'stopped' && (
+            <div className="flex flex-col items-center justify-center gap-6 md:gap-8">
+              {/* Кнопка Продолжить */}
+              <div className="flex flex-col items-center gap-2">
+                <Button 
+                  size="icon"
+                  className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-primary text-primary-foreground hover:scale-105 transition-transform shadow-2xl shadow-primary/30"
+                  onClick={handleStart}
+                >
+                  <Play className="w-6 h-6 md:w-7 md:h-7" />
+                </Button>
+                <span className="text-xs text-muted-foreground font-light">Продолжить</span>
+              </div>
+              
+              {/* Кнопки Отправить и Отменить */}
+              <div className="flex items-center justify-center gap-4 md:gap-6">
+                <div className="flex flex-col items-center gap-2">
+                  <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+                    <AlertDialogTrigger asChild>
+                      <Button 
+                        size="icon"
+                        className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-destructive text-destructive-foreground hover:scale-105 transition-transform shadow-2xl shadow-destructive/30"
+                      >
+                        <Trash2 className="w-6 h-6 md:w-7 md:h-7" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="rounded-3xl">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Отменить запись?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Вы уверены, что хотите отменить запись? Все записанные данные будут удалены.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Нет</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={handleCancelConfirm}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Да, отменить
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                  <span className="text-xs text-muted-foreground font-light">Отменить</span>
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                  <Button 
+                    size="icon"
+                    className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-primary text-primary-foreground hover:scale-105 transition-transform shadow-2xl shadow-primary/30 disabled:opacity-50"
+                    onClick={handleSend}
+                    disabled={isUploading}
+                  >
+                    {isUploading ? (
+                      <Loader2 className="w-6 h-6 md:w-7 md:h-7 animate-spin" />
+                    ) : (
+                      <Send className="w-6 h-6 md:w-7 md:h-7" />
+                    )}
+                  </Button>
+                  <span className="text-xs text-muted-foreground font-light">
+                    {isUploading ? 'Отправка...' : 'Отправить'}
+                  </span>
+                </div>
               </div>
             </div>
           )}
