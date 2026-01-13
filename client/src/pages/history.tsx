@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'wouter';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Layout } from '@/components/layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -13,11 +13,43 @@ import { Search, Calendar, Filter, ArrowUpRight, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { getAllSavedRecordings, type RecordingMetadata } from '@/lib/utils/audio-storage';
 
 export default function HistoryPage() {
   const [search, setSearch] = useState('');
+  const [localRecordings, setLocalRecordings] = useState<RecordingMetadata[]>([]);
+  const queryClient = useQueryClient();
 
-  // Загрузка списка консультаций
+  // Загрузка локальных записей из IndexedDB
+  useEffect(() => {
+    let previousCount = localRecordings.length;
+    
+    const loadLocalRecordings = async () => {
+      try {
+        const saved = await getAllSavedRecordings();
+        
+        // Если локальных записей стало меньше, инвалидируем кэш консультаций
+        // (возможно, запись была отправлена и должна появиться в списке с сервера)
+        if (saved.length < previousCount) {
+          queryClient.invalidateQueries({ queryKey: ['consultations'] });
+        }
+        
+        previousCount = saved.length;
+        setLocalRecordings(saved);
+      } catch (error) {
+        console.error('Error loading local recordings:', error);
+      }
+    };
+
+    loadLocalRecordings();
+    
+    // Обновляем каждые 5 секунд, чтобы видеть изменения
+    const interval = setInterval(loadLocalRecordings, 5000);
+    
+    return () => clearInterval(interval);
+  }, [queryClient]);
+
+  // Загрузка списка консультаций с автоматической проверкой статуса
   const { data: consultations = [], isLoading, error } = useQuery({
     queryKey: ['consultations', 'all'],
     queryFn: () => consultationsApi.get({
@@ -26,6 +58,33 @@ export default function HistoryPage() {
       order: '-createdAt', // Сначала новые (по дате создания в убывающем порядке)
       // Не отправляем clientIds, чтобы получить все консультации
     }),
+    // Автоматически обновляем список, если есть консультации в обработке
+    refetchInterval: (query) => {
+      const data = query.state.data as ConsultationResponse[] | undefined;
+      if (data && data.length > 0) {
+        // Проверяем, есть ли консультации в статусе обработки
+        const hasProcessingConsultations = data.some(c => {
+          const status = c.processingStatus ?? 
+                        (c.status as ConsultationProcessingStatus) ?? 
+                        ConsultationProcessingStatus.None;
+          return status === ConsultationProcessingStatus.InProgress || 
+                 status === ConsultationProcessingStatus.None;
+        });
+        
+        // Если есть консультации в обработке, проверяем каждые 5 секунд
+        if (hasProcessingConsultations) {
+          return 5000; // 5 секунд
+        }
+      }
+      
+      // Также проверяем, если есть локальные записи, ожидающие отправки
+      if (localRecordings.length > 0) {
+        return 5000; // 5 секунд
+      }
+      
+      return false; // Если все консультации готовы, не проверяем
+    },
+    refetchOnWindowFocus: true, // Обновляем при возврате на вкладку
   });
 
   // Собираем уникальные clientId из консультаций, у которых нет patientName
@@ -68,9 +127,43 @@ export default function HistoryPage() {
     return map;
   }, [patientsData]);
 
+  // Преобразуем локальные записи в формат консультаций для отображения
+  const localConsultations: ConsultationResponse[] = useMemo(() => {
+    return localRecordings.map(recording => ({
+      id: recording.id,
+      clientId: recording.patientId,
+      patientId: recording.patientId,
+      patientName: recording.patientName || undefined,
+      date: new Date(recording.timestamp).toISOString(),
+      duration: `${Math.floor(recording.duration / 60)}:${String(Math.floor(recording.duration % 60)).padStart(2, '0')}`,
+      processingStatus: ConsultationProcessingStatus.InProgress, // Всегда "в обработке" для локальных
+      status: ConsultationProcessingStatus.InProgress,
+      summary: undefined,
+      transcript: undefined,
+      complaints: undefined,
+      objective: undefined,
+      plan: undefined,
+      comments: undefined,
+      audioUrl: undefined,
+      createdAt: new Date(recording.timestamp).toISOString(),
+      updatedAt: new Date(recording.timestamp).toISOString(),
+    }));
+  }, [localRecordings]);
+
+  // Объединяем консультации с сервера и локальные, сортируем по дате
+  const allConsultations = useMemo(() => {
+    const combined = [...consultations, ...localConsultations];
+    // Сортируем по дате создания (новые сначала)
+    return combined.sort((a, b) => {
+      const dateA = new Date(a.createdAt || a.date || 0).getTime();
+      const dateB = new Date(b.createdAt || b.date || 0).getTime();
+      return dateB - dateA;
+    });
+  }, [consultations, localConsultations]);
+
   // Обогащаем консультации именами пациентов
   const enrichedConsultations = useMemo(() => {
-    return consultations.map(c => {
+    return allConsultations.map(c => {
       // Если уже есть patientName, оставляем как есть
       if (c.patientName) {
         return c;
@@ -87,7 +180,7 @@ export default function HistoryPage() {
       
       return c;
     });
-  }, [consultations, patientsMap]);
+  }, [allConsultations, patientsMap]);
   
   // Фильтрация консультаций по поисковому запросу
   const filteredConsultations = enrichedConsultations.filter(c => {
@@ -160,56 +253,81 @@ export default function HistoryPage() {
 
           {!isLoading && !error && filteredConsultations.map((consultation) => {
             const statusInfo = getStatusInfo(consultation);
-            return (
-              <Link key={consultation.id} href={`/consultation/${consultation.id}`} className="block mb-6 last:mb-0">
-                <Card className="group cursor-pointer hover:shadow-md transition-all duration-300 border-border/50 rounded-3xl overflow-hidden hover:border-primary/20">
-                  <CardContent className="p-6 flex flex-col md:flex-row md:items-center gap-6">
-                    {/* Date Box */}
-                    <div className="flex-shrink-0 flex flex-col items-center justify-center w-16 h-16 bg-secondary/50 rounded-2xl border border-border/50">
-                      <span className="text-xs font-bold uppercase text-muted-foreground">
-                        {consultation.date ? format(new Date(consultation.date), 'MMM', { locale: ru }) : '---'}
-                      </span>
-                      <span className="text-xl font-display font-bold">
-                        {consultation.date ? format(new Date(consultation.date), 'd') : '--'}
-                      </span>
-                    </div>
+            const isLocal = localRecordings.some(r => r.id === consultation.id);
+            
+            const cardContent = (
+              <Card className={cn(
+                "group transition-all duration-300 border-border/50 rounded-3xl overflow-hidden",
+                isLocal ? "cursor-default" : "cursor-pointer hover:shadow-md hover:border-primary/20"
+              )}>
+                <CardContent className="p-6 flex flex-col md:flex-row md:items-center gap-6">
+                  {/* Date Box */}
+                  <div className="flex-shrink-0 flex flex-col items-center justify-center w-16 h-16 bg-secondary/50 rounded-2xl border border-border/50">
+                    <span className="text-xs font-bold uppercase text-muted-foreground">
+                      {consultation.date ? format(new Date(consultation.date), 'MMM', { locale: ru }) : '---'}
+                    </span>
+                    <span className="text-xl font-display font-bold">
+                      {consultation.date ? format(new Date(consultation.date), 'd') : '--'}
+                    </span>
+                  </div>
 
-                    {/* Content */}
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-3 flex-wrap">
-                        <h3 className={cn("text-lg font-bold", !consultation.patientName && "text-muted-foreground italic")}>
-                          {consultation.patientName || "Пациент не назначен"}
-                        </h3>
-                        <span className={cn(
-                          "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border",
-                          statusInfo.className
-                        )}>
-                          {statusInfo.label}
+                  {/* Content */}
+                  <div className="flex-1 space-y-2">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <h3 className={cn("text-lg font-bold", !consultation.patientName && "text-muted-foreground italic")}>
+                        {consultation.patientName || "Пациент не назначен"}
+                      </h3>
+                      <span className={cn(
+                        "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border",
+                        statusInfo.className
+                      )}>
+                        {statusInfo.label}
+                      </span>
+                      {isLocal && (
+                        <span className="text-xs text-muted-foreground italic">
+                          (ожидает отправки)
                         </span>
-                      </div>
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {consultation.summary || consultation.transcript || 'Нет описания'}
-                      </p>
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2">
-                        {consultation.date && (
-                          <span className="flex items-center gap-1">
-                            <Calendar className="w-3 h-3" /> {format(new Date(consultation.date), 'HH:mm')}
-                          </span>
-                        )}
-                        {consultation.duration && (
-                          <span>Длительность: {consultation.duration}</span>
-                        )}
-                      </div>
+                      )}
                     </div>
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {consultation.summary || consultation.transcript || (isLocal ? 'Запись сохранена локально и ожидает отправки' : 'Нет описания')}
+                    </p>
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2">
+                      {consultation.date && (
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-3 h-3" /> {format(new Date(consultation.date), 'HH:mm')}
+                        </span>
+                      )}
+                      {consultation.duration && (
+                        <span>Длительность: {consultation.duration}</span>
+                      )}
+                    </div>
+                  </div>
 
-                    {/* Action */}
+                  {/* Action */}
+                  {!isLocal && (
                     <div className="flex-shrink-0 md:opacity-0 group-hover:opacity-100 transition-opacity self-center">
                       <Button variant="ghost" size="icon" className="rounded-full">
                         <ArrowUpRight className="w-5 h-5" />
                       </Button>
                     </div>
-                  </CardContent>
-                </Card>
+                  )}
+                </CardContent>
+              </Card>
+            );
+
+            // Для локальных записей не делаем ссылку (они еще не на сервере)
+            if (isLocal) {
+              return (
+                <div key={consultation.id} className="block mb-6 last:mb-0">
+                  {cardContent}
+                </div>
+              );
+            }
+
+            return (
+              <Link key={consultation.id} href={`/consultation/${consultation.id}`} className="block mb-6 last:mb-0">
+                {cardContent}
               </Link>
             );
           })}

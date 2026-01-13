@@ -66,7 +66,13 @@ function isExternalApiRequest(url) {
     if (urlObj.origin !== currentOrigin) {
       // Проверяем, что это не статический ресурс
       const isStatic = urlObj.pathname.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|webp|mp3|mp4|wav)$/);
-      return !isStatic;
+      // Проверяем, что это не внешний шрифт или другой статический ресурс
+      const isExternalStatic = urlObj.hostname.includes('fonts.googleapis.com') || 
+                               urlObj.hostname.includes('fonts.gstatic.com') ||
+                               urlObj.hostname.includes('telegram.org');
+      
+      // Если это внешний API (не статический ресурс), пропускаем мимо Service Worker
+      return !isStatic && !isExternalStatic;
     }
     
     // Для запросов на тот же домен проверяем путь

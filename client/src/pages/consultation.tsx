@@ -422,6 +422,8 @@ export default function ConsultationPage() {
       
       // Инвалидируем кэш консультаций и пациента
       queryClient.invalidateQueries({ queryKey: ['consultation', id] });
+      // Инвалидируем список всех консультаций (для страницы истории)
+      queryClient.invalidateQueries({ queryKey: ['consultations'] });
       if (enrichedConsultation?.patientId) {
         queryClient.invalidateQueries({ queryKey: ['patient-consultations', enrichedConsultation.patientId] });
       }

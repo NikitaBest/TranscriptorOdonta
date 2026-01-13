@@ -28,9 +28,12 @@ export const authApi = {
    * POST /auth/email-login
    */
   async login(data: LoginRequest): Promise<LoginResponse> {
+    // Увеличиваем таймаут для запросов авторизации до 60 секунд
+    // Это помогает при медленном соединении или долгой обработке на сервере
     const response = await ApiClient.post<LoginResponse>(
       'auth/email-login',
-      data
+      data,
+      { timeout: 60000 } // 60 секунд вместо 30
     );
 
     // Сохраняем токен после успешной авторизации

@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuthRefresh } from "@/hooks/use-auth-refresh";
 import { useOnline } from "@/hooks/use-online";
+import { useBackgroundUpload } from "@/hooks/use-background-upload";
 import { ApiClient } from "@/lib/api/client";
 import { authApi } from "@/lib/api/auth";
 import { Loader2, WifiOff } from "lucide-react";
@@ -146,6 +147,8 @@ function AppContent() {
   useAuthRefresh();
   // Отслеживание онлайн/оффлайн статуса
   const { isOffline } = useOnline();
+  // Фоновая отправка записей из IndexedDB
+  useBackgroundUpload();
 
   return (
     <TooltipProvider>

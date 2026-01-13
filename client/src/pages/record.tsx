@@ -364,13 +364,13 @@ export default function RecordPage() {
       
       if (!stream) {
         stream = await navigator.mediaDevices.getUserMedia({ 
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true
-          } 
-        });
-        mediaStreamRef.current = stream;
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        } 
+      });
+      mediaStreamRef.current = stream;
       }
 
       // Создаем AudioContext для анализа звука
@@ -567,8 +567,8 @@ export default function RecordPage() {
       // Fallback на chunks из памяти, если IndexedDB не сработал
       if (!audioBlob || audioBlob.size === 0) {
         audioBlob = new Blob(audioChunksRef.current, { 
-          type: mediaRecorderRef.current?.mimeType || 'audio/webm' 
-        });
+        type: mediaRecorderRef.current?.mimeType || 'audio/webm' 
+      });
       }
       
       // НЕ очищаем chunks - они нужны для продолжения записи
@@ -613,7 +613,7 @@ export default function RecordPage() {
         audioContextRef.current = null;
       }
       
-      toast({
+        toast({
         title: "Ошибка завершения записи",
         description: "Не удалось завершить запись. Попробуйте еще раз.",
         variant: "destructive"
@@ -630,18 +630,15 @@ export default function RecordPage() {
   // Отправка сохраненной записи на бэкенд
   const handleSend = async () => {
     if (!recordingIdRef.current || !selectedPatientId) {
-      toast({
+        toast({
         title: "Ошибка",
         description: "Нет записи для отправки",
-        variant: "destructive"
-      });
+          variant: "destructive"
+        });
       return;
     }
 
-    setStatus('uploading');
-    setIsUploading(true);
-
-    // Сначала сохраняем локально
+    // Сначала сохраняем запись локально (чанки уже есть в IndexedDB, здесь сохраняем метаданные)
     try {
       const audioBlob = await buildAudioBlob(recordingIdRef.current);
       
@@ -673,108 +670,25 @@ export default function RecordPage() {
       return;
     }
 
-    // Отправляем в фоне
-    const sendInBackground = async () => {
-      try {
-        if (!recordingIdRef.current || !savedRecording) return;
-        
-        // Собираем Blob из IndexedDB
-        const audioBlob = await buildAudioBlob(recordingIdRef.current);
-        
-        if (!audioBlob || audioBlob.size === 0) {
-          throw new Error('Не удалось восстановить аудиофайл из сохранения');
-        }
+    // На этом этапе запись и метаданные уже сохранены локально в IndexedDB.
+    // Дальше отправкой займется фоновый процесс (useBackgroundUpload).
 
-        const sizeMB = (audioBlob.size / (1024 * 1024)).toFixed(2);
-        const durationMinutes = (savedRecording.duration / 60).toFixed(1);
-        
-        console.log('Sending recording in background:', {
-          id: recordingIdRef.current,
-          size: `${sizeMB} MB`,
-          duration: `${savedRecording.duration} seconds (${durationMinutes} minutes)`,
-        });
+    // Очищаем локальное состояние текущей записи, чтобы можно было сразу начать новую
+    setIsUploading(false);
+    setStatus('idle');
+    setDuration(0);
+    recordingIdRef.current = null;
+    setSavedRecording(null);
 
-        const response = await consultationsApi.uploadConsultation(selectedPatientId, audioBlob);
-        
-        console.log('Consultation uploaded:', response);
-        
-        // После успешной отправки удаляем локальный файл
-        await deleteChunks(recordingIdRef.current);
-        await deleteRecordingMetadata(recordingIdRef.current);
-        recordingIdRef.current = null;
-        setSavedRecording(null);
-        
-        // Инвалидируем кэш консультаций, чтобы страница истории обновилась
-        queryClient.invalidateQueries({ queryKey: ['consultations'] });
-        queryClient.invalidateQueries({ queryKey: ['patient-consultations'] });
-        
-        // Обрабатываем статус
-        setIsUploading(false);
-        
-        if (response.status === ConsultationProcessingStatus.Completed) {
-          setStatus('idle');
-          setDuration(0);
-          toast({
-            title: "Консультация загружена",
-            description: "Аудиофайл успешно отправлен и обработан.",
-          });
-          
-          // Переходим на страницу истории
-          setTimeout(() => {
-            setLocation('/history');
-          }, 1000);
-        } else if (response.status === ConsultationProcessingStatus.Failed) {
-          setStatus('stopped');
-          toast({
-            title: "Ошибка обработки",
-            description: "Не удалось обработать консультацию. Запись сохранена локально.",
-            variant: "destructive"
-          });
-        } else {
-          // InProgress или None
-          setStatus('idle');
-          setDuration(0);
-          toast({
-            title: "Консультация загружена",
-            description: "Аудиофайл отправлен. Обработка началась.",
-          });
-          
-          setTimeout(() => {
-            setLocation('/history');
-          }, 2000);
-        }
-      } catch (error) {
-        console.error('Error uploading consultation:', error);
-        setIsUploading(false);
-        setStatus('stopped'); // Возвращаемся к состоянию остановленной записи
-      
-        // Улучшенная обработка ошибок
-        let errorMessage = "Не удалось отправить аудиофайл. Запись сохранена локально, попробуйте еще раз.";
-        
-        if (error instanceof Error) {
-          const errorText = error.message.toLowerCase();
-          
-          if (errorText.includes('превышено время') || errorText.includes('timeout') || errorText.includes('таймаут')) {
-            errorMessage = `Загрузка файла заняла слишком много времени. Запись сохранена локально. Попробуйте позже.`;
-          } else if (errorText.includes('не удалось подключиться') || errorText.includes('failed to fetch') || errorText.includes('network')) {
-            errorMessage = "Ошибка подключения к серверу. Запись сохранена локально. Проверьте подключение к интернету.";
-          } else if (errorText.includes('размер') || errorText.includes('size') || errorText.includes('too large')) {
-            errorMessage = "Файл слишком большой. Запись сохранена локально. Попробуйте записать более короткое аудио.";
-          } else {
-            errorMessage = `Запись сохранена локально. ${error.message}`;
-          }
-        }
-        
-        toast({
-          title: "Ошибка загрузки",
-          description: errorMessage,
-          variant: "destructive"
-        });
-      }
-    };
-    
-    // Запускаем отправку в фоне
-    sendInBackground();
+    toast({
+      title: "Запись сохранена",
+      description: "Аудиофайл сохранен локально. Отправка начнется автоматически при появлении интернета.",
+    });
+
+    // Сразу переходим на страницу истории, где запись будет отображена со статусом \"Обработка\"
+    setTimeout(() => {
+      setLocation('/history');
+    }, 300);
   };
 
   const handleCancelConfirm = async () => {
@@ -1044,14 +958,14 @@ export default function RecordPage() {
           {/* Controls */}
           {status === 'idle' && (
             <div className="flex flex-col items-center justify-center gap-6 md:gap-8">
-              <Button 
-                size="icon" 
+                <Button 
+                  size="icon" 
                 className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-primary text-primary-foreground hover:scale-105 transition-transform shadow-2xl shadow-primary/30 disabled:opacity-60 disabled:hover:scale-100"
                 disabled={!selectedPatientId}
                 onClick={handleStart}
-              >
+                >
                 <Mic className="w-8 h-8 md:w-10 md:h-10" />
-              </Button>
+                </Button>
               
               {/* Рекомендации по использованию (только до начала записи) */}
               <div className="w-full max-w-full md:max-w-md mx-auto px-2 md:px-4 animate-in fade-in slide-in-from-bottom-4">
@@ -1105,12 +1019,12 @@ export default function RecordPage() {
               {/* Кнопка Отменить */}
               <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
                 <AlertDialogTrigger asChild>
-                  <Button 
-                    size="icon"
+                <Button 
+                  size="icon" 
                     className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-destructive text-destructive-foreground hover:scale-105 transition-transform shadow-2xl shadow-destructive/30"
-                  >
+                >
                     <X className="w-6 h-6 md:w-7 md:h-7" />
-                  </Button>
+                </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent className="rounded-3xl">
                   <AlertDialogHeader>
@@ -1132,27 +1046,27 @@ export default function RecordPage() {
               </AlertDialog>
               
               {/* Кнопка Пауза */}
-              <Button 
-                size="icon"
+                <Button 
+                  size="icon" 
                 className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-primary text-primary-foreground hover:scale-105 transition-transform shadow-2xl shadow-primary/30"
-                onClick={handleStop}
-              >
+                  onClick={handleStop}
+                >
                 <Pause className="w-6 h-6 md:w-7 md:h-7" />
-              </Button>
+                </Button>
             </div>
-          )}
+              )}
 
           {/* Состояние после остановки записи */}
           {status === 'stopped' && (
             <div className="flex flex-col items-center justify-center gap-6 md:gap-8">
               {/* Кнопка Продолжить */}
-              <Button 
+                <Button 
                 className="h-12 md:h-14 px-6 md:px-8 rounded-full bg-primary text-primary-foreground hover:scale-105 transition-transform shadow-2xl shadow-primary/30 text-sm md:text-base font-medium gap-2"
                 onClick={handleStart}
               >
                 <Play className="w-5 h-5 md:w-6 md:h-6" />
                 Продолжить
-              </Button>
+                </Button>
               
               {/* Кнопки Отправить и Отменить */}
               <div className="flex items-center justify-center gap-4 md:gap-6">

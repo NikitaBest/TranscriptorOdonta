@@ -19,6 +19,8 @@ export class ApiClient {
       timeout?: number; // Таймаут в миллисекундах (по умолчанию из конфига)
     }
   ): Promise<T> {
+    // Убеждаемся, что таймаут не меньше 30 секунд для обычных запросов
+    const minTimeout = 30000;
     const url = getApiUrl(path);
     const headers: Record<string, string> = {
       ...options?.headers,
@@ -38,7 +40,7 @@ export class ApiClient {
     }
 
     // Определяем таймаут: для загрузки файлов используем увеличенный таймаут
-    const timeout = options?.timeout || (options?.isFormData ? 300000 : API_CONFIG.timeout); // 5 минут для файлов, иначе из конфига
+    const timeout = options?.timeout || (options?.isFormData ? 300000 : API_CONFIG.timeout);
 
     // Создаем AbortController для таймаута
     const controller = new AbortController();
@@ -100,20 +102,27 @@ export class ApiClient {
       clearTimeout(timeoutId);
       
       console.error(`[API] Request failed:`, error);
+      console.error(`[API] Request details:`, {
+        method,
+        url,
+        timeout: `${timeout / 1000}s`,
+        hasSignal: !!controller.signal,
+        signalAborted: controller.signal?.aborted,
+      });
       
       // Обработка ошибки таймаута
-      if (error instanceof Error && error.name === 'AbortError') {
+      if (error instanceof Error && (error.name === 'AbortError' || controller.signal?.aborted)) {
         const apiError: ApiError = {
           message: options?.isFormData 
             ? `Превышено время ожидания загрузки файла (${timeout / 1000} сек). Файл слишком большой или медленное соединение. Попробуйте записать более короткое аудио или проверьте подключение к интернету.`
-            : `Превышено время ожидания ответа от сервера (${timeout / 1000} сек).`,
+            : `Превышено время ожидания ответа от сервера (${timeout / 1000} сек). Проверьте подключение к интернету или попробуйте позже.`,
           status: 0,
         };
         throw apiError;
       }
       
       // Обработка сетевых ошибок (CORS, нет интернета, таймаут и т.д.)
-      if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      if (error instanceof TypeError && (error.message === 'Failed to fetch' || error.message.includes('network'))) {
         const apiError: ApiError = {
           message: 'Не удалось подключиться к серверу. Проверьте подключение к интернету или обратитесь к администратору.',
           status: 0,
