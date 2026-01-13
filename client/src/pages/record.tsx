@@ -184,38 +184,33 @@ export default function RecordPage() {
     };
   }, [isRecording, isPaused]);
 
-  // Восстановление сохраненной записи при загрузке страницы
+  // Очистка состояния при монтировании страницы записи
+  // НЕ восстанавливаем автоматически сохраненные записи - они уже в очереди на отправку
+  // Пользователь может начать новую запись для другого пациента
   useEffect(() => {
-    const restoreSavedRecording = async () => {
-      try {
-        const latestRecording = await getLatestSavedRecording();
-        if (latestRecording) {
-          // Проверяем, что chunks действительно существуют
-          const chunks = await getAllChunks(latestRecording.id);
-          if (chunks.length > 0) {
-            // Восстанавливаем состояние сохраненной записи
-            setSavedRecording(latestRecording);
-            setStatus('stopped');
-            setDuration(latestRecording.duration);
-            recordingIdRef.current = latestRecording.id;
-            
-            // Восстанавливаем выбранного пациента из сохраненной записи
-            if (latestRecording.patientId) {
-              setSelectedPatientId(latestRecording.patientId);
-            }
-            
-            console.log('Restored saved recording:', latestRecording);
-          } else {
-            // Если chunks отсутствуют, удаляем метаданные
-            await deleteRecordingMetadata(latestRecording.id);
-          }
-        }
-      } catch (error) {
-        console.error('Error restoring saved recording:', error);
-      }
-    };
-
-    restoreSavedRecording();
+    // Очищаем состояние при монтировании, чтобы можно было начать новую запись
+    setStatus('idle');
+    setDuration(0);
+    setIsRecording(false);
+    setIsPaused(false);
+    setIsUploading(false);
+    recordingIdRef.current = null;
+    setSavedRecording(null);
+    chunkIndexRef.current = 0;
+    audioChunksRef.current = [];
+    
+    // Останавливаем медиа-потоки, если они были открыты
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach(track => track.stop());
+      mediaStreamRef.current = null;
+    }
+    
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
+    
+    console.log('Record page mounted - state cleared for new recording');
   }, []); // Выполняем только при монтировании
 
   // Очистка при размонтировании
