@@ -58,6 +58,9 @@ export default function HistoryPage() {
       order: '-createdAt', // Сначала новые (по дате создания в убывающем порядке)
       // Не отправляем clientIds, чтобы получить все консультации
     }),
+    // Не показываем ошибку как критичную, если есть локальные записи
+    retry: 1, // Пробуем повторить запрос один раз
+    retryDelay: 2000, // Через 2 секунды
     // Автоматически обновляем список, если есть консультации в обработке
     refetchInterval: (query) => {
       const data = query.state.data as ConsultationResponse[] | undefined;
@@ -241,7 +244,8 @@ export default function HistoryPage() {
             </div>
           )}
 
-          {error && (
+          {/* Показываем ошибку только если нет локальных записей и нет загруженных консультаций */}
+          {error && !isLoading && consultations.length === 0 && localRecordings.length === 0 && (
             <div className="text-center py-20">
               <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Filter className="w-8 h-8 text-destructive" />
@@ -251,7 +255,16 @@ export default function HistoryPage() {
             </div>
           )}
 
-          {!isLoading && !error && filteredConsultations.map((consultation) => {
+          {/* Показываем предупреждение, если есть ошибка, но есть локальные записи или загруженные консультации */}
+          {error && !isLoading && (consultations.length > 0 || localRecordings.length > 0) && (
+            <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-sm text-yellow-800">
+                ⚠️ Не удалось загрузить все консультации с сервера. Показаны локальные записи и ранее загруженные консультации.
+              </p>
+            </div>
+          )}
+
+          {!isLoading && filteredConsultations.map((consultation) => {
             const statusInfo = getStatusInfo(consultation);
             const isLocal = localRecordings.some(r => r.id === consultation.id);
             
