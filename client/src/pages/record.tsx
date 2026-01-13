@@ -947,7 +947,7 @@ export default function RecordPage() {
 
           {/* Controls */}
           {status === 'idle' && (
-            <div className="flex items-center justify-center">
+            <div className="flex flex-col items-center justify-center gap-6 md:gap-8">
               <Button 
                 size="icon" 
                 className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-primary text-primary-foreground hover:scale-105 transition-transform shadow-2xl shadow-primary/30 disabled:opacity-60 disabled:hover:scale-100"
@@ -956,6 +956,36 @@ export default function RecordPage() {
               >
                 <Mic className="w-8 h-8 md:w-10 md:h-10" />
               </Button>
+              
+              {/* Рекомендации по использованию (только до начала записи) */}
+              <div className="w-full max-w-md mx-auto px-4 animate-in fade-in slide-in-from-bottom-4">
+                <div className="p-4 md:p-5 rounded-2xl bg-secondary/30 border border-border/50 space-y-3">
+                  <h3 className="text-sm md:text-base font-semibold text-foreground">
+                    Рекомендации для качественной записи
+                  </h3>
+                  <ul className="space-y-2 text-xs md:text-sm text-muted-foreground">
+                    <li className="flex items-start gap-2">
+                      <span className="text-primary mt-0.5">•</span>
+                      <span>Держите телефон/микрофон близко к говорящему </span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-primary mt-0.5">•</span>
+                      <span>Не кладите устройство в карман, тумбочку или в сумку</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-primary mt-0.5">•</span>
+                      <span>Расположите устройство на столе или держите в руке</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-primary mt-0.5">•</span>
+                      <span>Избегайте фонового шума и посторонних разговоров</span>
+                    </li>
+                  </ul>
+                  <p className="text-xs md:text-sm text-muted-foreground pt-2 border-t border-border/50">
+                    Чем лучше качество звука, тем точнее будет транскрипция и медицинский отчет
+                  </p>
+                </div>
+              </div>
             </div>
           )}
 
