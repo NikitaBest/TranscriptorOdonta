@@ -447,13 +447,26 @@ export const consultationsApi = {
    * Нормализация данных консультации для отображения
    */
   normalizeConsultation(consultation: ConsultationResponse): ConsultationResponse {
+    // ВАЖНО: Сохраняем исходный createdAt из API, так как это единственный надежный источник времени
+    // createdAt приходит в формате UTC (например, "2026-01-14T11:50:57.273307+00:00")
+    // date устанавливается из createdAt для обратной совместимости, но всегда используем createdAt
+    // НИКОГДА не используем updatedAt вместо createdAt, так как это разные временные метки
+    const originalCreatedAt = consultation.createdAt;
+    
+    // Проверяем, что createdAt действительно является валидной датой
+    const isValidCreatedAt = originalCreatedAt && !isNaN(new Date(originalCreatedAt).getTime());
+    
     return {
       ...consultation,
       id: String(consultation.id),
       clientId: consultation.clientId ? String(consultation.clientId) : undefined,
       patientId: consultation.clientId ? String(consultation.clientId) : undefined,
       patientName: consultation.client ? `${consultation.client.firstName} ${consultation.client.lastName}` : undefined,
-      date: consultation.createdAt || new Date().toISOString(),
+      // Явно сохраняем исходный createdAt ТОЛЬКО если он валидный
+      // НЕ используем updatedAt, так как это время обновления, а не создания
+      createdAt: isValidCreatedAt ? originalCreatedAt : (consultation.createdAt || consultation.date),
+      // date устанавливается из createdAt для обратной совместимости
+      date: isValidCreatedAt ? originalCreatedAt : (consultation.createdAt || consultation.date || new Date().toISOString()),
       duration: consultation.audioDuration ? `${Math.floor(consultation.audioDuration / 60)}:${String(consultation.audioDuration % 60).padStart(2, '0')}` : '0:00',
       transcript: consultation.transcriptionResult || undefined,
       summary: consultation.summary || undefined,

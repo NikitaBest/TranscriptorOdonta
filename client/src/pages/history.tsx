@@ -60,6 +60,43 @@ export default function HistoryPage() {
       order: '-createdAt', // Сначала новые (по дате создания в убывающем порядке)
       // Не отправляем clientIds, чтобы получить все консультации
     }),
+    // Сохраняем createdAt из предыдущего состояния при обновлении
+    select: (data) => {
+      const previousData = queryClient.getQueryData<ConsultationResponse[]>(['consultations', 'all']);
+      const previousMap = new Map<string | number, ConsultationResponse>();
+      
+      if (previousData) {
+        previousData.forEach(c => {
+          if (c.id && c.createdAt) {
+            previousMap.set(c.id, c);
+          }
+        });
+      }
+      
+      return data.map(c => {
+        const previous = previousMap.get(c.id);
+        const newCreatedAt = c.createdAt;
+        const isValidNewCreatedAt = newCreatedAt && !isNaN(new Date(newCreatedAt).getTime());
+        
+        if (isValidNewCreatedAt) {
+          return c;
+        }
+        
+        if (previous?.createdAt) {
+          const previousCreatedAt = previous.createdAt;
+          const isValidPreviousCreatedAt = previousCreatedAt && !isNaN(new Date(previousCreatedAt).getTime());
+          
+          if (isValidPreviousCreatedAt) {
+            return {
+              ...c,
+              createdAt: previousCreatedAt,
+            };
+          }
+        }
+        
+        return c;
+      });
+    },
     // В оффлайн режиме не пытаемся загружать данные с сервера
     enabled: !isOffline, // Отключаем запрос, если нет интернета
     // Не показываем ошибку как критичную, если есть локальные записи
@@ -180,21 +217,28 @@ export default function HistoryPage() {
   // Обогащаем консультации именами пациентов
   const enrichedConsultations = useMemo(() => {
     return allConsultations.map(c => {
-      // Если уже есть patientName, оставляем как есть
+      const preservedCreatedAt = c.createdAt;
+      
       if (c.patientName) {
-        return c;
+        return {
+          ...c,
+          createdAt: preservedCreatedAt || c.createdAt,
+        };
       }
       
-      // Если есть clientId, пытаемся найти пациента в мапе
       if (c.clientId && patientsMap.has(c.clientId)) {
         const patient = patientsMap.get(c.clientId)!;
         return {
           ...c,
           patientName: `${patient.firstName} ${patient.lastName}`,
+          createdAt: preservedCreatedAt || c.createdAt,
         };
       }
       
-      return c;
+      return {
+        ...c,
+        createdAt: preservedCreatedAt || c.createdAt,
+      };
     });
   }, [allConsultations, patientsMap]);
   
@@ -294,6 +338,48 @@ export default function HistoryPage() {
             const statusInfo = getStatusInfo(consultation);
             const isLocal = localRecordings.some(r => r.id === consultation.id);
             
+            // Используем createdAt из API (UTC формат), приоритет над date
+            const timeSource = consultation.createdAt || consultation.date;
+            
+            // Конвертируем UTC время в московское время (UTC+3)
+            let dateObj: Date | null = null;
+            if (timeSource) {
+              try {
+                // Парсим строку как UTC время
+                let parsedDate: Date;
+                if (timeSource.includes('+00:00') || timeSource.endsWith('Z')) {
+                  parsedDate = new Date(timeSource);
+                } else {
+                  const utcString = timeSource.endsWith('Z') ? timeSource : timeSource.replace(/\+00:00$/, 'Z');
+                  parsedDate = new Date(utcString);
+                }
+                
+                if (isNaN(parsedDate.getTime())) {
+                  dateObj = null;
+                } else {
+                  // Вычисляем московское время напрямую из UTC (UTC+3)
+                  const utcHours = parsedDate.getUTCHours();
+                  const utcMinutes = parsedDate.getUTCMinutes();
+                  const moscowHours = (utcHours + 3) % 24;
+                  const moscowMinutes = utcMinutes;
+                  
+                  // Создаем Date объект для форматирования даты
+                  const utcTime = parsedDate.getTime();
+                  const moscowOffset = 3 * 60 * 60 * 1000;
+                  const moscowTime = new Date(utcTime + moscowOffset);
+                  
+                  dateObj = moscowTime;
+                  
+                  // Сохраняем московское время для отображения
+                  (dateObj as any).__moscowHours = moscowHours;
+                  (dateObj as any).__moscowMinutes = moscowMinutes;
+                }
+              } catch (error) {
+                console.error(`[History] Error parsing date: ${timeSource}`, error);
+                dateObj = null;
+              }
+            }
+            
             const cardContent = (
               <Card className={cn(
                 "group transition-all duration-300 border-border/50 rounded-3xl overflow-hidden",
@@ -305,10 +391,10 @@ export default function HistoryPage() {
                     {/* Date Box */}
                     <div className="flex-shrink-0 flex flex-col items-center justify-center w-14 h-14 bg-secondary/50 rounded-2xl border border-border/50">
                       <span className="text-xs font-bold uppercase text-muted-foreground">
-                        {consultation.date ? format(new Date(consultation.date), 'MMM', { locale: ru }) : '---'}
+                        {dateObj ? format(dateObj, 'MMM', { locale: ru }) : '---'}
                       </span>
                       <span className="text-lg font-display font-bold">
-                        {consultation.date ? format(new Date(consultation.date), 'd') : '--'}
+                        {dateObj ? format(dateObj, 'd') : '--'}
                       </span>
                     </div>
 
@@ -339,9 +425,14 @@ export default function HistoryPage() {
 
                       {/* Time and Duration */}
                       <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                        {consultation.date && (
+                        {dateObj && (
                           <span className="flex items-center gap-1">
-                            <Calendar className="w-3 h-3" /> {format(new Date(consultation.date), 'HH:mm')}
+                            <Calendar className="w-3 h-3" /> {
+                              // Используем московское время напрямую, если оно сохранено
+                              (dateObj as any).__moscowHours !== undefined
+                                ? `${String((dateObj as any).__moscowHours).padStart(2, '0')}:${String((dateObj as any).__moscowMinutes).padStart(2, '0')}`
+                                : format(dateObj, 'HH:mm')
+                            }
                           </span>
                         )}
                         {consultation.duration && (
@@ -356,10 +447,10 @@ export default function HistoryPage() {
                     {/* Date Box */}
                     <div className="flex-shrink-0 flex flex-col items-center justify-center w-16 h-16 bg-secondary/50 rounded-2xl border border-border/50">
                       <span className="text-xs font-bold uppercase text-muted-foreground">
-                        {consultation.date ? format(new Date(consultation.date), 'MMM', { locale: ru }) : '---'}
+                        {dateObj ? format(dateObj, 'MMM', { locale: ru }) : '---'}
                       </span>
                       <span className="text-xl font-display font-bold">
-                        {consultation.date ? format(new Date(consultation.date), 'd') : '--'}
+                        {dateObj ? format(dateObj, 'd') : '--'}
                       </span>
                     </div>
 
@@ -385,9 +476,14 @@ export default function HistoryPage() {
                         {consultation.summary || consultation.transcript || (isLocal ? 'Запись сохранена локально и ожидает отправки' : 'Нет описания')}
                       </p>
                       <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2">
-                        {consultation.date && (
+                        {dateObj && (
                           <span className="flex items-center gap-1">
-                            <Calendar className="w-3 h-3" /> {format(new Date(consultation.date), 'HH:mm')}
+                            <Calendar className="w-3 h-3" /> {
+                              // Используем московское время напрямую, если оно сохранено
+                              (dateObj as any).__moscowHours !== undefined
+                                ? `${String((dateObj as any).__moscowHours).padStart(2, '0')}:${String((dateObj as any).__moscowMinutes).padStart(2, '0')}`
+                                : format(dateObj, 'HH:mm')
+                            }
                           </span>
                         )}
                         {consultation.duration && (
@@ -399,14 +495,14 @@ export default function HistoryPage() {
                     {/* Action */}
                     {!isLocal && (
                       <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity self-center">
-                        <Button variant="ghost" size="icon" className="rounded-full">
-                          <ArrowUpRight className="w-5 h-5" />
-                        </Button>
+                      <Button variant="ghost" size="icon" className="rounded-full">
+                        <ArrowUpRight className="w-5 h-5" />
+                      </Button>
                       </div>
                     )}
-                  </div>
-                </CardContent>
-              </Card>
+                    </div>
+                  </CardContent>
+                </Card>
             );
 
             // Для локальных записей не делаем ссылку (они еще не на сервере)

@@ -174,23 +174,67 @@ export default function PatientProfile() {
     avatar: `${patientData.firstName[0]}${patientData.lastName[0]}`.toUpperCase(),
   } : null;
 
+  // Функция для конвертации UTC времени в московское время (UTC+3)
+  const convertToMoscowTime = (timeSource: string | undefined): { dateObj: Date | null; moscowHours: number; moscowMinutes: number } => {
+    if (!timeSource) {
+      return { dateObj: null, moscowHours: 0, moscowMinutes: 0 };
+    }
+    
+    try {
+      let parsedDate: Date;
+      if (timeSource.includes('+00:00') || timeSource.endsWith('Z')) {
+        parsedDate = new Date(timeSource);
+      } else {
+        const utcString = timeSource.endsWith('Z') ? timeSource : timeSource.replace(/\+00:00$/, 'Z');
+        parsedDate = new Date(utcString);
+      }
+      
+      if (isNaN(parsedDate.getTime())) {
+        return { dateObj: null, moscowHours: 0, moscowMinutes: 0 };
+      }
+      
+      const utcHours = parsedDate.getUTCHours();
+      const utcMinutes = parsedDate.getUTCMinutes();
+      const moscowHours = (utcHours + 3) % 24;
+      const moscowMinutes = utcMinutes;
+      
+      const utcTime = parsedDate.getTime();
+      const moscowOffset = 3 * 60 * 60 * 1000;
+      const moscowTime = new Date(utcTime + moscowOffset);
+      
+      return { dateObj: moscowTime, moscowHours, moscowMinutes };
+    } catch (error) {
+      console.error(`[Patient] Error parsing date: ${timeSource}`, error);
+      return { dateObj: null, moscowHours: 0, moscowMinutes: 0 };
+    }
+  };
+
   // Преобразуем консультации в формат для отображения
-  const consultations = consultationsData.map((c: ConsultationResponse) => ({
-    id: String(c.id),
-    patientId: c.patientId ? String(c.patientId) : undefined,
-    patientName: c.patientName,
-    date: c.date,
-    duration: c.duration,
-    status: c.status,
-    processingStatus: c.processingStatus ?? (c.status as ConsultationProcessingStatus) ?? ConsultationProcessingStatus.None,
-    summary: c.summary,
-    complaints: c.complaints,
-    objective: c.objective,
-    plan: c.plan,
-    comments: c.comments,
-    transcript: c.transcript,
-    audioUrl: c.audioUrl,
-  }));
+  const consultations = consultationsData.map((c: ConsultationResponse) => {
+    const timeSource = c.createdAt || c.date;
+    const { dateObj, moscowHours, moscowMinutes } = convertToMoscowTime(timeSource);
+    
+    return {
+      id: String(c.id),
+      patientId: c.patientId ? String(c.patientId) : undefined,
+      patientName: c.patientName,
+      date: c.date,
+      createdAt: c.createdAt,
+      dateObj,
+      moscowHours,
+      moscowMinutes,
+      duration: c.duration,
+      status: c.status,
+      processingStatus: c.processingStatus ?? (c.status as ConsultationProcessingStatus) ?? ConsultationProcessingStatus.None,
+      summary: c.summary,
+      complaints: c.complaints,
+      objective: c.objective,
+      plan: c.plan,
+      comments: c.comments,
+      transcript: c.transcript,
+      audioUrl: c.audioUrl,
+    };
+  });
 
   // Получаем текстовое описание статуса
   const getStatusText = (status: ConsultationProcessingStatus) => {
@@ -355,7 +399,13 @@ export default function PatientProfile() {
                           <div>
                             <div className="font-bold">Консультация</div>
                             <div className="text-xs text-muted-foreground">
-                              {format(new Date(consultation.date), 'd MMMM yyyy • HH:mm', { locale: ru })}
+                              {consultation.dateObj ? (
+                                <>
+                                  {format(consultation.dateObj, 'd MMMM yyyy', { locale: ru })} • {String(consultation.moscowHours).padStart(2, '0')}:{String(consultation.moscowMinutes).padStart(2, '0')}
+                                </>
+                              ) : (
+                                consultation.date ? format(new Date(consultation.date), 'd MMMM yyyy • HH:mm', { locale: ru }) : '---'
+                              )}
                             </div>
                           </div>
                         </div>
