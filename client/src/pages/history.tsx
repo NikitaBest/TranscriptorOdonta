@@ -299,58 +299,112 @@ export default function HistoryPage() {
                 "group transition-all duration-300 border-border/50 rounded-3xl overflow-hidden",
                 isLocal ? "cursor-default" : "cursor-pointer hover:shadow-md hover:border-primary/20"
               )}>
-                <CardContent className="p-6 flex flex-col md:flex-row md:items-center gap-6">
-                  {/* Date Box */}
-                  <div className="flex-shrink-0 flex flex-col items-center justify-center w-16 h-16 bg-secondary/50 rounded-2xl border border-border/50">
-                    <span className="text-xs font-bold uppercase text-muted-foreground">
-                      {consultation.date ? format(new Date(consultation.date), 'MMM', { locale: ru }) : '---'}
-                    </span>
-                    <span className="text-xl font-display font-bold">
-                      {consultation.date ? format(new Date(consultation.date), 'd') : '--'}
-                    </span>
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <h3 className={cn("text-lg font-bold", !consultation.patientName && "text-muted-foreground italic")}>
-                        {consultation.patientName || "Пациент не назначен"}
-                      </h3>
-                      <span className={cn(
-                        "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border",
-                        statusInfo.className
-                      )}>
-                        {statusInfo.label}
+                <CardContent className="p-6">
+                  {/* Mobile Layout: Date on left, Name and Summary on right */}
+                  <div className="flex md:hidden items-start gap-4">
+                    {/* Date Box */}
+                    <div className="flex-shrink-0 flex flex-col items-center justify-center w-14 h-14 bg-secondary/50 rounded-2xl border border-border/50">
+                      <span className="text-xs font-bold uppercase text-muted-foreground">
+                        {consultation.date ? format(new Date(consultation.date), 'MMM', { locale: ru }) : '---'}
                       </span>
-                      {isLocal && (
-                        <span className="text-xs text-muted-foreground italic">
-                          (ожидает отправки)
-                        </span>
-                      )}
+                      <span className="text-lg font-display font-bold">
+                        {consultation.date ? format(new Date(consultation.date), 'd') : '--'}
+                      </span>
                     </div>
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      {consultation.summary || consultation.transcript || (isLocal ? 'Запись сохранена локально и ожидает отправки' : 'Нет описания')}
-                    </p>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2">
-                      {consultation.date && (
-                        <span className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3" /> {format(new Date(consultation.date), 'HH:mm')}
+
+                    {/* Name, Status, Summary and Details - all on the right */}
+                    <div className="flex-1 min-w-0 space-y-2">
+                      {/* Name and Status */}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className={cn("text-base font-bold", !consultation.patientName && "text-muted-foreground italic")}>
+                          {consultation.patientName || "Пациент не назначен"}
+                        </h3>
+                        <span className={cn(
+                          "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border flex-shrink-0",
+                          statusInfo.className
+                        )}>
+                          {statusInfo.label}
                         </span>
-                      )}
-                      {consultation.duration && (
-                        <span>Длительность: {consultation.duration}</span>
-                      )}
+                        {isLocal && (
+                          <span className="text-xs text-muted-foreground italic flex-shrink-0">
+                            (ожидает отправки)
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Summary */}
+                      <p className="text-sm text-muted-foreground line-clamp-2">
+                        {consultation.summary || consultation.transcript || (isLocal ? 'Запись сохранена локально и ожидает отправки' : 'Нет описания')}
+                      </p>
+
+                      {/* Time and Duration */}
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        {consultation.date && (
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3" /> {format(new Date(consultation.date), 'HH:mm')}
+                          </span>
+                        )}
+                        {consultation.duration && (
+                          <span>Длительность: {consultation.duration}</span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
-                  {/* Action */}
-                  {!isLocal && (
-                    <div className="flex-shrink-0 md:opacity-0 group-hover:opacity-100 transition-opacity self-center">
-                      <Button variant="ghost" size="icon" className="rounded-full">
-                        <ArrowUpRight className="w-5 h-5" />
-                      </Button>
+                  {/* Desktop Layout: Date, Content, Action */}
+                  <div className="hidden md:flex md:items-center gap-6">
+                    {/* Date Box */}
+                    <div className="flex-shrink-0 flex flex-col items-center justify-center w-16 h-16 bg-secondary/50 rounded-2xl border border-border/50">
+                      <span className="text-xs font-bold uppercase text-muted-foreground">
+                        {consultation.date ? format(new Date(consultation.date), 'MMM', { locale: ru }) : '---'}
+                      </span>
+                      <span className="text-xl font-display font-bold">
+                        {consultation.date ? format(new Date(consultation.date), 'd') : '--'}
+                      </span>
                     </div>
-                  )}
+
+                    {/* Content */}
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <h3 className={cn("text-lg font-bold", !consultation.patientName && "text-muted-foreground italic")}>
+                          {consultation.patientName || "Пациент не назначен"}
+                        </h3>
+                        <span className={cn(
+                          "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border",
+                          statusInfo.className
+                        )}>
+                          {statusInfo.label}
+                        </span>
+                        {isLocal && (
+                          <span className="text-xs text-muted-foreground italic">
+                            (ожидает отправки)
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground line-clamp-2">
+                        {consultation.summary || consultation.transcript || (isLocal ? 'Запись сохранена локально и ожидает отправки' : 'Нет описания')}
+                      </p>
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2">
+                        {consultation.date && (
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3" /> {format(new Date(consultation.date), 'HH:mm')}
+                          </span>
+                        )}
+                        {consultation.duration && (
+                          <span>Длительность: {consultation.duration}</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Action */}
+                    {!isLocal && (
+                      <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity self-center">
+                        <Button variant="ghost" size="icon" className="rounded-full">
+                          <ArrowUpRight className="w-5 h-5" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             );
