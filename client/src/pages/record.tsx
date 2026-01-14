@@ -735,8 +735,11 @@ export default function RecordPage() {
     setPatientSearch('');
   };
 
+  // Скрываем навигацию во время записи или паузы
+  const shouldHideNavigation = status === 'recording' || status === 'stopped';
+
   return (
-    <Layout>
+    <Layout hideNavigation={shouldHideNavigation}>
       <div className="min-h-[calc(100vh-8rem)] md:min-h-[80vh] flex items-center justify-center py-8 md:py-0">
         <div className="w-full max-w-2xl space-y-6 md:space-y-8 text-center px-4">
           

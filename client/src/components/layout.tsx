@@ -14,9 +14,10 @@ import { InstallPWAButton } from '@/components/install-pwa-button';
 
 interface LayoutProps {
   children: React.ReactNode;
+  hideNavigation?: boolean;
 }
 
-export function Layout({ children }: LayoutProps) {
+export function Layout({ children, hideNavigation = false }: LayoutProps) {
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -41,118 +42,127 @@ export function Layout({ children }: LayoutProps) {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col md:flex-row">
       {/* Desktop Sidebar */}
-      <aside className="hidden md:block w-64 border-r border-border/50 sticky top-0 md:h-screen bg-background/50 backdrop-blur-xl z-50">
-        <div className="flex flex-col h-full">
-          <div className="p-6 mb-8">
-            <div className="flex items-center gap-2 mb-2">
-              <img 
-                src="/OdontaLogo.svg" 
-                alt="Odonta AI Logo" 
-                className="w-8 h-8"
-              />
-              <h1 className="text-2xl font-display font-bold tracking-tighter">Odonta AI</h1>
+      {!hideNavigation && (
+        <aside className="hidden md:block w-64 border-r border-border/50 sticky top-0 md:h-screen bg-background/50 backdrop-blur-xl z-50">
+          <div className="flex flex-col h-full">
+            <div className="p-6 mb-8">
+              <div className="flex items-center gap-2 mb-2">
+                <img 
+                  src="/OdontaLogo.svg" 
+                  alt="Odonta AI Logo" 
+                  className="w-8 h-8"
+                />
+                <h1 className="text-2xl font-display font-bold tracking-tighter">Odonta AI</h1>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">ИИ-ассистент стоматолога</p>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">ИИ-ассистент стоматолога</p>
+
+            <nav className="flex-1 px-4 space-y-2">
+              {navItems.map((item) => (
+                <Link key={item.href} href={item.href}>
+                  <div 
+                    className={cn(
+                      "flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200 group cursor-pointer",
+                      location === item.href 
+                        ? "bg-primary text-primary-foreground shadow-md" 
+                        : "hover:bg-secondary text-foreground"
+                    )}
+                  >
+                    <item.icon className={cn("w-5 h-5", location === item.href ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground")} />
+                    <span className="font-medium">{item.label}</span>
+                  </div>
+                </Link>
+              ))}
+            </nav>
+
+            <div className="p-4 mt-auto border-t border-border/50 space-y-2">
+              <a
+                href="https://t.me/odonta_ai_support"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 px-4 py-3 rounded-2xl transition-all hover:bg-secondary cursor-pointer text-sm"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>Поддержка</span>
+              </a>
+              <div 
+                onClick={handleLogout}
+                className="flex items-center gap-3 px-4 py-3 rounded-2xl transition-all hover:bg-destructive/10 hover:text-destructive cursor-pointer text-sm"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Выйти</span>
+              </div>
+            </div>
           </div>
+        </aside>
+      )}
 
-          <nav className="flex-1 px-4 space-y-2">
-            {navItems.map((item) => (
-              <Link key={item.href} href={item.href}>
-                <div 
-                  className={cn(
-                    "flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200 group cursor-pointer",
-                    location === item.href 
-                      ? "bg-primary text-primary-foreground shadow-md" 
-                      : "hover:bg-secondary text-foreground"
-                  )}
-                >
-                  <item.icon className={cn("w-5 h-5", location === item.href ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground")} />
-                  <span className="font-medium">{item.label}</span>
-                </div>
-              </Link>
-            ))}
-          </nav>
-
-          <div className="p-4 mt-auto border-t border-border/50 space-y-2">
+      {/* Mobile Header */}
+      {!hideNavigation && (
+        <div className="md:hidden fixed top-0 left-0 right-0 h-14 border-b border-border/50 bg-background/95 backdrop-blur-xl z-50 flex items-center justify-between px-4">
+          <div className="flex items-center gap-2">
+            <img 
+              src="/OdontaLogo.svg" 
+              alt="Odonta AI Logo" 
+              className="w-6 h-6"
+            />
+            <span className="font-display font-bold text-lg">Odonta AI</span>
+          </div>
+          <div className="flex items-center gap-2">
             <a
               href="https://t.me/odonta_ai_support"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-3 px-4 py-3 rounded-2xl transition-all hover:bg-secondary cursor-pointer text-sm"
+              className="flex items-center justify-center w-9 h-9 rounded-full border border-border/70 text-muted-foreground hover:text-foreground hover:border-primary/60 transition-colors"
+              aria-label="Техническая поддержка"
             >
               <MessageCircle className="w-4 h-4" />
-              <span>Поддержка</span>
             </a>
-            <div 
+            <button
+              type="button"
               onClick={handleLogout}
-              className="flex items-center gap-3 px-4 py-3 rounded-2xl transition-all hover:bg-destructive/10 hover:text-destructive cursor-pointer text-sm"
+              className="flex items-center justify-center w-9 h-9 rounded-full border border-border/70 text-muted-foreground hover:text-destructive hover:border-destructive/60 transition-colors"
+              aria-label="Выйти из аккаунта"
             >
               <LogOut className="w-4 h-4" />
-              <span>Выйти</span>
-            </div>
+            </button>
           </div>
         </div>
-      </aside>
-
-      {/* Mobile Header */}
-      <div className="md:hidden fixed top-0 left-0 right-0 h-14 border-b border-border/50 bg-background/95 backdrop-blur-xl z-50 flex items-center justify-between px-4">
-        <div className="flex items-center gap-2">
-          <img 
-            src="/OdontaLogo.svg" 
-            alt="Odonta AI Logo" 
-            className="w-6 h-6"
-          />
-          <span className="font-display font-bold text-lg">Odonta AI</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <a
-            href="https://t.me/odonta_ai_support"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center w-9 h-9 rounded-full border border-border/70 text-muted-foreground hover:text-foreground hover:border-primary/60 transition-colors"
-            aria-label="Техническая поддержка"
-          >
-            <MessageCircle className="w-4 h-4" />
-          </a>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="flex items-center justify-center w-9 h-9 rounded-full border border-border/70 text-muted-foreground hover:text-destructive hover:border-destructive/60 transition-colors"
-            aria-label="Выйти из аккаунта"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
+      )}
 
       {/* Main Content */}
-      <main className="flex-1 p-4 md:p-8 pt-16 md:pt-8 pb-20 md:pb-8 max-w-screen-2xl mx-auto w-full animate-in fade-in duration-500">
+      <main className={cn(
+        "flex-1 p-4 md:p-8 max-w-screen-2xl mx-auto w-full animate-in fade-in duration-500",
+        hideNavigation ? "pt-4 pb-4 md:pt-8 md:pb-8" : "pt-16 md:pt-8 pb-20 md:pb-8"
+      )}>
         {children}
       </main>
 
       {/* Mobile Bottom Navigation */}
-      <nav 
-        className="md:hidden fixed bottom-0 left-0 right-0 h-16 border-t border-border/50 bg-background/95 backdrop-blur-xl z-50 flex items-center justify-around px-2"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-      >
-        {navItems.map((item) => (
-          <Link key={item.href} href={item.href} className="flex-1">
-            <div 
-              className={cn(
-                "flex flex-col items-center justify-center gap-1 pt-1.5 pb-2 rounded-xl transition-all duration-200",
-                location === item.href 
-                  ? "text-primary" 
-                  : "text-muted-foreground"
-              )}
-            >
-              <item.icon className={cn("w-5 h-5", location === item.href && "text-primary")} />
-              <span className={cn("text-[10px] font-medium", location === item.href && "text-primary")}>
-                {item.label}
-              </span>
-            </div>
-          </Link>
-        ))}
-      </nav>
+      {!hideNavigation && (
+        <nav 
+          className="md:hidden fixed bottom-0 left-0 right-0 h-16 border-t border-border/50 bg-background/95 backdrop-blur-xl z-50 flex items-center justify-around px-2"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+        >
+          {navItems.map((item) => (
+            <Link key={item.href} href={item.href} className="flex-1">
+              <div 
+                className={cn(
+                  "flex flex-col items-center justify-center gap-1 pt-1.5 pb-2 rounded-xl transition-all duration-200",
+                  location === item.href 
+                    ? "text-primary" 
+                    : "text-muted-foreground"
+                )}
+              >
+                <item.icon className={cn("w-5 h-5", location === item.href && "text-primary")} />
+                <span className={cn("text-[10px] font-medium", location === item.href && "text-primary")}>
+                  {item.label}
+                </span>
+              </div>
+            </Link>
+          ))}
+        </nav>
+      )}
 
       {/* PWA Install Button */}
       <InstallPWAButton />
