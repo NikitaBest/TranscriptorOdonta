@@ -388,14 +388,53 @@ export default function ConsultationPage() {
   };
 
   const handleReprocess = async () => {
-    if (!id) return;
+    if (!id || !enrichedConsultation) return;
     
     setIsReprocessing(true);
     try {
-      await consultationsApi.reprocess(id);
+      const response = await consultationsApi.reprocess(id);
       
-      // Инвалидируем кэш консультации для обновления данных
+      // Сразу обновляем статус консультации в кэше на InProgress
+      // чтобы пользователь сразу видел индикатор загрузки
+      const updatedConsultation: ConsultationResponse = {
+        ...enrichedConsultation,
+        processingStatus: ConsultationProcessingStatus.InProgress,
+        status: ConsultationProcessingStatus.InProgress,
+        // Очищаем поля отчета, так как они будут перегенерированы
+        summary: undefined,
+        complaints: undefined,
+        objective: undefined,
+        treatmentPlan: undefined,
+        transcript: undefined,
+      };
+      
+      queryClient.setQueryData(['consultation', id], updatedConsultation);
+      
+      // Также обновляем кэш списка консультаций
+      queryClient.setQueryData(['consultations', 'all'], (oldData: ConsultationResponse[] | undefined) => {
+        if (!oldData) return oldData;
+        return oldData.map(c => 
+          String(c.id) === String(id)
+            ? { ...c, processingStatus: ConsultationProcessingStatus.InProgress, status: ConsultationProcessingStatus.InProgress }
+            : c
+        );
+      });
+      
+      // Обновляем кэш консультаций пациента
+      if (enrichedConsultation.clientId) {
+        queryClient.setQueryData(['patient-consultations', enrichedConsultation.clientId], (oldData: ConsultationResponse[] | undefined) => {
+          if (!oldData) return oldData;
+          return oldData.map(c => 
+            String(c.id) === String(id)
+              ? { ...c, processingStatus: ConsultationProcessingStatus.InProgress, status: ConsultationProcessingStatus.InProgress }
+              : c
+          );
+        });
+      }
+      
+      // Инвалидируем кэш для автоматического обновления данных с сервера
       queryClient.invalidateQueries({ queryKey: ['consultation', id] });
+      queryClient.invalidateQueries({ queryKey: ['consultations'] });
       
       toast({
         title: "Переобработка запущена",
@@ -410,6 +449,7 @@ export default function ConsultationPage() {
       });
     } finally {
       setIsReprocessing(false);
+      setReprocessDialogOpen(false);
     }
   };
 
@@ -597,25 +637,20 @@ export default function ConsultationPage() {
                       <Button 
                         variant="outline" 
                         className="transition-all active:scale-95 active:opacity-70"
-                        onClick={async () => {
-                          if (!id) return;
-                          try {
-                            await consultationsApi.reprocess(id);
-                            toast({
-                              title: "Переобработка запущена",
-                              description: "Консультация отправлена на повторную обработку.",
-                            });
-                          } catch (error) {
-                            toast({
-                              title: "Ошибка",
-                              description: "Не удалось запустить переобработку.",
-                              variant: "destructive",
-                            });
-                          }
-                        }}
+                        onClick={handleReprocess}
+                        disabled={isReprocessing}
                       >
-                        <RefreshCw className="w-4 h-4 mr-2" />
-                        Переобработать
+                        {isReprocessing ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Переобработка...
+                          </>
+                        ) : (
+                          <>
+                            <RefreshCw className="w-4 h-4 mr-2" />
+                            Переобработать
+                          </>
+                        )}
                       </Button>
                     </CardContent>
                   </Card>
