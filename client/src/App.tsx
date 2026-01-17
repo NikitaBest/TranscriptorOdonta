@@ -24,9 +24,13 @@ import RecordPage from "@/pages/record";
 import ConsultationPage from "@/pages/consultation";
 import HistoryPage from "@/pages/history";
 import ShareConsultationPage from "@/pages/share-consultation";
+import ConfirmEmailPage from "@/pages/confirm-email";
+import ForgotPasswordPage from "@/pages/forgot-password";
+import ResetPasswordPage from "@/pages/reset-password";
+import SettingsPage from "@/pages/settings";
 
 // Публичные маршруты, которые не требуют авторизации
-const PUBLIC_ROUTES = ['/auth', '/register', '/share'];
+const PUBLIC_ROUTES = ['/auth', '/register', '/share', '/confirm-email', '/forgot-password', '/reset-password'];
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
@@ -157,6 +161,9 @@ function Router() {
         <Route path="/" component={AuthPage} />
         <Route path="/auth" component={AuthPage} />
         <Route path="/register" component={RegisterPage} />
+        <Route path="/confirm-email" component={ConfirmEmailPage} />
+        <Route path="/forgot-password" component={ForgotPasswordPage} />
+        <Route path="/reset-password" component={ResetPasswordPage} />
         <Route path="/dashboard" component={Dashboard} />
         <Route path="/patient/new" component={PatientCreatePage} />
         <Route path="/patient/:id" component={PatientProfile} />
@@ -164,6 +171,7 @@ function Router() {
         <Route path="/record" component={RecordPage} />
         <Route path="/consultation/:id" component={ConsultationPage} />
         <Route path="/history" component={HistoryPage} />
+        <Route path="/settings" component={SettingsPage} />
         <Route path="/share/consultation/:id" component={ShareConsultationPage} />
         <Route path="/share/consultation/:id/:token" component={ShareConsultationPage} />
         

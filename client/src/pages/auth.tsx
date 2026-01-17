@@ -141,6 +141,12 @@ export default function AuthPage() {
                 {isLoading ? "Вход..." : "Войти"}
               </Button>
             </form>
+            
+            <div className="mt-4 text-center">
+              <Link href="/forgot-password" className="text-sm text-muted-foreground hover:text-foreground hover:underline">
+                Забыли пароль?
+              </Link>
+            </div>
           </CardContent>
         </Card>
         

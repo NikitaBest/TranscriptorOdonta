@@ -238,6 +238,70 @@ export interface UploadConsultationResponse {
 }
 
 /**
+ * Запрос на подтверждение email
+ */
+export interface ConfirmEmailRequest {
+  userId: string;
+  token: string;
+}
+
+/**
+ * Ответ при подтверждении email
+ */
+export interface ConfirmEmailResponse {
+  isSuccess: boolean;
+  error: string;
+}
+
+/**
+ * Запрос на сброс пароля (отправка email)
+ */
+export interface ResetPasswordRequest {
+  email: string;
+}
+
+/**
+ * Ответ при запросе сброса пароля
+ */
+export interface ResetPasswordResponse {
+  isSuccess: boolean;
+  error: string;
+}
+
+/**
+ * Запрос на проверку токена сброса пароля
+ */
+export interface CheckResetPasswordTokenRequest {
+  userId: string;
+  token: string;
+}
+
+/**
+ * Ответ при проверке токена сброса пароля
+ */
+export interface CheckResetPasswordTokenResponse {
+  isSuccess: boolean;
+  error: string;
+}
+
+/**
+ * Запрос на смену пароля
+ */
+export interface ChangePasswordRequest {
+  userId: string;
+  token: string;
+  newPassword: string;
+}
+
+/**
+ * Ответ при смене пароля
+ */
+export interface ChangePasswordResponse {
+  isSuccess: boolean;
+  error: string;
+}
+
+/**
  * Ошибка API
  */
 export interface ApiError {

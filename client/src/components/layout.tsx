@@ -6,6 +6,7 @@ import {
   History, 
   LogOut,
   MessageCircle,
+  Settings,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { authApi } from '@/lib/api/auth';
@@ -76,6 +77,19 @@ export function Layout({ children, hideNavigation = false }: LayoutProps) {
             </nav>
 
             <div className="p-4 mt-auto border-t border-border/50 space-y-2">
+              <Link href="/settings">
+                <div 
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-3 rounded-2xl transition-all cursor-pointer text-sm",
+                    location === '/settings'
+                      ? "bg-primary text-primary-foreground shadow-md" 
+                      : "hover:bg-secondary text-foreground"
+                  )}
+                >
+                  <Settings className={cn("w-4 h-4", location === '/settings' ? "text-primary-foreground" : "text-muted-foreground")} />
+                  <span>Настройки</span>
+                </div>
+              </Link>
               <a
                 href="https://t.me/odonta_ai_support"
                 target="_blank"
@@ -161,6 +175,21 @@ export function Layout({ children, hideNavigation = false }: LayoutProps) {
               </div>
             </Link>
           ))}
+          <Link href="/settings" className="flex-1">
+            <div 
+              className={cn(
+                "flex flex-col items-center justify-center gap-1 pt-1.5 pb-2 rounded-xl transition-all duration-200",
+                location === '/settings'
+                  ? "text-primary" 
+                  : "text-muted-foreground"
+              )}
+            >
+              <Settings className={cn("w-5 h-5", location === '/settings' && "text-primary")} />
+              <span className={cn("text-[10px] font-medium", location === '/settings' && "text-primary")}>
+                Настройки
+              </span>
+            </div>
+          </Link>
         </nav>
       )}
 
