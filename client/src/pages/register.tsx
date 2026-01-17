@@ -11,10 +11,18 @@ import {
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { authApi } from "@/lib/api/auth";
 import { useToast } from "@/hooks/use-toast";
 import type { ApiError } from "@/lib/api/types";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Mail } from "lucide-react";
 
 export default function RegisterPage() {
   const [, setLocation] = useLocation();
@@ -25,6 +33,8 @@ export default function RegisterPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [consentAccepted, setConsentAccepted] = useState(false);
   const [marketingConsentAccepted, setMarketingConsentAccepted] = useState(false);
+  const [showEmailConfirmationDialog, setShowEmailConfirmationDialog] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState<string>("");
 
   const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -62,15 +72,16 @@ export default function RegisterPage() {
         password,
       });
 
+      // Сохраняем email для показа в диалоге
+      setRegisteredEmail(email);
+      
+      // Показываем диалог о подтверждении email
+      setShowEmailConfirmationDialog(true);
+
       toast({
         title: "Регистрация успешна",
-        description: "Добро пожаловать! Вы будете перенаправлены...",
+        description: "Пожалуйста, подтвердите ваш email адрес",
       });
-
-      // Перенаправляем на дашборд после успешной регистрации
-      setTimeout(() => {
-        setLocation("/dashboard");
-      }, 1000);
     } catch (err) {
       console.error('Registration error:', err);
       
@@ -272,6 +283,54 @@ export default function RegisterPage() {
           </Link>
         </div>
       </div>
+
+      {/* Dialog для подтверждения email */}
+      <Dialog open={showEmailConfirmationDialog} onOpenChange={() => {
+        // Диалог можно закрыть только через кнопки внутри
+        // Не закрываем при клике вне диалога или ESC
+      }}>
+        <DialogContent className="sm:max-w-md rounded-2xl md:rounded-3xl p-4 md:p-6 max-h-[90vh] overflow-y-auto [&>button]:hidden">
+          <DialogHeader className="space-y-3">
+            <div className="flex items-center justify-center mb-2">
+              <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-primary/10 flex items-center justify-center">
+                <Mail className="w-8 h-8 md:w-10 md:h-10 text-primary" />
+              </div>
+            </div>
+            <DialogTitle className="text-xl md:text-2xl text-center font-display">
+              Подтвердите ваш email
+            </DialogTitle>
+            <DialogDescription className="text-center text-sm md:text-base pt-1">
+              Мы отправили письмо с подтверждением на адрес
+            </DialogDescription>
+            <div className="text-center mt-3 px-2">
+              <p className="font-semibold text-sm md:text-base break-all bg-secondary/30 rounded-lg p-2 md:p-3">
+                {registeredEmail}
+              </p>
+            </div>
+          </DialogHeader>
+          
+          <div className="space-y-2 md:space-y-3 py-3 md:py-4">
+            <p className="text-xs md:text-sm text-muted-foreground text-center px-2">
+              Пожалуйста, проверьте вашу почту и перейдите по ссылке для подтверждения email адреса.
+            </p>
+            <p className="text-xs md:text-sm text-muted-foreground text-center px-2">
+              Если письмо не пришло, проверьте папку "Спам" или запросите повторную отправку в настройках.
+            </p>
+          </div>
+
+          <DialogFooter className="pt-2">
+            <Button
+              onClick={() => {
+                setShowEmailConfirmationDialog(false);
+                setLocation("/dashboard");
+              }}
+              className="w-full h-11 md:h-12 text-sm md:text-base"
+            >
+              Продолжить
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
