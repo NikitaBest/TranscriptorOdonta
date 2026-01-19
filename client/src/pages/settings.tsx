@@ -2,27 +2,18 @@ import { useState } from 'react';
 import { Link } from 'wouter';
 import { Layout } from '@/components/layout';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { authApi } from '@/lib/api/auth';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
 import type { ApiError } from '@/lib/api/types';
-import { Loader2, Mail, Lock, CheckCircle2, XCircle, ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Mail, Lock, CheckCircle2, XCircle, ArrowLeft } from 'lucide-react';
 
 export default function SettingsPage() {
   const { toast } = useToast();
   const [isSendingConfirmation, setIsSendingConfirmation] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
-  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [isSendingPasswordReset, setIsSendingPasswordReset] = useState(false);
 
   // Загружаем данные текущего пользователя
   const { data: currentUser, isLoading: isLoadingUser } = useQuery({
@@ -63,62 +54,44 @@ export default function SettingsPage() {
     }
   };
 
-  const validatePassword = (pwd: string): string | null => {
-    if (!pwd) {
-      return 'Пароль обязателен';
-    }
-    if (pwd.length < 6) {
-      return 'Пароль должен содержать минимум 6 символов';
-    }
-    return null;
-  };
-
-  const handleChangePassword = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-
-    // Валидация
-    const passwordValidationError = validatePassword(newPassword);
-    if (passwordValidationError) {
-      setPasswordError(passwordValidationError);
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      setPasswordError('Пароли не совпадают');
-      return;
-    }
-
-    if (!currentPassword) {
-      setPasswordError('Введите текущий пароль');
-      return;
-    }
-
-    setPasswordError(null);
-    setIsChangingPassword(true);
-
-    try {
-      // Здесь нужно добавить эндпоинт для смены пароля авторизованным пользователем
-      // Пока используем общий change-password, но нужен отдельный /auth/change-password для авторизованных
-      toast({
-        title: 'Информация',
-        description: 'Функция смены пароля для авторизованных пользователей будет добавлена позже',
-      });
-      
-      // Очищаем поля после успешной смены
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-    } catch (err) {
-      console.error('Change password error:', err);
-      const apiError = err as ApiError;
-      setPasswordError(apiError.message || 'Не удалось изменить пароль');
+  const handleRequestPasswordReset = async () => {
+    if (!currentUser?.email) {
       toast({
         title: 'Ошибка',
-        description: apiError.message || 'Не удалось изменить пароль. Попробуйте еще раз.',
+        description: 'Email не найден',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsSendingPasswordReset(true);
+    try {
+      const response = await authApi.resetPassword({
+        email: currentUser.email,
+      });
+
+      if (response.isSuccess) {
+        toast({
+          title: 'Письмо отправлено',
+          description: 'Ссылка для сброса пароля отправлена на ваш email адрес.',
+        });
+      } else {
+        toast({
+          title: 'Ошибка',
+          description: response.error || 'Не удалось отправить письмо. Попробуйте еще раз.',
+          variant: 'destructive',
+        });
+      }
+    } catch (err) {
+      console.error('Request password reset error:', err);
+      const apiError = err as ApiError;
+      toast({
+        title: 'Ошибка',
+        description: apiError.message || 'Не удалось отправить письмо. Попробуйте еще раз.',
         variant: 'destructive',
       });
     } finally {
-      setIsChangingPassword(false);
+      setIsSendingPasswordReset(false);
     }
   };
 
@@ -221,117 +194,33 @@ export default function SettingsPage() {
               <span>Смена пароля</span>
             </CardTitle>
             <CardDescription className="text-xs md:text-sm">
-              Измените пароль для вашего аккаунта
+              Для изменения пароля мы отправим ссылку на ваш email адрес
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-4 md:p-6">
-            <form onSubmit={handleChangePassword} className="space-y-3 md:space-y-4">
-              <div className="space-y-1.5 md:space-y-2">
-                <Label htmlFor="currentPassword" className="text-sm md:text-base">Текущий пароль</Label>
-                <div className="relative">
-                  <Input
-                    id="currentPassword"
-                    type={showCurrentPassword ? "text" : "password"}
-                    value={currentPassword}
-                    onChange={(e) => {
-                      setCurrentPassword(e.target.value);
-                      setPasswordError(null);
-                    }}
-                    className="h-11 md:h-12 rounded-xl bg-secondary/30 border-transparent focus:border-primary focus:bg-background transition-all pr-10 text-sm md:text-base"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors touch-manipulation"
-                    aria-label={showCurrentPassword ? "Скрыть пароль" : "Показать пароль"}
-                  >
-                    {showCurrentPassword ? (
-                      <EyeOff className="h-4 w-4 md:h-5 md:w-5" />
-                    ) : (
-                      <Eye className="h-4 w-4 md:h-5 md:w-5" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-1.5 md:space-y-2">
-                <Label htmlFor="newPassword" className="text-sm md:text-base">Новый пароль</Label>
-                <div className="relative">
-                  <Input
-                    id="newPassword"
-                    type={showNewPassword ? "text" : "password"}
-                    value={newPassword}
-                    onChange={(e) => {
-                      setNewPassword(e.target.value);
-                      setPasswordError(null);
-                    }}
-                    className="h-11 md:h-12 rounded-xl bg-secondary/30 border-transparent focus:border-primary focus:bg-background transition-all pr-10 text-sm md:text-base"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowNewPassword(!showNewPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors touch-manipulation"
-                    aria-label={showNewPassword ? "Скрыть пароль" : "Показать пароль"}
-                  >
-                    {showNewPassword ? (
-                      <EyeOff className="h-4 w-4 md:h-5 md:w-5" />
-                    ) : (
-                      <Eye className="h-4 w-4 md:h-5 md:w-5" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-1.5 md:space-y-2">
-                <Label htmlFor="confirmPassword" className="text-sm md:text-base">Повторите новый пароль</Label>
-                <div className="relative">
-                  <Input
-                    id="confirmPassword"
-                    type={showConfirmPassword ? "text" : "password"}
-                    value={confirmPassword}
-                    onChange={(e) => {
-                      setConfirmPassword(e.target.value);
-                      setPasswordError(null);
-                    }}
-                    className="h-11 md:h-12 rounded-xl bg-secondary/30 border-transparent focus:border-primary focus:bg-background transition-all pr-10 text-sm md:text-base"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors touch-manipulation"
-                    aria-label={showConfirmPassword ? "Скрыть пароль" : "Показать пароль"}
-                  >
-                    {showConfirmPassword ? (
-                      <EyeOff className="h-4 w-4 md:h-5 md:w-5" />
-                    ) : (
-                      <Eye className="h-4 w-4 md:h-5 md:w-5" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {passwordError && (
-                <p className="text-xs md:text-sm text-destructive text-center px-2">{passwordError}</p>
-              )}
-
+          <CardContent className="p-4 md:p-6 space-y-3 md:space-y-4">
+            <div className="space-y-3 md:space-y-4">
+              <p className="text-xs md:text-sm text-muted-foreground">
+                Нажмите кнопку ниже, чтобы получить ссылку для сброса пароля на ваш email адрес <strong className="break-all">{currentUser?.email}</strong>
+              </p>
+              
               <Button
-                type="submit"
-                className="w-full h-11 md:h-12 rounded-xl text-sm md:text-base font-medium mt-2 md:mt-4"
-                disabled={isChangingPassword}
+                onClick={handleRequestPasswordReset}
+                disabled={isSendingPasswordReset}
+                className="w-full h-11 md:h-12 text-sm md:text-base"
               >
-                {isChangingPassword ? (
+                {isSendingPasswordReset ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Изменение...
+                    Отправка...
                   </>
                 ) : (
-                  'Изменить пароль'
+                  <>
+                    <Mail className="w-4 h-4 mr-2" />
+                    Отправить ссылку для сброса пароля
+                  </>
                 )}
               </Button>
-            </form>
+            </div>
           </CardContent>
         </Card>
       </div>
