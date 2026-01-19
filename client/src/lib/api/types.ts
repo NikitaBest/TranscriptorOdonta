@@ -15,10 +15,7 @@ export interface RegisterRequest {
  */
 export interface RegisterResponse {
   token: string;
-  user?: {
-    id: string;
-    email: string;
-  };
+  user?: User;
 }
 
 /**
@@ -30,14 +27,20 @@ export interface LoginRequest {
 }
 
 /**
+ * Данные пользователя
+ */
+export interface User {
+  id: string;
+  email: string;
+  emailConfirmed?: boolean; // Статус подтверждения email
+}
+
+/**
  * Ответ при успешной авторизации
  */
 export interface LoginResponse {
   token: string;
-  user?: {
-    id: string;
-    email: string;
-  };
+  user?: User;
 }
 
 /**

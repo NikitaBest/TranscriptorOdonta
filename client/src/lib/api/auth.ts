@@ -37,13 +37,39 @@ export const authApi = {
 
     // Сохраняем данные пользователя в localStorage, если они пришли
     if (response.user) {
-      localStorage.setItem('user_data', JSON.stringify(response.user));
+      // Убеждаемся, что emailConfirmed есть (по умолчанию false, если не указано)
+      const userData = {
+        ...response.user,
+        emailConfirmed: response.user.emailConfirmed ?? false,
+      };
+      localStorage.setItem('user_data', JSON.stringify(userData));
     } else {
       // Если user не пришел в ответе, сохраняем email из запроса
-      localStorage.setItem('user_data', JSON.stringify({
-        id: '',
-        email: data.email,
-      }));
+      // При логине не знаем статус подтверждения, оставляем как есть или false
+      const existingUserData = localStorage.getItem('user_data');
+      if (existingUserData) {
+        try {
+          const parsed = JSON.parse(existingUserData);
+          // Обновляем только email, сохраняем остальные данные
+          localStorage.setItem('user_data', JSON.stringify({
+            ...parsed,
+            email: data.email,
+          }));
+        } catch (e) {
+          // Если не удалось распарсить, создаем новый объект
+          localStorage.setItem('user_data', JSON.stringify({
+            id: '',
+            email: data.email,
+            emailConfirmed: false,
+          }));
+        }
+      } else {
+        localStorage.setItem('user_data', JSON.stringify({
+          id: '',
+          email: data.email,
+          emailConfirmed: false,
+        }));
+      }
     }
 
     return response;
@@ -69,13 +95,39 @@ export const authApi = {
 
     // Сохраняем данные пользователя в localStorage, если они пришли
     if (response.user) {
-      localStorage.setItem('user_data', JSON.stringify(response.user));
+      // Убеждаемся, что emailConfirmed есть (по умолчанию false, если не указано)
+      const userData = {
+        ...response.user,
+        emailConfirmed: response.user.emailConfirmed ?? false,
+      };
+      localStorage.setItem('user_data', JSON.stringify(userData));
     } else {
       // Если user не пришел в ответе, сохраняем email из запроса
-      localStorage.setItem('user_data', JSON.stringify({
-        id: '',
-        email: data.email,
-      }));
+      // При логине не знаем статус подтверждения, оставляем как есть или false
+      const existingUserData = localStorage.getItem('user_data');
+      if (existingUserData) {
+        try {
+          const parsed = JSON.parse(existingUserData);
+          // Обновляем только email, сохраняем остальные данные
+          localStorage.setItem('user_data', JSON.stringify({
+            ...parsed,
+            email: data.email,
+          }));
+        } catch (e) {
+          // Если не удалось распарсить, создаем новый объект
+          localStorage.setItem('user_data', JSON.stringify({
+            id: '',
+            email: data.email,
+            emailConfirmed: false,
+          }));
+        }
+      } else {
+        localStorage.setItem('user_data', JSON.stringify({
+          id: '',
+          email: data.email,
+          emailConfirmed: false,
+        }));
+      }
     }
 
     return response;
@@ -95,18 +147,24 @@ export const authApi = {
    * Получение данных текущего пользователя
    * Использует данные из localStorage (сохраненные при логине)
    */
-  async getCurrentUser(): Promise<{ id: string; email: string }> {
+  async getCurrentUser(): Promise<User> {
     const userData = localStorage.getItem('user_data');
     if (userData) {
       try {
-        return JSON.parse(userData);
+        const parsed = JSON.parse(userData);
+        // Убеждаемся, что emailConfirmed есть (по умолчанию false, если не указано)
+        return {
+          id: parsed.id || '',
+          email: parsed.email || '',
+          emailConfirmed: parsed.emailConfirmed ?? false,
+        };
       } catch (e) {
         console.error('Error parsing user data:', e);
       }
     }
     
     // Если данных нет, возвращаем пустой объект
-    return { id: '', email: '' };
+    return { id: '', email: '', emailConfirmed: false };
   },
 
   /**

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'wouter';
 import { Layout } from '@/components/layout';
 import { Button } from '@/components/ui/button';
@@ -16,11 +16,30 @@ export default function SettingsPage() {
   const [isSendingPasswordReset, setIsSendingPasswordReset] = useState(false);
 
   // Загружаем данные текущего пользователя
-  const { data: currentUser, isLoading: isLoadingUser } = useQuery({
+  const { data: currentUser, isLoading: isLoadingUser, refetch: refetchUser } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => authApi.getCurrentUser(),
     retry: false,
   });
+
+  // Обновляем данные пользователя при изменении localStorage (например, после подтверждения email)
+  useEffect(() => {
+    const handleStorageChange = () => {
+      refetchUser();
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Также проверяем периодически (на случай если данные изменились в той же вкладке)
+    const interval = setInterval(() => {
+      refetchUser();
+    }, 2000); // Проверяем каждые 2 секунды
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, [refetchUser]);
 
   const handleResendConfirmation = async () => {
     if (!currentUser?.email) {
@@ -144,10 +163,10 @@ export default function SettingsPage() {
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-sm md:text-base truncate">{currentUser?.email || 'Email не загружен'}</p>
                 <p className="text-xs md:text-sm text-muted-foreground mt-0.5">
-                  {currentUser?.email ? 'Email подтвержден' : 'Email не подтвержден'}
+                  {currentUser?.emailConfirmed ? 'Email подтвержден' : 'Email не подтвержден'}
                 </p>
               </div>
-              {currentUser?.email ? (
+              {currentUser?.emailConfirmed ? (
                 <div className="flex items-center gap-1.5 md:gap-2 text-green-600 flex-shrink-0">
                   <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5" />
                   <span className="text-xs md:text-sm font-medium">Подтвержден</span>
@@ -160,7 +179,7 @@ export default function SettingsPage() {
               )}
             </div>
             
-            {!currentUser?.email && (
+            {currentUser?.email && !currentUser?.emailConfirmed && (
               <>
                 <Separator className="my-3 md:my-4" />
                 <Button

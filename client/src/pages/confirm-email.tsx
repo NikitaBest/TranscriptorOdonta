@@ -37,6 +37,18 @@ export default function ConfirmEmailPage() {
         if (response.isSuccess) {
           setStatus('success');
           
+          // Обновляем статус подтверждения email в localStorage
+          const userData = localStorage.getItem('user_data');
+          if (userData) {
+            try {
+              const parsed = JSON.parse(userData);
+              parsed.emailConfirmed = true;
+              localStorage.setItem('user_data', JSON.stringify(parsed));
+            } catch (e) {
+              console.error('Error updating email confirmation status:', e);
+            }
+          }
+          
           toast({
             title: 'Email подтвержден',
             description: 'Ваш email успешно подтвержден.',
