@@ -4,7 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="рефакторинг кода" />
+    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="на странице настроеек подтверждение пароля">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/инструкция.md" beforeDir="false" afterPath="$PROJECT_DIR$/инструкция.md" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -46,6 +49,7 @@
     "RunOnceActivity.typescript.service.memoryLimit.init": "true",
     "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
     "git-widget-placeholder": "nikita",
+    "javascript.preferred.runtime.type.id": "node",
     "junie.onboarding.icon.badge.shown": "true",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
@@ -54,6 +58,7 @@
     "nodejs_package_manager_path": "npm",
     "settings.editor.selected.configurable": "web.server",
     "to.speed.mode.migration.done": "true",
+    "ts.external.directory.path": "/Users/nikitabessonov/Desktop/TranscriptorOdonta/node_modules/typescript/lib",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
@@ -84,38 +89,6 @@
       <workItem from="1765479286600" duration="1715000" />
       <workItem from="1767823165119" duration="782000" />
       <workItem from="1767913654752" duration="2491000" />
-    </task>
-    <task id="LOCAL-00011" summary="добавлено к блокам отчет о консультации растянуть блок">
-      <option name="closed" value="true" />
-      <created>1764761622520</created>
-      <option name="number" value="00011" />
-      <option name="presentableId" value="LOCAL-00011" />
-      <option name="project" value="LOCAL" />
-      <updated>1764761622520</updated>
-    </task>
-    <task id="LOCAL-00012" summary="добавлено реальная запись голоса">
-      <option name="closed" value="true" />
-      <created>1764762565578</created>
-      <option name="number" value="00012" />
-      <option name="presentableId" value="LOCAL-00012" />
-      <option name="project" value="LOCAL" />
-      <updated>1764762565578</updated>
-    </task>
-    <task id="LOCAL-00013" summary="добавлен выход из аккаунта для мобилки">
-      <option name="closed" value="true" />
-      <created>1764840159740</created>
-      <option name="number" value="00013" />
-      <option name="presentableId" value="LOCAL-00013" />
-      <option name="project" value="LOCAL" />
-      <updated>1764840159740</updated>
-    </task>
-    <task id="LOCAL-00014" summary="заголовок выберите пациента по середине">
-      <option name="closed" value="true" />
-      <created>1764848547638</created>
-      <option name="number" value="00014" />
-      <option name="presentableId" value="LOCAL-00014" />
-      <option name="project" value="LOCAL" />
-      <updated>1764848547638</updated>
     </task>
     <task id="LOCAL-00015" summary="добавление связи с бек авторизация регистрация">
       <option name="closed" value="true" />
@@ -477,17 +450,45 @@
       <option name="project" value="LOCAL" />
       <updated>1768160454648</updated>
     </task>
-    <option name="localTasksCounter" value="60" />
+    <task id="LOCAL-00060" summary="работа с настройками и авторизации">
+      <option name="closed" value="true" />
+      <created>1768610186610</created>
+      <option name="number" value="00060" />
+      <option name="presentableId" value="LOCAL-00060" />
+      <option name="project" value="LOCAL" />
+      <updated>1768610186610</updated>
+    </task>
+    <task id="LOCAL-00061" summary="модальное окно после регистрации">
+      <option name="closed" value="true" />
+      <created>1768611969389</created>
+      <option name="number" value="00061" />
+      <option name="presentableId" value="LOCAL-00061" />
+      <option name="project" value="LOCAL" />
+      <updated>1768611969390</updated>
+    </task>
+    <task id="LOCAL-00062" summary="на странице настроеек убрано поля смены пароля">
+      <option name="closed" value="true" />
+      <created>1768860248439</created>
+      <option name="number" value="00062" />
+      <option name="presentableId" value="LOCAL-00062" />
+      <option name="project" value="LOCAL" />
+      <updated>1768860248439</updated>
+    </task>
+    <task id="LOCAL-00063" summary="на странице настроеек подтверждение пароля">
+      <option name="closed" value="true" />
+      <created>1768860816827</created>
+      <option name="number" value="00063" />
+      <option name="presentableId" value="LOCAL-00063" />
+      <option name="project" value="LOCAL" />
+      <updated>1768860816827</updated>
+    </task>
+    <option name="localTasksCounter" value="64" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="работа с аудио плеером, адаптация под мобилку" />
-    <MESSAGE value="поделится отчетом публичная страница" />
-    <MESSAGE value="поделится отчетом публичная страница 1" />
-    <MESSAGE value="редактирование кнопки новая консультация" />
     <MESSAGE value="редактирование кнопки сохранить на редактировании" />
     <MESSAGE value="подключена база для телеграмм" />
     <MESSAGE value="подключена база для телеграмм все файлы" />
@@ -509,6 +510,10 @@
     <MESSAGE value="добавлен метод для свайпа не закрытия" />
     <MESSAGE value="добавлен метод для свайпа не закрытия 1" />
     <MESSAGE value="рефакторинг кода" />
-    <option name="LAST_COMMIT_MESSAGE" value="рефакторинг кода" />
+    <MESSAGE value="работа с настройками и авторизации" />
+    <MESSAGE value="модальное окно после регистрации" />
+    <MESSAGE value="на странице настроеек убрано поля смены пароля" />
+    <MESSAGE value="на странице настроеек подтверждение пароля" />
+    <option name="LAST_COMMIT_MESSAGE" value="на странице настроеек подтверждение пароля" />
   </component>
 </project>

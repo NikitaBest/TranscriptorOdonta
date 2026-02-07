@@ -42,9 +42,12 @@ export default function RegisterPage() {
     const email = formData.get("email")?.toString().trim();
     const password = formData.get("password")?.toString();
     const confirm = formData.get("confirm")?.toString();
+    const firstName = formData.get("firstName")?.toString().trim();
+    const lastName = formData.get("lastName")?.toString().trim();
+    const middleName = formData.get("middleName")?.toString().trim();
 
-    if (!email || !password || !confirm) {
-      setError("Заполните все поля");
+    if (!email || !password || !confirm || !firstName || !lastName) {
+      setError("Заполните все обязательные поля");
       return;
     }
 
@@ -70,6 +73,9 @@ export default function RegisterPage() {
       await authApi.register({
         email,
         password,
+        firstName,
+        lastName,
+        middleName: middleName || undefined, // Отчество опциональное
       });
 
       // Сохраняем email для показа в диалоге
@@ -89,7 +95,10 @@ export default function RegisterPage() {
       let errorMessage =
         apiError.message ||
         apiError.errors?.email?.[0] ||
-        apiError.errors?.password?.[0];
+        apiError.errors?.password?.[0] ||
+        apiError.errors?.firstName?.[0] ||
+        apiError.errors?.lastName?.[0] ||
+        apiError.errors?.middleName?.[0];
 
       // Если это сетевая ошибка (статус 0), даем более понятное сообщение
       if (apiError.status === 0) {
@@ -136,13 +145,49 @@ export default function RegisterPage() {
           <CardHeader className="space-y-1 pb-6">
             <CardTitle className="text-2xl text-center">Регистрация</CardTitle>
             <CardDescription className="text-center">
-              Введите email и пароль для создания аккаунта
+              Заполните данные для создания аккаунта
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleRegister} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Фамилия *</Label>
+                  <Input
+                    id="lastName"
+                    name="lastName"
+                    type="text"
+                    placeholder="Иванов"
+                    required
+                    className="h-12 rounded-xl bg-secondary/30 border-transparent focus:border-primary focus:bg-background transition-all"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">Имя *</Label>
+                  <Input
+                    id="firstName"
+                    name="firstName"
+                    type="text"
+                    placeholder="Иван"
+                    required
+                    className="h-12 rounded-xl bg-secondary/30 border-transparent focus:border-primary focus:bg-background transition-all"
+                  />
+                </div>
+              </div>
+
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="middleName">Отчество</Label>
+                <Input
+                  id="middleName"
+                  name="middleName"
+                  type="text"
+                  placeholder="Иванович"
+                  className="h-12 rounded-xl bg-secondary/30 border-transparent focus:border-primary focus:bg-background transition-all"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email">Email *</Label>
                 <Input
                   id="email"
                   name="email"

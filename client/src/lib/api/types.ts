@@ -8,6 +8,9 @@
 export interface RegisterRequest {
   email: string;
   password: string;
+  firstName: string; // Имя (обязательное)
+  lastName: string; // Фамилия (обязательное)
+  middleName?: string; // Отчество (опциональное)
 }
 
 /**

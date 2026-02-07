@@ -35,21 +35,27 @@ npm install
 
 ### 3. Настройка переменных окружения
 
-Скопируйте файл `.env.example` в `.env`:
+#### Вариант 1: Один `.env` + `.env.local` (рекомендуется)
 
-```bash
-cp .env.example .env
-```
-
-Отредактируйте `.env` файл и укажите необходимые значения:
-
+1. Оставьте ваш `.env` файл с продакшн настройками:
 ```env
-# URL базового API бэкенда
-VITE_API_BASE_URL=https://transcriptor-backend-api.odonta.burtimaxbot.ru
-
-# Таймаут для API запросов в миллисекундах
+VITE_API_BASE_URL=https://backend.ai.odonta.ru
 VITE_API_TIMEOUT=30000
 ```
+
+2. Создайте `.env.local` для разработки (игнорируется git):
+```env
+VITE_API_BASE_URL=https://dev-backend.ai.odonta.ru
+VITE_API_TIMEOUT=30000
+```
+
+**Как работает:**
+- `npm run dev` → использует `.env.local` (если есть) → dev-backend
+- `npm run build` → использует `.env` → production-backend
+
+#### Вариант 2: Отдельные файлы для каждого режима
+
+Создайте `.env.development` и `.env.production` (см. подробности в `инструкция.md`)
 
 ### 4. Запуск в режиме разработки
 
@@ -156,10 +162,34 @@ docker run -p 80:80 transcriptor-odonta
 
 | Переменная | Описание | Значение по умолчанию |
 |------------|----------|----------------------|
-| `VITE_API_BASE_URL` | URL базового API бэкенда | `https://transcriptor-backend-api.odonta.burtimaxbot.ru` |
+| `VITE_API_BASE_URL` | URL базового API бэкенда | Зависит от режима (см. ниже) |
 | `VITE_API_TIMEOUT` | Таймаут для API запросов (мс) | `30000` |
 
-**Важно**: Все переменные окружения должны начинаться с префикса `VITE_` для работы с Vite.
+**Важно**: 
+- Все переменные окружения должны начинаться с префикса `VITE_` для работы с Vite
+- Vite автоматически загружает файлы в зависимости от режима:
+  - **Разработка** (`npm run dev`): `.env.development` → `.env.local` → `.env`
+  - **Продакшен** (`npm run build`): `.env.production` → `.env.local` → `.env`
+
+### Примеры файлов
+
+**`.env.development`** (для разработки):
+```env
+VITE_API_BASE_URL=https://dev-backend.ai.odonta.ru
+VITE_API_TIMEOUT=30000
+```
+
+**`.env.production`** (для продакшена):
+```env
+VITE_API_BASE_URL=https://transcriptor-backend-api.odonta.burtimaxbot.ru
+VITE_API_TIMEOUT=30000
+```
+
+**`.env.local`** (локальные переопределения, игнорируется git):
+```env
+# Переопределяет значения для вашей локальной машины
+VITE_API_BASE_URL=http://localhost:8000
+```
 
 ## Структура проекта
 
@@ -208,9 +238,12 @@ npm run dev -- --port 3000
 ### Проблемы с API
 
 Убедитесь, что:
-1. Переменная `VITE_API_BASE_URL` правильно настроена в `.env`
+1. Переменная `VITE_API_BASE_URL` правильно настроена в `.env.development` (для dev) или `.env.production` (для build)
 2. Бэкенд API доступен и возвращает корректные CORS заголовки
-3. После изменения `.env` перезапустите dev-сервер
+3. После изменения `.env` файлов перезапустите dev-сервер
+4. Проверьте, что используете правильный файл для нужного режима:
+   - `npm run dev` → использует `.env.development`
+   - `npm run build` → использует `.env.production`
 
 ### Проблемы со сборкой
 
