@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ru } from 'date-fns/locale';
 import { patientsApi } from '@/lib/api/patients';
 import type { ApiError, PatientResponse } from '@/lib/api/types';
+import { formatDateForDisplay } from '@/lib/utils/date';
 
 export default function Dashboard() {
   const [search, setSearch] = useState('');
@@ -38,7 +39,7 @@ export default function Dashboard() {
   });
 
   // Преобразуем данные из API в формат Patient для отображения
-  const patients: Patient[] = patientsData.map((p: PatientResponse) => ({
+  const patients: (Patient & { birthDate?: string })[] = patientsData.map((p: PatientResponse) => ({
     id: String(p.id),
     firstName: p.firstName,
     lastName: p.lastName,
@@ -46,6 +47,7 @@ export default function Dashboard() {
     lastVisit: p.createdAt || new Date().toISOString(),
     summary: p.comment || 'Новый пациент',
     avatar: `${p.firstName[0]}${p.lastName[0]}`.toUpperCase(),
+    birthDate: p.birthDate,
   }));
 
   const filteredPatients = patients.filter(p => 
@@ -203,9 +205,17 @@ export default function Dashboard() {
                         {patient.summary || 'Комментарий отсутствует'}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Calendar className="w-3 h-3" />
-                      {format(new Date(patient.lastVisit), 'd MMM yyyy', { locale: ru })}
+                    <div className="flex flex-col gap-2">
+                      {patient.birthDate && (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Calendar className="w-3 h-3" />
+                          <span>Дата рождения: {formatDateForDisplay(patient.birthDate)}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Calendar className="w-3 h-3" />
+                        <span>С {format(new Date(patient.lastVisit), 'd MMM yyyy', { locale: ru })}</span>
+                      </div>
                     </div>
                   </div>
                 </CardContent>

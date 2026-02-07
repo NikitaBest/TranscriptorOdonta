@@ -11,6 +11,7 @@ import { patientsApi } from '@/lib/api/patients';
 import { useToast } from '@/hooks/use-toast';
 import type { ApiError } from '@/lib/api/types';
 import { normalizePhone, handlePhoneInput } from '@/lib/utils/phone';
+import { normalizeDate, handleDateInput, isValidDate } from '@/lib/utils/date';
 
 export default function PatientCreatePage() {
   const [, setLocation] = useLocation();
@@ -20,6 +21,7 @@ export default function PatientCreatePage() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
   const [comment, setComment] = useState('');
   const [isCreating, setIsCreating] = useState(false);
 
@@ -35,6 +37,18 @@ export default function PatientCreatePage() {
       return;
     }
 
+    // Валидация даты рождения, если она указана
+    if (dateOfBirth && dateOfBirth.trim() !== '') {
+      if (!isValidDate(dateOfBirth)) {
+        toast({
+          title: "Ошибка",
+          description: "Неверный формат даты рождения. Используйте формат ДД.ММ.ГГГГ (например, 15.01.1990)",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     setIsCreating(true);
 
     try {
@@ -42,6 +56,7 @@ export default function PatientCreatePage() {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         phone: normalizePhone(phone),
+        birthDate: dateOfBirth ? normalizeDate(dateOfBirth) : undefined,
         comment: comment.trim() || undefined,
       });
 
@@ -64,6 +79,7 @@ export default function PatientCreatePage() {
         apiError.errors?.firstName?.[0] ||
         apiError.errors?.lastName?.[0] ||
         apiError.errors?.phone?.[0] ||
+        apiError.errors?.birthDate?.[0] ||
         "Произошла ошибка при создании пациента. Попробуйте еще раз.";
 
       toast({
@@ -138,6 +154,24 @@ export default function PatientCreatePage() {
                     placeholder="+7 (999) 123-45-67"
                     disabled={isCreating}
                   />
+                </div>
+
+                <div className="grid gap-1.5 sm:gap-2">
+                  <Label htmlFor="dateOfBirth" className="text-sm sm:text-base">Дата рождения</Label>
+                  <Input 
+                    id="dateOfBirth" 
+                    type="text"
+                    value={dateOfBirth} 
+                    onChange={e => setDateOfBirth(handleDateInput(e.target.value))} 
+                    className="rounded-xl h-11 sm:h-12 text-sm sm:text-base"
+                    placeholder="ДД.ММ.ГГГГ"
+                    disabled={isCreating}
+                  />
+                  {dateOfBirth && !isValidDate(dateOfBirth) && (
+                    <p className="text-xs text-destructive mt-1">
+                      Неверный формат. Используйте ДД.ММ.ГГГГ (например, 15.01.1990)
+                    </p>
+                  )}
                 </div>
 
                 <div className="grid gap-1.5 sm:gap-2">

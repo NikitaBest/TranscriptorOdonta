@@ -22,6 +22,7 @@ import { patientsApi } from '@/lib/api/patients';
 import { useToast } from '@/hooks/use-toast';
 import type { ApiError } from '@/lib/api/types';
 import { normalizePhone, handlePhoneInput, formatPhoneForDisplay } from '@/lib/utils/phone';
+import { normalizeDate, handleDateInput, isValidDate, formatDateForDisplay } from '@/lib/utils/date';
 
 export default function PatientEditPage() {
   const { id } = useParams();
@@ -32,6 +33,7 @@ export default function PatientEditPage() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
   const [comment, setComment] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -54,6 +56,8 @@ export default function PatientEditPage() {
       setLastName(patientData.lastName || '');
       // Форматируем телефон для отображения
       setPhone(patientData.phone ? formatPhoneForDisplay(patientData.phone) : '');
+      // Форматируем дату рождения для отображения (DD.MM.YYYY)
+      setDateOfBirth(patientData.birthDate ? formatDateForDisplay(patientData.birthDate) : '');
       setComment(patientData.comment || '');
     }
   }, [patientData]);
@@ -79,6 +83,18 @@ export default function PatientEditPage() {
       return;
     }
 
+    // Валидация даты рождения, если она указана
+    if (dateOfBirth && dateOfBirth.trim() !== '') {
+      if (!isValidDate(dateOfBirth)) {
+        toast({
+          title: "Ошибка",
+          description: "Неверный формат даты рождения. Используйте формат ДД.ММ.ГГГГ (например, 15.01.1990)",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     setIsSaving(true);
 
     try {
@@ -87,6 +103,7 @@ export default function PatientEditPage() {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         phone: normalizePhone(phone),
+        birthDate: dateOfBirth ? normalizeDate(dateOfBirth) : undefined,
         comment: comment.trim() || undefined,
       });
 
@@ -96,6 +113,7 @@ export default function PatientEditPage() {
         firstName: updatedPatient.firstName,
         lastName: updatedPatient.lastName,
         phone: updatedPatient.phone,
+        birthDate: updatedPatient.birthDate,
         comment: updatedPatient.comment,
         createdAt: updatedPatient.createdAt,
         updatedAt: updatedPatient.updatedAt,
@@ -120,6 +138,7 @@ export default function PatientEditPage() {
         apiError.errors?.firstName?.[0] ||
         apiError.errors?.lastName?.[0] ||
         apiError.errors?.phone?.[0] ||
+        apiError.errors?.birthDate?.[0] ||
         "Произошла ошибка при обновлении пациента. Попробуйте еще раз.";
 
       toast({
@@ -269,6 +288,24 @@ export default function PatientEditPage() {
                     placeholder="+7 (999) 123-45-67"
                     disabled={isSaving}
                   />
+                </div>
+
+                <div className="grid gap-1.5 sm:gap-2">
+                  <Label htmlFor="dateOfBirth" className="text-sm sm:text-base">Дата рождения</Label>
+                  <Input 
+                    id="dateOfBirth" 
+                    type="text"
+                    value={dateOfBirth} 
+                    onChange={e => setDateOfBirth(handleDateInput(e.target.value))} 
+                    className="rounded-xl h-11 sm:h-12 text-sm sm:text-base"
+                    placeholder="ДД.ММ.ГГГГ"
+                    disabled={isSaving}
+                  />
+                  {dateOfBirth && !isValidDate(dateOfBirth) && (
+                    <p className="text-xs text-destructive mt-1">
+                      Неверный формат. Используйте ДД.ММ.ГГГГ (например, 15.01.1990)
+                    </p>
+                  )}
                 </div>
 
                 <div className="grid gap-1.5 sm:gap-2">

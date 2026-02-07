@@ -114,6 +114,7 @@ export default function PatientProfile() {
           firstName: patientData.firstName,
           lastName: patientData.lastName,
           phone: patientData.phone || '',
+          birthDate: patientData.birthDate || undefined,
           comment: currentComment.trim() || undefined,
         });
 
@@ -311,6 +312,24 @@ export default function PatientProfile() {
                     <span className="truncate max-w-[120px] sm:max-w-none">{patient.phone}</span>
                     <Copy className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0 opacity-0 group-hover/phone:opacity-100 transition-opacity" />
                   </span>
+                  {patientData?.birthDate && (() => {
+                    try {
+                      // Парсим дату (может быть в формате YYYY-MM-DD или ISO)
+                      const dateStr = patientData.birthDate.split('T')[0]; // Берем только дату без времени
+                      const date = new Date(dateStr + 'T00:00:00'); // Добавляем время для корректного парсинга
+                      if (!isNaN(date.getTime())) {
+                        return (
+                          <span className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-full bg-secondary/50 border border-border/50 whitespace-nowrap">
+                            <Calendar className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" />
+                            <span>{format(date, 'd MMM yyyy', { locale: ru })}</span>
+                          </span>
+                        );
+                      }
+                    } catch (e) {
+                      console.error('Error formatting date of birth:', e);
+                    }
+                    return null;
+                  })()}
                   <span className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-full bg-secondary/50 border border-border/50 whitespace-nowrap">
                     <Calendar className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" /> <span className="hidden xs:inline">С </span>{format(new Date(patient.lastVisit), 'MMM yyyy', { locale: ru })}
                   </span>

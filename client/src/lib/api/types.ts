@@ -61,6 +61,7 @@ export interface CreatePatientRequest {
   lastName: string;
   phone: string;
   comment?: string;
+  birthDate?: string; // Дата рождения в формате ISO (YYYY-MM-DD)
 }
 
 /**
@@ -72,6 +73,7 @@ export interface CreatePatientResponse {
   lastName: string;
   phone: string;
   comment?: string;
+  birthDate?: string;
   createdAt?: string;
 }
 
@@ -85,6 +87,7 @@ export interface UpdatePatientRequest {
   lastName: string;
   phone: string;
   comment?: string;
+  birthDate?: string; // Дата рождения в формате ISO (YYYY-MM-DD)
 }
 
 /**
@@ -96,6 +99,7 @@ export interface UpdatePatientResponse {
   lastName: string;
   phone: string;
   comment?: string;
+  birthDate?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -120,6 +124,7 @@ export interface PatientResponse {
   lastName: string;
   phone: string;
   comment?: string;
+  birthDate?: string; // Дата рождения в формате ISO (YYYY-MM-DD)
   createdAt?: string;
   updatedAt?: string;
 }
