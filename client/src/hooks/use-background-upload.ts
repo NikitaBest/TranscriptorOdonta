@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { consultationsApi } from '@/lib/api/consultations';
-import { ConsultationProcessingStatus } from '@/lib/api/types';
+import { ConsultationProcessingStatus, ConsultationType } from '@/lib/api/types';
 import { 
   getAllSavedRecordings, 
   buildAudioBlob, 
@@ -52,8 +52,18 @@ export function useBackgroundUpload() {
 
             console.log(`[Background Upload] Attempting to upload recording ${recording.id} for patient ${recording.patientId}`);
 
+            // Проверяем наличие типа консультации
+            if (!recording.consultationType) {
+              console.warn(`[Background Upload] Recording ${recording.id} missing consultation type, skipping`);
+              continue;
+            }
+
             // Пытаемся отправить
-            const response = await consultationsApi.uploadConsultation(recording.patientId, audioBlob);
+            const response = await consultationsApi.uploadConsultation(
+              recording.patientId, 
+              audioBlob,
+              recording.consultationType as ConsultationType
+            );
             
             console.log(`[Background Upload] Successfully uploaded recording ${recording.id}`, response);
 
@@ -61,7 +71,21 @@ export function useBackgroundUpload() {
             await deleteChunks(recording.id);
             await deleteRecordingMetadata(recording.id);
 
-            // Инвалидируем кэш консультаций
+            // Обновляем кэш: добавляем новую консультацию с начальным статусом
+            const consultationId = String(response.id);
+            const initialStatus = response.status ?? ConsultationProcessingStatus.None;
+            
+            console.log(`[Background Upload] Setting initial status for consultation ${consultationId}:`, initialStatus);
+            
+            queryClient.setQueryData(['consultation', consultationId], {
+              id: consultationId,
+              clientId: String(response.clientId),
+              processingStatus: initialStatus,
+              status: initialStatus,
+              createdAt: response.createdAt || new Date().toISOString(),
+            });
+
+            // Инвалидируем кэш списков консультаций
             queryClient.invalidateQueries({ queryKey: ['consultations'] });
             queryClient.invalidateQueries({ queryKey: ['patient-consultations'] });
 

@@ -19,10 +19,12 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Mic, Square, Pause, Play, Loader2, X, User, ChevronRight, ChevronDown, ChevronUp, Trash2, Send } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import { patientsApi } from '@/lib/api/patients';
 import { consultationsApi } from '@/lib/api/consultations';
 import type { PatientResponse } from '@/lib/api/types';
-import { ConsultationProcessingStatus } from '@/lib/api/types';
+import { ConsultationProcessingStatus, ConsultationType } from '@/lib/api/types';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -53,6 +55,7 @@ export default function RecordPage() {
   const [patientSheetOpen, setPatientSheetOpen] = useState(false);
   const [patientPopoverOpen, setPatientPopoverOpen] = useState(false);
   const [patientSearch, setPatientSearch] = useState('');
+  const [consultationType, setConsultationType] = useState<ConsultationType | null>(null);
 
   // Загрузка списка пациентов
   const { data: patientsData = [], isLoading: isLoadingPatients } = useQuery({
@@ -242,6 +245,15 @@ export default function RecordPage() {
       toast({
         title: "Выберите пациента",
         description: "Перед началом записи необходимо выбрать пациента.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!consultationType) {
+      toast({
+        title: "Выберите тип консультации",
+        description: "Перед началом записи необходимо выбрать тип консультации.",
         variant: "destructive"
       });
       return;
@@ -650,6 +662,7 @@ export default function RecordPage() {
         duration: duration,
         size: audioBlob.size,
         mimeType: audioBlob.type,
+        consultationType: consultationType || undefined,
       };
       
       await saveRecordingMetadata(metadata);
@@ -672,6 +685,7 @@ export default function RecordPage() {
     setIsUploading(false);
     setStatus('idle');
     setDuration(0);
+    setConsultationType(null);
     recordingIdRef.current = null;
     setSavedRecording(null);
 
@@ -722,6 +736,7 @@ export default function RecordPage() {
     setIsRecording(false);
     setDuration(0);
     setStatus('idle');
+    setConsultationType(null);
     setSavedRecording(null);
     setIsUploading(false);
     setAudioData(Array(40).fill(0));
@@ -911,6 +926,32 @@ export default function RecordPage() {
                     </SheetContent>
                   </Sheet>
                 )}
+              </div>
+
+              {/* Consultation Type Selection */}
+              <div className="w-full max-w-md">
+                <Label htmlFor="consultationType" className="text-sm font-medium text-muted-foreground mb-2 block text-center">
+                  Тип консультации *
+                </Label>
+                <Select
+                  value={consultationType?.toString()}
+                  onValueChange={(value) => setConsultationType(Number(value) as ConsultationType)}
+                >
+                  <SelectTrigger className="w-full h-12 rounded-xl text-base bg-background border-border/50">
+                    <SelectValue placeholder="Выберите тип консультации" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={ConsultationType.PrimaryDoctorClient.toString()}>
+                      Первичная консультация
+                    </SelectItem>
+                    <SelectItem value={ConsultationType.SecondaryDoctorClient.toString()}>
+                      Вторичная консультация
+                    </SelectItem>
+                    <SelectItem value={ConsultationType.CoordinatorClient.toString()}>
+                      Консультация координатора
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           )}

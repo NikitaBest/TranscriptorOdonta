@@ -152,10 +152,61 @@ export interface ApiResponse<T> {
 }
 
 /**
+ * Свойство консультации (динамическое поле)
+ */
+export interface ConsultationProperty {
+  id: string | number;
+  consultationId: string | number;
+  parentId: string | number;
+  value: string | null;
+  parent: {
+    id: string | number;
+    key: string; // complaints, objective, treatment_plan, summary, comment
+    title: string; // Название поля (Жалобы, Объективный статус, и т.д.)
+    description?: string;
+    type?: number;
+    order?: number;
+    isEditable?: boolean;
+  };
+  createdAt?: string;
+}
+
+/**
+ * Аудио запись консультации
+ */
+export interface AudioNote {
+  id: string | number;
+  consultationId: string | number;
+  tempAudioPath?: string;
+  externalId?: string;
+  link?: string;
+  durationSeconds?: number;
+  transcription?: string | null;
+  createdAt?: string;
+}
+
+/**
  * Консультация из API (полный ответ от бэкенда)
  */
 export interface ConsultationResponse {
   id: string | number;
+  type?: number; // Тип консультации
+  tenantId?: string | number;
+  userId?: string | number;
+  clientId?: string | number;
+  client?: {
+    id: string | number;
+    firstName: string;
+    lastName: string;
+    phone?: string;
+  };
+  status: ConsultationProcessingStatus; // Статус обработки (обязательное поле)
+  statusMessage?: string; // Сообщение о статусе (например, "Обработка текста консультации")
+  properties?: ConsultationProperty[]; // Динамические поля консультации
+  audioNotes?: AudioNote[]; // Аудио записи консультации
+  createdAt?: string;
+  updatedAt?: string;
+  // Старые поля для обратной совместимости
   tempFileName?: string;
   externalAudioFileId?: number;
   audioDuration?: number | null;
@@ -165,21 +216,8 @@ export interface ConsultationResponse {
   treatmentPlan?: string | null;
   summary?: string | null;
   comment?: string | null;
-  tenantId?: number;
-  userId?: number;
-  clientId?: string | number;
-  client?: {
-    id: string | number;
-    firstName: string;
-    lastName: string;
-    phone?: string;
-  };
-  createdAt?: string;
-  updatedAt?: string;
-  // Статус обработки от бэкенда (может быть в разных полях)
-  processingStatus?: ConsultationProcessingStatus;
-  status?: ConsultationProcessingStatus | 'processing' | 'ready' | 'error' | 'recording';
   // Вычисляемые поля для совместимости
+  processingStatus?: ConsultationProcessingStatus;
   patientId?: string | number;
   patientName?: string;
   date?: string;
@@ -192,7 +230,7 @@ export interface ConsultationResponse {
 
 /**
  * Запрос на получение списка консультаций
- * POST /note/get
+ * GET /consultation/get
  */
 export interface GetConsultationsRequest {
   pageNumber?: number;
@@ -202,16 +240,13 @@ export interface GetConsultationsRequest {
 }
 
 /**
- * Запрос на обновление консультации
- * PUT /note/update
+ * Запрос на обновление свойства консультации
+ * PATCH /consultation/property
  */
 export interface UpdateConsultationRequest {
-  id: string | number;
-  complaints?: string;
-  objective?: string;
-  treatmentPlan?: string;
-  summary?: string;
-  comment?: string;
+  consultationId: string | number;
+  propertyId: string | number;
+  value: string;
 }
 
 /**
@@ -235,6 +270,15 @@ export enum ConsultationProcessingStatus {
   InProgress = 1,
   Failed = 2,
   Completed = 3,
+}
+
+/**
+ * Тип консультации
+ */
+export enum ConsultationType {
+  PrimaryDoctorClient = 1, // Первичная консультация
+  SecondaryDoctorClient = 2, // Вторичная консультация
+  CoordinatorClient = 3, // Консультация координатора
 }
 
 /**

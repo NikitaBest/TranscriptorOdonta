@@ -8,7 +8,7 @@ import type {
   GetConsultationsResponse,
   UpdateConsultationRequest
 } from './types';
-import { ConsultationProcessingStatus } from './types';
+import { ConsultationProcessingStatus, ConsultationType } from './types';
 
 /**
  * API функции для работы с консультациями
@@ -16,14 +16,16 @@ import { ConsultationProcessingStatus } from './types';
 export const consultationsApi = {
   /**
    * Загрузка аудиофайла консультации
-   * POST /note/upload-consultation/{clientId}
+   * POST /consultation/upload
    * @param clientId - ID пациента
    * @param audioFile - аудиофайл (Blob или File)
+   * @param type - тип консультации (обязательный)
    * @returns информация о созданной консультации
    */
   async uploadConsultation(
     clientId: string | number,
-    audioFile: Blob | File
+    audioFile: Blob | File,
+    type: ConsultationType
   ): Promise<UploadConsultationResponse> {
     const formData = new FormData();
     
@@ -71,7 +73,10 @@ export const consultationsApi = {
       });
     }
     
-    formData.append('file', fileToUpload);
+    // Добавляем все поля в FormData для нового эндпоинта
+    formData.append('clientId', String(clientId)); // ID пациента
+    formData.append('type', String(type)); // Тип консультации (1, 2 или 3)
+    formData.append('file', fileToUpload); // Аудиофайл
 
     try {
       // Динамический таймаут на основе размера файла
@@ -101,7 +106,7 @@ export const consultationsApi = {
 
       const response = await ApiClient.request<ApiResponse<UploadConsultationResponse>>(
         'POST',
-        `note/upload-consultation/${clientId}`,
+        'consultation/upload',
         formData,
         {
           requireAuth: true,
@@ -116,6 +121,7 @@ export const consultationsApi = {
           ...response.value,
           id: String(response.value.id),
           clientId: String(response.value.clientId),
+          status: response.value.status ?? ConsultationProcessingStatus.None,
         };
       }
 
@@ -141,40 +147,28 @@ export const consultationsApi = {
 
   /**
    * Получение консультации по ID
-   * GET /note/{id}
+   * GET /consultation/{id}
    */
   async getById(id: string | number): Promise<ConsultationResponse | null> {
     try {
       const response = await ApiClient.get<ApiResponse<ConsultationResponse>>(
-        `note/${id}`,
+        `consultation/${id}`,
         { requireAuth: true }
       );
 
       if (response.isSuccess && response.value) {
-        const consultation = response.value;
-        // Определяем статус обработки (может быть в разных полях ответа)
-        const processingStatus = (consultation as any).processingStatus || 
-                                 (consultation as any).status || 
-                                 ConsultationProcessingStatus.None;
+        // Используем normalizeConsultation для обработки новой структуры
+        const normalized = this.normalizeConsultation(response.value);
         
-        // Преобразуем данные для совместимости
-        return {
-          ...consultation,
-          id: String(consultation.id),
-          clientId: consultation.clientId ? String(consultation.clientId) : undefined,
-          patientId: consultation.clientId ? String(consultation.clientId) : undefined,
-          patientName: consultation.client ? `${consultation.client.firstName} ${consultation.client.lastName}` : undefined,
-          date: consultation.createdAt || new Date().toISOString(),
-          duration: consultation.audioDuration ? `${Math.floor(consultation.audioDuration / 60)}:${String(consultation.audioDuration % 60).padStart(2, '0')}` : '0:00',
-          transcript: consultation.transcriptionResult || undefined,
-          summary: consultation.summary || undefined,
-          complaints: consultation.complaints || undefined,
-          objective: consultation.objective || undefined,
-          plan: consultation.treatmentPlan || undefined,
-          comments: consultation.comment || undefined,
-          processingStatus: typeof processingStatus === 'number' ? processingStatus : ConsultationProcessingStatus.None,
-          status: typeof processingStatus === 'number' ? processingStatus : ConsultationProcessingStatus.None,
-        };
+        // Логируем для отладки
+        console.log(`[Get Consultation By ID] Consultation ${id} loaded:`, {
+          hasClientId: !!normalized.clientId,
+          hasClient: !!normalized.client,
+          hasAudioNotes: !!(normalized.audioNotes && normalized.audioNotes.length > 0),
+          propertiesCount: normalized.properties?.length || 0,
+        });
+        
+        return normalized;
       }
 
       return null;
@@ -190,28 +184,39 @@ export const consultationsApi = {
 
   /**
    * Получение списка консультаций
-   * POST /note/get
+   * GET /consultation/get
    */
   async get(params?: GetConsultationsRequest): Promise<ConsultationResponse[]> {
-    // Формируем тело запроса согласно API
-    const requestBody: any = {
-      pageNumber: params?.pageNumber ?? 1,
-      pageSize: params?.pageSize ?? 20,
-    };
+    // Формируем query параметры для GET запроса
+    const queryParams = new URLSearchParams();
+    
+    if (params?.pageNumber) {
+      queryParams.append('pageNumber', String(params.pageNumber));
+    } else {
+      queryParams.append('pageNumber', '1');
+    }
+    
+    if (params?.pageSize) {
+      queryParams.append('pageSize', String(params.pageSize));
+    } else {
+      queryParams.append('pageSize', '20');
+    }
     
     // Добавляем clientIds только если они указаны и массив не пустой
     if (params?.clientIds && params.clientIds.length > 0) {
-      requestBody.clientIds = params.clientIds;
+      params.clientIds.forEach(id => queryParams.append('clientIds', String(id)));
     }
     
     // Добавляем order если указан
     if (params?.order) {
-      requestBody.order = params.order;
+      queryParams.append('order', params.order);
     }
     
-    const response = await ApiClient.post<ApiResponse<GetConsultationsResponse | ConsultationResponse[]>>(
-      'note/get',
-      requestBody,
+    const queryString = queryParams.toString();
+    const url = queryString ? `consultation/get?${queryString}` : 'consultation/get';
+    
+    const response = await ApiClient.get<ApiResponse<GetConsultationsResponse | ConsultationResponse[]>>(
+      url,
       { requireAuth: true }
     );
 
@@ -232,12 +237,13 @@ export const consultationsApi = {
   },
 
   /**
-   * Обновление консультации
-   * PUT /note/update
+   * Обновление свойства консультации
+   * PATCH /consultation/property
    */
   async update(data: UpdateConsultationRequest): Promise<ConsultationResponse> {
-    const response = await ApiClient.put<ApiResponse<ConsultationResponse>>(
-      'note/update',
+    const response = await ApiClient.request<ApiResponse<ConsultationResponse>>(
+      'PATCH',
+      'consultation/property',
       data,
       { requireAuth: true }
     );
@@ -257,17 +263,21 @@ export const consultationsApi = {
 
   /**
    * Удаление консультации
-   * DELETE /note/delete/{id}
+   * DELETE /consultation/{id}
    */
   async delete(id: string | number): Promise<void> {
-    await ApiClient.delete(`note/delete/${id}`, { requireAuth: true });
+    await ApiClient.delete(`consultation/${id}`, { requireAuth: true });
   },
+
 
   /**
    * Переобработка консультации
-   * POST /note/reprocess
+   * TODO: Уточнить эндпоинт в новом API (возможно удален или изменен)
+   * Временно оставлен для обратной совместимости
    */
   async reprocess(id: string | number): Promise<ConsultationResponse> {
+    // TODO: Заменить на правильный эндпоинт из нового API
+    // Пока используем старый эндпоинт для обратной совместимости
     const response = await ApiClient.post<ApiResponse<ConsultationResponse>>(
       'note/reprocess',
       { id },
@@ -291,14 +301,20 @@ export const consultationsApi = {
    * Получение прямого URL аудиофайла (для мобильных браузеров)
    * @param id - ID консультации
    * @returns Прямой URL к аудиофайлу с токеном в query параметре (если сервер поддерживает)
+   * Примечание: эндпоинт для получения аудио может отличаться, уточнить у бэкенда
    */
   getAudioDirectUrl(id: string | number): string {
-    const url = getApiUrl(`note/consultation-audio/${id}`);
+    // ПРИМЕЧАНИЕ: Прямой URL не будет работать для audio элемента, если сервер требует POST
+    // Audio элемент может использовать только GET запросы
+    // Поэтому для прямого URL мы все равно возвращаем URL с токеном,
+    // но он может не работать, если сервер требует POST
+    const url = getApiUrl(`consultation/${id}/audio`);
     const token = ApiClient.getAuthToken();
     
     // Для мобильных браузеров audio элемент не может использовать заголовки Authorization
     // Если сервер поддерживает токен в query параметре, добавляем его
-    // В противном случае сервер должен поддерживать cookies или другой метод авторизации
+    // ВАЖНО: Если сервер требует POST, прямой URL не будет работать с audio элементом
+    // В этом случае нужно использовать Blob URL через getAudioUrl
     if (token) {
       const separator = url.includes('?') ? '&' : '?';
       return `${url}${separator}token=${encodeURIComponent(token)}`;
@@ -309,171 +325,153 @@ export const consultationsApi = {
 
   /**
    * Получение URL аудиофайла консультации
-   * GET /note/consultation-audio/{id}
+   * Использует link из audioNotes, если он доступен
    * @param id - ID консультации
-   * @param useDirectUrl - использовать прямой URL вместо Blob URL (лучше для мобильных)
-   * @returns Promise с Blob URL или прямой URL для использования в audio элементе
+   * @param consultationData - данные консультации (опционально, для получения link из audioNotes)
+   * @returns Promise с прямой ссылкой на аудио или прямой URL
    */
-  async getAudioUrl(id: string | number, useDirectUrl: boolean = false): Promise<string> {
-    const url = getApiUrl(`note/consultation-audio/${id}`);
-    const token = ApiClient.getAuthToken();
-    
-    // Для мобильных устройств используем прямой URL, если возможно
-    // Это более надежно, чем Blob URL на некоторых мобильных браузерах
-    if (useDirectUrl) {
-      // Проверяем, поддерживает ли браузер прямую загрузку с авторизацией
-      // Если нет, вернемся к Blob URL
-      return url;
+  async getAudioUrl(id: string | number, consultationData?: ConsultationResponse): Promise<string> {
+    // Сначала проверяем, есть ли link в audioNotes консультации
+    if (consultationData?.audioNotes && Array.isArray(consultationData.audioNotes) && consultationData.audioNotes.length > 0) {
+      const firstAudio = consultationData.audioNotes[0];
+      if (firstAudio.link) {
+        console.log(`[Get Audio URL] Using link from audioNotes: ${firstAudio.link}`);
+        return firstAudio.link; // Возвращаем прямую ссылку на S3
+      }
     }
     
-    try {
-      const headers: Record<string, string> = {};
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-      
-      // Добавляем таймаут для мобильных устройств
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 секунд
-      
-      let response: Response;
-      try {
-        response = await fetch(url, {
-          method: 'GET',
-          headers,
-          credentials: 'omit',
-          mode: 'cors',
-          signal: controller.signal,
-        });
-        clearTimeout(timeoutId);
-      } catch (fetchError: any) {
-        clearTimeout(timeoutId);
-        
-        // Если это ошибка таймаута или сети, пробуем прямой URL
-        if (fetchError.name === 'AbortError' || fetchError.message.includes('network') || fetchError.message.includes('Failed to fetch')) {
-          console.warn('Fetch failed, trying direct URL:', fetchError);
-          return this.getAudioDirectUrl(id);
-        }
-        throw fetchError;
-      }
-      
-      if (!response.ok) {
-        // Если ошибка авторизации или доступа, пробуем прямой URL
-        if (response.status === 401 || response.status === 403) {
-          console.warn('Auth error, trying direct URL');
-          return this.getAudioDirectUrl(id);
-        }
-        throw new Error(`Ошибка загрузки аудио: ${response.status} ${response.statusText}`);
-      }
-      
-      // Получаем Content-Type из заголовков ответа
-      let contentType = response.headers.get('content-type') || '';
-      
-      // Нормализуем MIME тип для лучшей совместимости с мобильными браузерами
-      // Поддерживаемые форматы на мобильных:
-      // - audio/mpeg, audio/mp3 - универсальная поддержка
-      // - audio/mp4, audio/m4a - iOS Safari, Chrome
-      // - audio/webm - Chrome, Firefox, Edge
-      // - audio/ogg - Firefox
-      // - audio/wav - универсальный, но большой
-      
-      // Если тип не указан или неопределенный, пытаемся определить по URL или используем универсальный
-      if (!contentType || contentType === 'application/octet-stream') {
-        // Проверяем расширение файла в URL (если есть)
-        const urlLower = url.toLowerCase();
-        if (urlLower.includes('.mp3') || urlLower.includes('.mpeg')) {
-          contentType = 'audio/mpeg';
-        } else if (urlLower.includes('.mp4') || urlLower.includes('.m4a')) {
-          contentType = 'audio/mp4';
-        } else if (urlLower.includes('.webm')) {
-          contentType = 'audio/webm';
-        } else if (urlLower.includes('.ogg')) {
-          contentType = 'audio/ogg';
-        } else if (urlLower.includes('.wav')) {
-          contentType = 'audio/wav';
-        } else {
-          // Используем универсальный тип, который поддерживается большинством браузеров
-          contentType = 'audio/mpeg';
-        }
-      }
-      
-      // Получаем аудио как Blob
-      const blob = await response.blob();
-      
-      // Проверяем размер файла
-      if (blob.size === 0) {
-        throw new Error('Получен пустой аудиофайл');
-      }
-      
-      // Создаем Blob с правильным MIME типом для совместимости с мобильными браузерами
-      // Если blob уже имеет правильный тип, используем его, иначе создаем новый с явным типом
-      let audioBlob: Blob;
-      if (blob.type && blob.type !== 'application/octet-stream') {
-        audioBlob = blob;
-      } else {
-        // Создаем новый Blob с явным указанием типа
-        audioBlob = new Blob([blob], { type: contentType });
-      }
-      
-      console.log('Audio loaded:', {
-        originalType: blob.type,
-        contentType: contentType,
-        finalType: audioBlob.type,
-        size: audioBlob.size,
-        sizeMB: (audioBlob.size / (1024 * 1024)).toFixed(2),
-        userAgent: navigator.userAgent,
-      });
-      
-      // Создаем object URL для использования в audio элементе
-      return URL.createObjectURL(audioBlob);
-    } catch (error: any) {
-      console.error('Get audio URL error:', error);
-      
-      // Если ошибка при создании Blob URL, пробуем прямой URL
-      if (error.message && (
-        error.message.includes('Blob') || 
-        error.message.includes('URL') ||
-        error.name === 'TypeError'
-      )) {
-        console.warn('Blob URL failed, trying direct URL');
-        return this.getAudioDirectUrl(id);
-      }
-      
-      throw error;
-    }
+    // Если данных консультации нет, пытаемся получить их из кэша
+    // Это можно сделать через queryClient, но проще передать consultationData при вызове
+    
+    // Fallback: если link нет, возвращаем прямой URL (старый способ)
+    console.warn(`[Get Audio URL] No link in audioNotes for consultation ${id}, using direct URL fallback`);
+    return this.getAudioDirectUrl(id);
   },
 
   /**
    * Нормализация данных консультации для отображения
+   * Извлекает данные из properties массива и audioNotes
    */
   normalizeConsultation(consultation: ConsultationResponse): ConsultationResponse {
     // ВАЖНО: Сохраняем исходный createdAt из API, так как это единственный надежный источник времени
-    // createdAt приходит в формате UTC (например, "2026-01-14T11:50:57.273307+00:00")
-    // date устанавливается из createdAt для обратной совместимости, но всегда используем createdAt
-    // НИКОГДА не используем updatedAt вместо createdAt, так как это разные временные метки
     const originalCreatedAt = consultation.createdAt;
-    
-    // Проверяем, что createdAt действительно является валидной датой
     const isValidCreatedAt = originalCreatedAt && !isNaN(new Date(originalCreatedAt).getTime());
     
+    // Извлекаем данные из properties массива (новая структура)
+    let complaints: string | null = null;
+    let objective: string | null = null;
+    let treatmentPlan: string | null = null;
+    let summary: string | null = null;
+    let comment: string | null = null;
+    
+    if (consultation.properties && Array.isArray(consultation.properties)) {
+      consultation.properties.forEach((prop) => {
+        const key = prop.parent?.key;
+        const value = prop.value;
+        
+        switch (key) {
+          case 'complaints':
+            complaints = value;
+            break;
+          case 'objective':
+            objective = value;
+            break;
+          case 'treatment_plan':
+            treatmentPlan = value;
+            break;
+          case 'summary':
+            summary = value;
+            break;
+          case 'comment':
+            comment = value;
+            break;
+        }
+      });
+    }
+    
+    // Извлекаем транскрипцию и аудио URL из audioNotes (новая структура)
+    let transcriptionResult: string | null = null;
+    let audioDuration: number | null = null;
+    let audioUrl: string | null = null;
+    
+    if (consultation.audioNotes && Array.isArray(consultation.audioNotes) && consultation.audioNotes.length > 0) {
+      // Берем первую аудио запись
+      const firstAudio = consultation.audioNotes[0];
+      transcriptionResult = firstAudio.transcription || null;
+      audioDuration = firstAudio.durationSeconds ? Math.round(firstAudio.durationSeconds) : null;
+      audioUrl = firstAudio.link || null; // Используем прямую ссылку на аудио из S3
+    }
+    
+    // Определяем статус обработки
+    // В новой структуре status - обязательное поле (number)
+    let processingStatus: ConsultationProcessingStatus;
+    
+    if (typeof consultation.status === 'number') {
+      processingStatus = consultation.status;
+    } else if (typeof consultation.status === 'string') {
+      const parsed = parseInt(consultation.status, 10);
+      processingStatus = !isNaN(parsed) ? parsed : ConsultationProcessingStatus.None;
+    } else {
+      // Fallback на processingStatus для обратной совместимости
+      const fallbackStatus = consultation.processingStatus;
+      if (typeof fallbackStatus === 'number') {
+        processingStatus = fallbackStatus;
+      } else if (typeof fallbackStatus === 'string') {
+        const parsed = parseInt(fallbackStatus, 10);
+        processingStatus = !isNaN(parsed) ? parsed : ConsultationProcessingStatus.None;
+      } else {
+        processingStatus = ConsultationProcessingStatus.None;
+      }
+    }
+    
+    console.log(`[Normalize Consultation] Status for consultation ${consultation.id}:`, {
+      originalStatus: consultation.status,
+      processingStatus,
+      statusName: ConsultationProcessingStatus[processingStatus],
+      audioUrl: audioUrl || 'not found',
+      hasAudioNotes: !!(consultation.audioNotes && consultation.audioNotes.length > 0),
+    });
+    
+    // Форматируем длительность
+    const duration = audioDuration 
+      ? `${Math.floor(audioDuration / 60)}:${String(audioDuration % 60).padStart(2, '0')}`
+      : (consultation.audioDuration ? `${Math.floor(consultation.audioDuration / 60)}:${String(consultation.audioDuration % 60).padStart(2, '0')}` : '0:00');
+    
+    // ВАЖНО: Сохраняем ВСЕ исходные поля из consultation, чтобы не потерять данные
     return {
-      ...consultation,
+      ...consultation, // Сохраняем все исходные поля (включая audioNotes, properties, client, clientId)
       id: String(consultation.id),
       clientId: consultation.clientId ? String(consultation.clientId) : undefined,
       patientId: consultation.clientId ? String(consultation.clientId) : undefined,
       patientName: consultation.client ? `${consultation.client.firstName} ${consultation.client.lastName}` : undefined,
-      // Явно сохраняем исходный createdAt ТОЛЬКО если он валидный
-      // НЕ используем updatedAt, так как это время обновления, а не создания
       createdAt: isValidCreatedAt ? originalCreatedAt : (consultation.createdAt || consultation.date),
-      // date устанавливается из createdAt для обратной совместимости
       date: isValidCreatedAt ? originalCreatedAt : (consultation.createdAt || consultation.date || new Date().toISOString()),
-      duration: consultation.audioDuration ? `${Math.floor(consultation.audioDuration / 60)}:${String(consultation.audioDuration % 60).padStart(2, '0')}` : '0:00',
-      transcript: consultation.transcriptionResult || undefined,
-      summary: consultation.summary || undefined,
-      complaints: consultation.complaints || undefined,
-      objective: consultation.objective || undefined,
-      plan: consultation.treatmentPlan || undefined,
-      comments: consultation.comment || undefined,
+      // Данные из properties (дополняем, не заменяем)
+      complaints: complaints || consultation.complaints || null,
+      objective: objective || consultation.objective || null,
+      treatmentPlan: treatmentPlan || consultation.treatmentPlan || null,
+      summary: summary || consultation.summary || null,
+      comment: comment || consultation.comment || null,
+      // Транскрипция из audioNotes
+      transcriptionResult: transcriptionResult || consultation.transcriptionResult || null,
+      transcript: transcriptionResult || consultation.transcriptionResult || consultation.transcript || null,
+      // Длительность из audioNotes
+      audioDuration: audioDuration || consultation.audioDuration || null,
+      duration: duration,
+      // URL аудио из audioNotes
+      audioUrl: audioUrl || consultation.audioUrl || undefined,
+      plan: treatmentPlan || consultation.treatmentPlan || consultation.plan || null,
+      comments: comment || consultation.comment || consultation.comments || null,
+      // Статус
+      status: processingStatus,
+      processingStatus: processingStatus,
+      // Сообщение о статусе
+      statusMessage: consultation.statusMessage || undefined,
+      // КРИТИЧЕСКИ ВАЖНО: Явно сохраняем эти поля из исходного объекта
+      // spread оператор сохранит их, но мы явно указываем для ясности
+      audioNotes: consultation.audioNotes,
+      properties: consultation.properties,
+      client: consultation.client,
     };
   },
 };

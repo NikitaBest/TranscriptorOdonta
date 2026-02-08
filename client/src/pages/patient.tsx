@@ -430,18 +430,59 @@ export default function PatientProfile() {
                         </div>
                         <div className="flex items-center gap-2">
                           {/* Статус обработки */}
-                          {consultation.processingStatus === ConsultationProcessingStatus.InProgress || 
-                           consultation.processingStatus === ConsultationProcessingStatus.None ? (
-                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20">
-                              <Loader2 className="w-3 h-3 animate-spin text-primary" />
-                              <span className="text-xs font-medium text-primary">{getStatusText(consultation.processingStatus)}</span>
-                            </div>
-                          ) : consultation.processingStatus === ConsultationProcessingStatus.Failed ? (
-                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-destructive/10 border border-destructive/20">
-                              <AlertCircle className="w-3 h-3 text-destructive" />
-                              <span className="text-xs font-medium text-destructive">{getStatusText(consultation.processingStatus)}</span>
-                            </div>
-                          ) : null}
+                          {(() => {
+                            // Определяем статус с приоритетом: status > processingStatus
+                            let status: ConsultationProcessingStatus;
+                            
+                            if (typeof consultation.status === 'number') {
+                              status = consultation.status;
+                            } else if (typeof consultation.status === 'string') {
+                              const parsed = parseInt(consultation.status, 10);
+                              status = !isNaN(parsed) ? parsed : ConsultationProcessingStatus.None;
+                            } else if (typeof consultation.processingStatus === 'number') {
+                              status = consultation.processingStatus;
+                            } else if (typeof consultation.processingStatus === 'string') {
+                              const parsed = parseInt(consultation.processingStatus, 10);
+                              status = !isNaN(parsed) ? parsed : ConsultationProcessingStatus.None;
+                            } else {
+                              status = ConsultationProcessingStatus.None;
+                            }
+                            
+                            // Дополнительная проверка: если есть данные консультации, считаем готовой
+                            const hasData = consultation.summary || 
+                                            consultation.complaints || 
+                                            consultation.objective || 
+                                            consultation.treatmentPlan ||
+                                            consultation.transcriptionResult;
+                            
+                            // Если статус Completed или есть данные - консультация готова, не показываем индикатор
+                            if (status === ConsultationProcessingStatus.Completed || hasData) {
+                              return null; // Не показываем индикатор для готовых консультаций
+                            }
+                            
+                            // Показываем индикатор только для InProgress или None
+                            if (status === ConsultationProcessingStatus.InProgress || 
+                                status === ConsultationProcessingStatus.None) {
+                              return (
+                                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20">
+                                  <Loader2 className="w-3 h-3 animate-spin text-primary" />
+                                  <span className="text-xs font-medium text-primary">{getStatusText(status)}</span>
+                                </div>
+                              );
+                            }
+                            
+                            // Показываем ошибку для Failed
+                            if (status === ConsultationProcessingStatus.Failed) {
+                              return (
+                                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-destructive/10 border border-destructive/20">
+                                  <AlertCircle className="w-3 h-3 text-destructive" />
+                                  <span className="text-xs font-medium text-destructive">{getStatusText(status)}</span>
+                                </div>
+                              );
+                            }
+                            
+                            return null;
+                          })()}
                         </div>
                       </div>
                       <p className="text-sm text-muted-foreground line-clamp-2 mb-4 pl-[3.25rem]">

@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { consultationsApi } from '@/lib/api/consultations';
 import type { ConsultationResponse } from '@/lib/api/types';
+import { ConsultationProcessingStatus } from '@/lib/api/types';
 import { useToast } from '@/hooks/use-toast';
 
 // Константы
@@ -53,6 +54,15 @@ export function useAutoSaveConsultation({
     summary: null,
     comment: null,
   });
+  
+  // Отслеживаем последние сохраненные значения, чтобы не сохранять повторно
+  const lastSavedValuesRef = useRef<Record<string, string>>({
+    complaints: originalFields.complaints || '',
+    objective: originalFields.objective || '',
+    treatmentPlan: originalFields.plan || '',
+    summary: originalFields.summary || '',
+    comment: originalFields.comments || '',
+  });
 
   // Функция для обновления статуса сохранения
   const updateSavingStatus = (fieldName: string, status: Partial<SavingStatus>) => {
@@ -62,42 +72,157 @@ export function useAutoSaveConsultation({
     }));
   };
 
-  // Функция для сохранения всех полей
-  const saveAllFields = async (changedField: string) => {
-    updateSavingStatus(changedField, { isSaving: true, isSaved: false });
+  // Функция для получения propertyId по ключу поля
+  const getPropertyId = (fieldKey: string): string | number | null => {
+    if (!enrichedConsultation?.properties) {
+      console.warn(`[AutoSave] Properties not available for consultation ${consultationId}`);
+      return null;
+    }
+    const property = enrichedConsultation.properties.find(p => p.parent?.key === fieldKey);
+    if (!property) {
+      console.warn(`[AutoSave] Property with key "${fieldKey}" not found in consultation ${consultationId}`);
+      return null;
+    }
+    console.log(`[AutoSave] Found property ID for ${fieldKey}:`, property.id);
+    return property?.id || null;
+  };
+
+  // Функция для сохранения одного поля
+  const saveField = async (fieldKey: string, fieldName: string, value: string) => {
+    const trimmedValue = value.trim() || '';
+    
+    // Проверяем, не сохраняем ли мы уже это значение
+    const lastSavedValue = lastSavedValuesRef.current[fieldName] || '';
+    
+    // Если значение не изменилось с момента последнего сохранения, не сохраняем
+    if (lastSavedValue === trimmedValue) {
+      console.log(`[AutoSave] Field ${fieldName} value unchanged (${trimmedValue}), skipping save`);
+      return;
+    }
+    
+    updateSavingStatus(fieldName, { isSaving: true, isSaved: false });
 
     try {
-      await consultationsApi.update({
-        id: consultationId,
-        complaints: fields.complaints.trim() || undefined,
-        objective: fields.objective.trim() || undefined,
-        treatmentPlan: fields.treatmentPlan.trim() || undefined,
-        summary: fields.summary.trim() || undefined,
-        comment: fields.comment.trim() || undefined,
-      });
-
-      // Обновляем кэш
-      if (enrichedConsultation) {
-        queryClient.setQueryData(['consultation', consultationId], {
-          ...enrichedConsultation,
-          complaints: fields.complaints.trim() || null,
-          objective: fields.objective.trim() || null,
-          plan: fields.treatmentPlan.trim() || null,
-          summary: fields.summary.trim() || null,
-          comments: fields.comment.trim() || null,
+      const propertyId = getPropertyId(fieldKey);
+      
+      if (!propertyId) {
+        console.warn(`Property ID not found for field ${fieldKey}`);
+        updateSavingStatus(fieldName, { isSaving: false, isSaved: false });
+        toast({
+          title: "Ошибка сохранения",
+          description: `Не удалось найти свойство для поля ${fieldName}.`,
+          variant: "destructive",
         });
+        return;
       }
 
+      // Отправляем запрос на обновление одного свойства
+      console.log(`[AutoSave] Saving field ${fieldName} (${fieldKey}):`, {
+        consultationId,
+        propertyId,
+        value: trimmedValue,
+        previousValue: lastSavedValue,
+      });
+      
+      const updatedConsultation = await consultationsApi.update({
+        consultationId: String(consultationId),
+        propertyId: String(propertyId),
+        value: trimmedValue,
+      });
+
+      console.log(`[AutoSave] Field ${fieldName} saved successfully`);
+      console.log(`[AutoSave] Updated consultation from API:`, {
+        hasClientId: !!updatedConsultation.clientId,
+        hasClient: !!updatedConsultation.client,
+        hasAudioNotes: !!(updatedConsultation.audioNotes && updatedConsultation.audioNotes.length > 0),
+        propertiesCount: updatedConsultation.properties?.length || 0,
+        hasId: !!updatedConsultation.id,
+      });
+
+      // Обновляем кэш консультации, НЕ перезаписывая существующие данные
+      // ВАЖНО: Бэкенд может вернуть неполные данные, поэтому мы обновляем только свойство в properties
+      queryClient.setQueryData(['consultation', consultationId], (oldData: ConsultationResponse | undefined) => {
+        if (!oldData) {
+          // Если старых данных нет, используем обновленные данные
+          console.warn(`[AutoSave] No oldData found, using updatedConsultation`);
+          return {
+            ...updatedConsultation,
+            status: ConsultationProcessingStatus.Completed,
+            processingStatus: ConsultationProcessingStatus.Completed,
+          };
+        }
+
+        console.log(`[AutoSave] Old data before merge:`, {
+          hasClientId: !!oldData.clientId,
+          hasClient: !!oldData.client,
+          hasAudioNotes: !!(oldData.audioNotes && oldData.audioNotes.length > 0),
+          propertiesCount: oldData.properties?.length || 0,
+        });
+
+        // КРИТИЧЕСКИ ВАЖНО: Обновляем ТОЛЬКО измененное свойство в массиве properties
+        // Все остальные данные остаются без изменений из oldData
+        let updatedProperties = [...(oldData.properties || [])];
+        
+        // Находим обновленное свойство из ответа API
+        const updatedProperty = updatedConsultation.properties?.find(p => String(p.id) === String(propertyId));
+        if (updatedProperty) {
+          // Заменяем только это свойство в массиве
+          const propertyIndex = updatedProperties.findIndex(p => String(p.id) === String(propertyId));
+          if (propertyIndex >= 0) {
+            updatedProperties[propertyIndex] = updatedProperty;
+          } else {
+            // Если свойства не было, добавляем его
+            updatedProperties.push(updatedProperty);
+          }
+        } else {
+          console.warn(`[AutoSave] Updated property not found in API response for propertyId ${propertyId}`);
+        }
+        
+        // Создаем обновленный объект, сохраняя ВСЕ данные из oldData
+        // Обновляем только properties и статус
+        const mergedConsultation: ConsultationResponse = {
+          ...oldData, // ВАЖНО: Сохраняем ВСЕ старые данные (clientId, client, audioNotes, и т.д.)
+          // Обновляем только properties и статус
+          properties: updatedProperties,
+          status: ConsultationProcessingStatus.Completed,
+          processingStatus: ConsultationProcessingStatus.Completed,
+          // Обновляем также вычисляемые поля из properties, если они изменились
+          complaints: updatedProperty?.parent?.key === 'complaints' ? updatedProperty.value : oldData.complaints,
+          objective: updatedProperty?.parent?.key === 'objective' ? updatedProperty.value : oldData.objective,
+          treatmentPlan: updatedProperty?.parent?.key === 'treatment_plan' ? updatedProperty.value : oldData.treatmentPlan,
+          summary: updatedProperty?.parent?.key === 'summary' ? updatedProperty.value : oldData.summary,
+          comment: updatedProperty?.parent?.key === 'comment' ? updatedProperty.value : oldData.comment,
+        };
+
+        console.log(`[AutoSave] Merged consultation cache:`, {
+          hasClientId: !!mergedConsultation.clientId,
+          hasClient: !!mergedConsultation.client,
+          hasAudioNotes: !!(mergedConsultation.audioNotes && mergedConsultation.audioNotes.length > 0),
+          propertiesCount: mergedConsultation.properties?.length || 0,
+          clientIdValue: mergedConsultation.clientId,
+        });
+
+        return mergedConsultation;
+      });
+      
+      // НЕ инвалидируем запросы, чтобы не вызвать перезагрузку данных
+      // Кэш уже обновлен через setQueryData выше
+      // Инвалидация может вызвать перезагрузку с бэкенда, которая вернет неполные данные
+
+      // Обновляем последнее сохраненное значение, чтобы не сохранять повторно
+      lastSavedValuesRef.current[fieldName] = trimmedValue;
+      console.log(`[AutoSave] Updated lastSavedValue for ${fieldName}:`, trimmedValue);
+
       // Показываем статус "Сохранено"
-      updateSavingStatus(changedField, { isSaving: false, isSaved: true });
+      updateSavingStatus(fieldName, { isSaving: false, isSaved: true });
       
       // Скрываем статус через 2 секунды
       setTimeout(() => {
-        updateSavingStatus(changedField, { isSaving: false, isSaved: false });
+        updateSavingStatus(fieldName, { isSaving: false, isSaved: false });
       }, SAVED_STATUS_DISPLAY_MS);
     } catch (error) {
       console.error('Auto-save consultation error:', error);
-      updateSavingStatus(changedField, { isSaving: false, isSaved: false });
+      updateSavingStatus(fieldName, { isSaving: false, isSaved: false });
       toast({
         title: "Ошибка сохранения",
         description: "Не удалось сохранить изменения. Попробуйте еще раз.",
@@ -106,22 +231,57 @@ export function useAutoSaveConsultation({
     }
   };
 
+  // Обновляем lastSavedValuesRef при изменении originalFields
+  // ВАЖНО: Это гарантирует, что при загрузке новых данных с бэкенда мы обновляем отслеживаемые значения
+  useEffect(() => {
+    const newValues = {
+      complaints: originalFields.complaints || '',
+      objective: originalFields.objective || '',
+      treatmentPlan: originalFields.plan || '',
+      summary: originalFields.summary || '',
+      comment: originalFields.comments || '',
+    };
+    
+    // Обновляем только если значения действительно изменились
+    const hasChanges = Object.keys(newValues).some(key => {
+      const fieldName = key as keyof typeof newValues;
+      return lastSavedValuesRef.current[fieldName] !== newValues[fieldName];
+    });
+    
+    if (hasChanges) {
+      console.log(`[AutoSave] Updating lastSavedValues from originalFields:`, newValues);
+      lastSavedValuesRef.current = newValues;
+    }
+  }, [originalFields.complaints, originalFields.objective, originalFields.plan, originalFields.summary, originalFields.comments]);
+
   // Автосохранение для поля "Жалобы"
   useEffect(() => {
     if (!consultationId || !enrichedConsultation) return;
+    
+    // Проверяем, что properties загружены
+    if (!enrichedConsultation.properties || enrichedConsultation.properties.length === 0) {
+      console.warn('[AutoSave] Properties not loaded yet, skipping auto-save for complaints');
+      return;
+    }
 
     // Очищаем предыдущий таймаут
     if (saveTimeoutRefs.current.complaints) {
       clearTimeout(saveTimeoutRefs.current.complaints);
     }
 
-    // Проверяем, есть ли изменения
-    const hasChanges = fields.complaints !== (originalFields.complaints || '');
-    if (!hasChanges) return;
+    // Проверяем, есть ли изменения по сравнению с последним сохраненным значением
+    const currentValue = fields.complaints.trim() || '';
+    const lastSavedValue = lastSavedValuesRef.current.complaints || '';
+    const hasChanges = currentValue !== lastSavedValue;
+    
+    if (!hasChanges) {
+      console.log(`[AutoSave] No changes detected for complaints (current: "${currentValue}", saved: "${lastSavedValue}")`);
+      return;
+    }
 
     // Устанавливаем таймаут для сохранения
     saveTimeoutRefs.current.complaints = setTimeout(() => {
-      saveAllFields('complaints');
+      saveField('complaints', 'complaints', fields.complaints);
     }, AUTO_SAVE_DEBOUNCE_MS);
 
     // Очистка при размонтировании
@@ -131,21 +291,28 @@ export function useAutoSaveConsultation({
         saveTimeoutRefs.current.complaints = null;
       }
     };
-  }, [fields.complaints, consultationId, enrichedConsultation, originalFields.complaints]);
+  }, [fields.complaints, consultationId, enrichedConsultation]);
 
   // Автосохранение для поля "Объективный статус"
   useEffect(() => {
     if (!consultationId || !enrichedConsultation) return;
+    
+    if (!enrichedConsultation.properties || enrichedConsultation.properties.length === 0) {
+      return;
+    }
 
     if (saveTimeoutRefs.current.objective) {
       clearTimeout(saveTimeoutRefs.current.objective);
     }
 
-    const hasChanges = fields.objective !== (originalFields.objective || '');
+    const currentValue = fields.objective.trim() || '';
+    const lastSavedValue = lastSavedValuesRef.current.objective || '';
+    const hasChanges = currentValue !== lastSavedValue;
+    
     if (!hasChanges) return;
 
     saveTimeoutRefs.current.objective = setTimeout(() => {
-      saveAllFields('objective');
+      saveField('objective', 'objective', fields.objective);
     }, AUTO_SAVE_DEBOUNCE_MS);
 
     return () => {
@@ -154,21 +321,28 @@ export function useAutoSaveConsultation({
         saveTimeoutRefs.current.objective = null;
       }
     };
-  }, [fields.objective, consultationId, enrichedConsultation, originalFields.objective]);
+  }, [fields.objective, consultationId, enrichedConsultation]);
 
   // Автосохранение для поля "План лечения"
   useEffect(() => {
     if (!consultationId || !enrichedConsultation) return;
+    
+    if (!enrichedConsultation.properties || enrichedConsultation.properties.length === 0) {
+      return;
+    }
 
     if (saveTimeoutRefs.current.treatmentPlan) {
       clearTimeout(saveTimeoutRefs.current.treatmentPlan);
     }
 
-    const hasChanges = fields.treatmentPlan !== (originalFields.plan || '');
+    const currentValue = fields.treatmentPlan.trim() || '';
+    const lastSavedValue = lastSavedValuesRef.current.treatmentPlan || '';
+    const hasChanges = currentValue !== lastSavedValue;
+    
     if (!hasChanges) return;
 
     saveTimeoutRefs.current.treatmentPlan = setTimeout(() => {
-      saveAllFields('treatmentPlan');
+      saveField('treatment_plan', 'treatmentPlan', fields.treatmentPlan);
     }, AUTO_SAVE_DEBOUNCE_MS);
 
     return () => {
@@ -177,21 +351,28 @@ export function useAutoSaveConsultation({
         saveTimeoutRefs.current.treatmentPlan = null;
       }
     };
-  }, [fields.treatmentPlan, consultationId, enrichedConsultation, originalFields.plan]);
+  }, [fields.treatmentPlan, consultationId, enrichedConsultation]);
 
   // Автосохранение для поля "Выжимка"
   useEffect(() => {
     if (!consultationId || !enrichedConsultation) return;
+    
+    if (!enrichedConsultation.properties || enrichedConsultation.properties.length === 0) {
+      return;
+    }
 
     if (saveTimeoutRefs.current.summary) {
       clearTimeout(saveTimeoutRefs.current.summary);
     }
 
-    const hasChanges = fields.summary !== (originalFields.summary || '');
+    const currentValue = fields.summary.trim() || '';
+    const lastSavedValue = lastSavedValuesRef.current.summary || '';
+    const hasChanges = currentValue !== lastSavedValue;
+    
     if (!hasChanges) return;
 
     saveTimeoutRefs.current.summary = setTimeout(() => {
-      saveAllFields('summary');
+      saveField('summary', 'summary', fields.summary);
     }, AUTO_SAVE_DEBOUNCE_MS);
 
     return () => {
@@ -200,21 +381,28 @@ export function useAutoSaveConsultation({
         saveTimeoutRefs.current.summary = null;
       }
     };
-  }, [fields.summary, consultationId, enrichedConsultation, originalFields.summary]);
+  }, [fields.summary, consultationId, enrichedConsultation]);
 
   // Автосохранение для поля "Комментарий врача"
   useEffect(() => {
     if (!consultationId || !enrichedConsultation) return;
+    
+    if (!enrichedConsultation.properties || enrichedConsultation.properties.length === 0) {
+      return;
+    }
 
     if (saveTimeoutRefs.current.comment) {
       clearTimeout(saveTimeoutRefs.current.comment);
     }
 
-    const hasChanges = fields.comment !== (originalFields.comments || '');
+    const currentValue = fields.comment.trim() || '';
+    const lastSavedValue = lastSavedValuesRef.current.comment || '';
+    const hasChanges = currentValue !== lastSavedValue;
+    
     if (!hasChanges) return;
 
     saveTimeoutRefs.current.comment = setTimeout(() => {
-      saveAllFields('comment');
+      saveField('comment', 'comment', fields.comment);
     }, AUTO_SAVE_DEBOUNCE_MS);
 
     return () => {
@@ -223,6 +411,6 @@ export function useAutoSaveConsultation({
         saveTimeoutRefs.current.comment = null;
       }
     };
-  }, [fields.comment, consultationId, enrichedConsultation, originalFields.comments]);
+  }, [fields.comment, consultationId, enrichedConsultation]);
 }
 

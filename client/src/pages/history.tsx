@@ -255,13 +255,36 @@ export default function HistoryPage() {
 
   // Получаем статус для отображения
   const getStatusInfo = (consultation: ConsultationResponse) => {
-    const status = consultation.processingStatus ?? 
-                  (consultation.status as ConsultationProcessingStatus) ?? 
-                  ConsultationProcessingStatus.None;
+    // Определяем статус с приоритетом: status > processingStatus > None
+    let status: ConsultationProcessingStatus;
+    
+    if (typeof consultation.status === 'number') {
+      status = consultation.status;
+    } else if (typeof consultation.status === 'string') {
+      const parsed = parseInt(consultation.status, 10);
+      status = !isNaN(parsed) ? parsed : ConsultationProcessingStatus.None;
+    } else if (typeof consultation.processingStatus === 'number') {
+      status = consultation.processingStatus;
+    } else if (typeof consultation.processingStatus === 'string') {
+      const parsed = parseInt(consultation.processingStatus, 10);
+      status = !isNaN(parsed) ? parsed : ConsultationProcessingStatus.None;
+    } else {
+      status = ConsultationProcessingStatus.None;
+    }
+    
+    // Дополнительная проверка: если есть данные консультации, считаем готовой
+    const hasData = consultation.summary || 
+                    consultation.complaints || 
+                    consultation.objective || 
+                    consultation.treatmentPlan ||
+                    consultation.transcriptionResult;
+    
+    // Если статус Completed или есть данные - консультация готова
+    if (status === ConsultationProcessingStatus.Completed || hasData) {
+      return { label: 'Готово', className: 'bg-green-50 text-green-700 border-green-200' };
+    }
     
     switch (status) {
-      case ConsultationProcessingStatus.Completed:
-        return { label: 'Готово', className: 'bg-green-50 text-green-700 border-green-200' };
       case ConsultationProcessingStatus.InProgress:
         return { label: 'Обработка', className: 'bg-yellow-50 text-yellow-700 border-yellow-200' };
       case ConsultationProcessingStatus.Failed:

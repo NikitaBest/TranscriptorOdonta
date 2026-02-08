@@ -25,6 +25,7 @@ export interface RecordingMetadata {
   duration: number; // Длительность в секундах
   size: number; // Размер файла в байтах
   mimeType: string; // MIME тип аудио
+  consultationType?: number; // Тип консультации (1, 2 или 3)
 }
 
 let dbInstance: IDBDatabase | null = null;

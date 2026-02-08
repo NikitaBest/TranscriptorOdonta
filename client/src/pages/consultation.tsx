@@ -21,7 +21,7 @@ import {
 import { consultationsApi } from '@/lib/api/consultations';
 import { patientsApi } from '@/lib/api/patients';
 import { ConsultationProcessingStatus } from '@/lib/api/types';
-import type { ConsultationResponse } from '@/lib/api/types';
+import type { ConsultationResponse, ConsultationProperty } from '@/lib/api/types';
 import { ArrowLeft, Download, Share2, Copy, RefreshCw, Check, Loader2, AlertCircle, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAutoSaveConsultation } from '@/hooks/use-auto-save-consultation';
@@ -54,35 +54,93 @@ export default function ConsultationPage() {
     comment: { isSaving: false, isSaved: false },
   });
 
-  // Загрузка данных консультации с периодической проверкой статуса
+  // Загрузка данных консультации
+  // Если консультация обрабатывается, периодически обновляем данные
   const { data: consultationData, isLoading, error } = useQuery({
     queryKey: ['consultation', id],
     queryFn: () => {
       if (!id) throw new Error('ID консультации не указан');
+      console.log(`[Consultation Page] Fetching consultation ${id} from API`);
       return consultationsApi.getById(id);
     },
     enabled: !!id,
-    // Если консультация еще обрабатывается (InProgress или None), проверяем статус каждые 5 секунд
-    refetchInterval: (query) => {
-      const data = query.state.data as ConsultationResponse | null;
-      if (data) {
-        // Получаем статус из ответа бэкенда (может быть в разных полях)
-        const status = data.processingStatus ?? 
-                      (data.status as ConsultationProcessingStatus) ?? 
-                      (data as any).processingStatus ??
-                      ConsultationProcessingStatus.None;
-        // Если статус InProgress (1) или None (0), продолжаем проверять
-        if (status === ConsultationProcessingStatus.InProgress || status === ConsultationProcessingStatus.None) {
-          return 5000; // Проверяем каждые 5 секунд
-        }
-      }
-      return false; // Если Completed или Failed, не проверяем
-    },
+    refetchOnMount: 'always', // Всегда обновляем данные при монтировании компонента (при открытии страницы)
     refetchOnWindowFocus: true, // Обновляем при возврате на вкладку
+    staleTime: 0, // Данные считаются устаревшими сразу, чтобы всегда загружать свежие данные
+    // Периодически обновляем данные, если консультация еще обрабатывается
+    refetchInterval: (query) => {
+      const data = query.state.data as ConsultationResponse | undefined;
+      if (!data) return false;
+      
+      // Проверяем статус
+      const status = typeof data.status === 'number' 
+        ? data.status 
+        : (typeof data.processingStatus === 'number' 
+          ? data.processingStatus 
+          : ConsultationProcessingStatus.None);
+      
+      // Проверяем наличие данных
+      const hasData = data.summary || 
+                     data.complaints || 
+                     data.objective || 
+                     data.treatmentPlan ||
+                     data.transcriptionResult;
+      
+      // Если статус Completed/Failed или есть данные, не обновляем
+      if (status === ConsultationProcessingStatus.Completed || 
+          status === ConsultationProcessingStatus.Failed ||
+          hasData) {
+        return false;
+      }
+      
+      // Если статус InProgress или None и нет данных, обновляем каждые 5 секунд
+      if (status === ConsultationProcessingStatus.InProgress || 
+          status === ConsultationProcessingStatus.None) {
+        return 5000; // Обновляем каждые 5 секунд
+      }
+      
+      return false;
+    },
   });
 
   // Преобразуем данные для отображения
   const consultation: ConsultationResponse | null = consultationData || null;
+
+  // Определяем статус из данных консультации
+  // Приоритет: consultation.status > consultation.processingStatus > None
+  let currentStatus: ConsultationProcessingStatus;
+  
+  if (consultation) {
+    // В новой структуре status - обязательное поле
+    if (typeof consultation.status === 'number') {
+      currentStatus = consultation.status;
+    } else if (typeof consultation.status === 'string') {
+      const parsed = parseInt(consultation.status, 10);
+      currentStatus = !isNaN(parsed) ? parsed : ConsultationProcessingStatus.None;
+    } else {
+      // Fallback на processingStatus
+      if (typeof consultation.processingStatus === 'number') {
+        currentStatus = consultation.processingStatus;
+      } else if (typeof consultation.processingStatus === 'string') {
+        const parsed = parseInt(consultation.processingStatus, 10);
+        currentStatus = !isNaN(parsed) ? parsed : ConsultationProcessingStatus.None;
+      } else {
+        currentStatus = ConsultationProcessingStatus.None;
+      }
+    }
+  } else {
+    currentStatus = ConsultationProcessingStatus.None;
+  }
+  
+  // Логируем для отладки
+  useEffect(() => {
+    console.log('[Consultation Page] Status check:', {
+      consultationStatus: consultation?.status,
+      consultationProcessingStatus: consultation?.processingStatus,
+      currentStatus,
+      statusName: ConsultationProcessingStatus[currentStatus],
+    });
+  }, [consultation?.status, consultation?.processingStatus, currentStatus]);
 
   // Загружаем данные пациента, если их нет в консультации
   const { data: patientData } = useQuery({
@@ -101,9 +159,32 @@ export default function ConsultationPage() {
                  (patientData ? `${patientData.firstName} ${patientData.lastName}` : undefined),
   } : null;
 
+  // Получаем названия полей из properties (динамические названия от бэкенда)
+  const getFieldTitle = (key: string, defaultTitle: string): string => {
+    if (!enrichedConsultation?.properties) return defaultTitle;
+    const property = enrichedConsultation.properties.find(p => p.parent?.key === key);
+    return property?.parent?.title || defaultTitle;
+  };
+
+  // Получаем описание поля из properties
+  const getFieldDescription = (key: string): string | undefined => {
+    if (!enrichedConsultation?.properties) return undefined;
+    const property = enrichedConsultation.properties.find(p => p.parent?.key === key);
+    return property?.parent?.description;
+  };
+
   // Синхронизируем локальные состояния с данными из API
+  // ВАЖНО: Обновляем локальные состояния при загрузке данных с бэкенда
   useEffect(() => {
     if (enrichedConsultation) {
+      console.log(`[Consultation Page] Syncing local state with API data:`, {
+        complaints: enrichedConsultation.complaints?.substring(0, 50) || '',
+        objective: enrichedConsultation.objective?.substring(0, 50) || '',
+        treatmentPlan: enrichedConsultation.plan?.substring(0, 50) || '',
+        summary: enrichedConsultation.summary?.substring(0, 50) || '',
+        comment: enrichedConsultation.comments?.substring(0, 50) || '',
+      });
+      
       setComplaints(enrichedConsultation.complaints || '');
       setObjective(enrichedConsultation.objective || '');
       setTreatmentPlan(enrichedConsultation.plan || '');
@@ -135,13 +216,64 @@ export default function ConsultationPage() {
 
   
   // Определяем статус обработки
-  const processingStatus = enrichedConsultation?.processingStatus ?? 
-                           (enrichedConsultation?.status as ConsultationProcessingStatus) ?? 
-                           ConsultationProcessingStatus.None;
+  // Используем актуальный статус из отдельного запроса
+  // Убеждаемся, что статус - это число
+  let processingStatus: ConsultationProcessingStatus;
+  
+  if (typeof currentStatus === 'number') {
+    processingStatus = currentStatus;
+  } else if (typeof currentStatus === 'string') {
+    const parsed = parseInt(currentStatus, 10);
+    processingStatus = !isNaN(parsed) ? parsed : ConsultationProcessingStatus.None;
+  } else {
+    // Пробуем получить статус из consultation.status (обязательное поле в новой структуре)
+    const statusFromConsultation = enrichedConsultation?.status;
+    if (typeof statusFromConsultation === 'number') {
+      processingStatus = statusFromConsultation;
+    } else if (typeof statusFromConsultation === 'string') {
+      const parsed = parseInt(statusFromConsultation, 10);
+      processingStatus = !isNaN(parsed) ? parsed : ConsultationProcessingStatus.None;
+    } else {
+      processingStatus = ConsultationProcessingStatus.None;
+    }
+  }
   
   // Определяем, обрабатывается ли консультация
-  const isProcessing = processingStatus === ConsultationProcessingStatus.InProgress || 
-                       processingStatus === ConsultationProcessingStatus.None;
+  // Completed (3) - консультация готова, НЕ обрабатывается
+  // Failed (2) - ошибка, НЕ обрабатывается
+  // InProgress (1) или None (0) - обрабатывается
+  const isStatusProcessing = processingStatus === ConsultationProcessingStatus.InProgress || 
+                            processingStatus === ConsultationProcessingStatus.None;
+  
+  // Дополнительная проверка: если есть данные консультации (summary, complaints и т.д.), 
+  // значит консультация готова, даже если статус не обновился
+  const hasConsultationData = enrichedConsultation && (
+    enrichedConsultation.summary || 
+    enrichedConsultation.complaints || 
+    enrichedConsultation.objective || 
+    enrichedConsultation.treatmentPlan ||
+    enrichedConsultation.transcriptionResult
+  );
+  
+  // Консультация обрабатывается ТОЛЬКО если:
+  // 1. Статус явно InProgress или None
+  // 2. И нет данных консультации
+  // 3. И статус НЕ Completed
+  const finalIsProcessing = processingStatus !== ConsultationProcessingStatus.Completed && 
+                            processingStatus !== ConsultationProcessingStatus.Failed &&
+                            isStatusProcessing && 
+                            !hasConsultationData;
+  
+  // Логируем для отладки
+  console.log('[Consultation Status] Final check:', {
+    currentStatus,
+    processingStatus,
+    statusName: ConsultationProcessingStatus[processingStatus],
+    isStatusProcessing,
+    hasConsultationData,
+    finalIsProcessing,
+    consultationStatus: enrichedConsultation?.status,
+  });
   
   // Получаем текстовое описание статуса
   const getStatusText = (status: ConsultationProcessingStatus) => {
@@ -516,10 +648,16 @@ export default function ConsultationPage() {
                   {enrichedConsultation.date ? format(new Date(enrichedConsultation.date), 'd MMMM yyyy', { locale: ru }) : 'Дата не указана'} • {enrichedConsultation.duration || '0:00'} • {enrichedConsultation.patientName || "Пациент не назначен"}
                 </p>
               </div>
-              {isProcessing && (
+              {finalIsProcessing && (
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
                   <Loader2 className="w-4 h-4 animate-spin text-primary" />
                   <span className="text-sm font-medium text-primary">{getStatusText(processingStatus)}</span>
+                </div>
+              )}
+              {!finalIsProcessing && processingStatus === ConsultationProcessingStatus.Completed && (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/20">
+                  <Check className="w-4 h-4 text-green-600" />
+                  <span className="text-sm font-medium text-green-600">Готово</span>
                 </div>
               )}
               {processingStatus === ConsultationProcessingStatus.Failed && (
@@ -542,7 +680,7 @@ export default function ConsultationPage() {
               variant="outline" 
               className="flex-1 md:flex-none rounded-xl gap-2 h-11 md:h-12 text-sm md:text-base transition-all active:scale-95 active:opacity-70 disabled:active:scale-100 disabled:active:opacity-50"
               onClick={handleDownloadPDF}
-              disabled={isProcessing}
+              disabled={finalIsProcessing}
             >
               <Download className="w-4 h-4" /> <span className="hidden sm:inline">PDF</span>
             </Button>
@@ -611,15 +749,16 @@ export default function ConsultationPage() {
               </TabsList>
 
               <TabsContent value="report" className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-                {isProcessing ? (
+                {finalIsProcessing ? (
                   <Card className="rounded-3xl border-border/50">
                     <CardContent className="p-12 text-center">
                       <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-primary" />
                       <h3 className="text-lg font-bold mb-2">Обработка консультации</h3>
                       <p className="text-muted-foreground">
-                        {processingStatus === ConsultationProcessingStatus.InProgress 
+                        {enrichedConsultation?.statusMessage || 
+                         (processingStatus === ConsultationProcessingStatus.InProgress 
                           ? 'Идет обработка аудиофайла и генерация отчета...' 
-                          : 'Ожидание начала обработки...'}
+                          : 'Ожидание начала обработки...')}
                       </p>
                       <p className="text-sm text-muted-foreground mt-2">
                         Данные появятся автоматически после завершения обработки
@@ -657,35 +796,40 @@ export default function ConsultationPage() {
                 ) : (
                   <>
                     <ReportSection 
-                      title="Жалобы" 
+                      title={getFieldTitle('complaints', 'Жалобы')}
+                      description={getFieldDescription('complaints')}
                       content={complaints} 
                       onChange={setComplaints}
                       placeholder="Не указано"
                       savingStatus={savingStatus.complaints}
                     />
                     <ReportSection 
-                      title="Объективный статус" 
+                      title={getFieldTitle('objective', 'Объективный статус')}
+                      description={getFieldDescription('objective')}
                       content={objective} 
                       onChange={setObjective}
                       placeholder="Не указано"
                       savingStatus={savingStatus.objective}
                     />
                     <ReportSection 
-                      title="План лечения" 
+                      title={getFieldTitle('treatment_plan', 'План лечения')}
+                      description={getFieldDescription('treatment_plan')}
                       content={treatmentPlan} 
                       onChange={setTreatmentPlan}
                       placeholder="Не указано"
                       savingStatus={savingStatus.treatmentPlan}
                     />
                     <ReportSection 
-                      title="Резюме консультации" 
+                      title={getFieldTitle('summary', 'Резюме консультации')}
+                      description={getFieldDescription('summary')}
                       content={summary} 
                       onChange={setSummary}
                       placeholder="Не указано"
                       savingStatus={savingStatus.summary}
                     />
                     <ReportSection 
-                      title="Комментарий врача" 
+                      title={getFieldTitle('comment', 'Комментарий врача')}
+                      description={getFieldDescription('comment')}
                       content={comment} 
                       onChange={setComment}
                       placeholder="Не указано"
@@ -699,7 +843,7 @@ export default function ConsultationPage() {
               <TabsContent value="transcript" className="animate-in fade-in slide-in-from-bottom-2">
                 <Card className="rounded-3xl border-border/50">
                   <CardContent className="p-6">
-                    {isProcessing ? (
+                    {finalIsProcessing ? (
                       <div className="text-center py-12">
                         <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
                         <p className="text-muted-foreground">Транскрипция обрабатывается...</p>
@@ -843,14 +987,16 @@ export default function ConsultationPage() {
 }
 
 function ReportSection({ 
-  title, 
+  title,
+  description,
   content, 
   onChange,
   placeholder = '',
   isPrivate = false,
   savingStatus
 }: { 
-  title: string; 
+  title: string;
+  description?: string;
   content: string; 
   onChange?: (value: string) => void;
   placeholder?: string;
@@ -995,20 +1141,25 @@ function ReportSection({
   return (
     <Card className={cn("rounded-3xl border-border/50 transition-all hover:border-primary/20 overflow-hidden", isPrivate && "bg-secondary/20 border-dashed")}>
       <div className="p-4 pb-2 border-b border-border/50">
-        <div className="flex justify-between items-center gap-2">
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <h3 className="text-lg font-bold">{title}</h3>
-            {savingStatus?.isSaving && (
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Loader2 className="w-3 h-3 animate-spin" />
-                <span>Сохранение...</span>
-              </div>
-            )}
-            {savingStatus?.isSaved && !savingStatus?.isSaving && (
-              <div className="flex items-center gap-1.5 text-xs text-green-600">
-                <Check className="w-3 h-3" />
-                <span>Сохранено</span>
-              </div>
+        <div className="flex justify-between items-start gap-2">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="text-lg font-bold">{title}</h3>
+              {savingStatus?.isSaving && (
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <span>Сохранение...</span>
+                </div>
+              )}
+              {savingStatus?.isSaved && !savingStatus?.isSaving && (
+                <div className="flex items-center gap-1.5 text-xs text-green-600">
+                  <Check className="w-3 h-3" />
+                  <span>Сохранено</span>
+                </div>
+              )}
+            </div>
+            {description && (
+              <p className="text-xs text-muted-foreground mt-1">{description}</p>
             )}
           </div>
           <div className="flex items-center gap-2 shrink-0">

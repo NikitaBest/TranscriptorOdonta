@@ -1,9 +1,10 @@
 import { useRef, useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { AlertCircle, Loader2, Play, Pause } from 'lucide-react';
 import { consultationsApi } from '@/lib/api/consultations';
-import { ConsultationProcessingStatus } from '@/lib/api/types';
+import { ConsultationProcessingStatus, ConsultationResponse } from '@/lib/api/types';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
@@ -27,6 +28,7 @@ export function ConsultationAudioPlayer({
 }: ConsultationAudioPlayerProps) {
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  const queryClient = useQueryClient();
 
   // Состояния для аудиоплеера
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -74,81 +76,89 @@ export function ConsultationAudioPlayer({
     // Определяем, мобильное ли устройство
     const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     
-    // Для мобильных устройств сначала пробуем прямой URL, для десктопа - Blob URL
+    // Загружаем аудио из link в audioNotes консультации
     const loadAudio = async () => {
       try {
-        // Пробуем загрузить через Blob URL
-        const url = await consultationsApi.getAudioUrl(consultationId, false);
+        // Пытаемся получить данные консультации из кэша, чтобы использовать link из audioNotes
+        const consultationData = queryClient.getQueryData<ConsultationResponse>(['consultation', consultationId]);
+        
+        let url: string;
+        if (consultationData?.audioUrl) {
+          // Используем прямой URL из audioNotes[0].link (прямая ссылка на S3)
+          console.log(`[Audio Player] Using audioUrl from consultation data: ${consultationData.audioUrl}`);
+          url = consultationData.audioUrl;
+        } else if (consultationData?.audioNotes && Array.isArray(consultationData.audioNotes) && consultationData.audioNotes.length > 0) {
+          // Если audioUrl нет, но есть audioNotes, берем link напрямую
+          const firstAudio = consultationData.audioNotes[0];
+          if (firstAudio.link) {
+            console.log(`[Audio Player] Using link from audioNotes: ${firstAudio.link}`);
+            url = firstAudio.link;
+          } else {
+            throw new Error('Аудиофайл не найден в данных консультации');
+          }
+        } else {
+          // Fallback: пытаемся получить через API (старый способ)
+          console.log(`[Audio Player] No audioUrl in consultation data, fetching via API`);
+          url = await consultationsApi.getAudioUrl(consultationId, consultationData);
+        }
+        
+        // Пытаемся использовать прямую ссылку
+        // Если это не сработает, audio элемент сам вызовет handleError
         setAudioUrl(url);
         setIsLoadingAudio(false);
         setAudioError(null); // Очищаем ошибку при успешной загрузке
-      } catch (error: any) {
-        console.error('Failed to load audio with Blob URL:', error);
         
-        // Если не получилось с Blob URL, пробуем прямой URL (особенно для мобильных)
-        let directUrl: string | undefined;
-        try {
-          directUrl = consultationsApi.getAudioDirectUrl(consultationId);
+        // Проверяем, можем ли мы загрузить файл через fetch (для создания Blob URL, если нужно)
+        // Это делаем асинхронно, не блокируя установку URL
+        if (url && url.startsWith('http')) {
+          // Пытаемся загрузить через fetch для создания Blob URL, если прямая ссылка не работает
+          // Но делаем это только если audio элемент не может загрузить напрямую
+          // Это будет обработано в handleError, если нужно
+        }
+      } catch (error: any) {
+        console.error('Failed to load audio:', error);
+        setIsLoadingAudio(false);
           
-          // Проверяем, что это действительно URL (не Blob URL)
-          if (directUrl && !directUrl.startsWith('blob:')) {
-            // Для прямого URL пробуем загрузить через fetch с проверкой доступности
-            // Если сервер не поддерживает токен в query, вернется ошибка
-            const testResponse = await fetch(directUrl, {
-              method: 'HEAD', // Используем HEAD для проверки без загрузки всего файла
-              mode: 'cors',
-            });
-            
-            if (testResponse.ok) {
-              setAudioUrl(directUrl);
-              setIsLoadingAudio(false);
-              setAudioError(null); // Очищаем ошибку при успешной загрузке
-            } else {
-              throw new Error(`Direct URL failed: ${testResponse.status}`);
-            }
-          } else {
-            throw new Error('Direct URL not available');
-          }
-        } catch (directError: any) {
-          console.error('Failed to load audio with direct URL:', directError);
-          setIsLoadingAudio(false);
-          
-          // Формируем детальное сообщение об ошибке
-          let errorMessage = "Не удалось загрузить аудиофайл.";
-          const errorDetails = error?.message || directError?.message || '';
-          
-          if (errorDetails.includes('network') || errorDetails.includes('Failed to fetch') || errorDetails.includes('NetworkError')) {
-            errorMessage = "Ошибка сети. Проверьте подключение к интернету и попробуйте еще раз.";
-          } else if (errorDetails.includes('timeout') || errorDetails.includes('Таймаут') || errorDetails.includes('AbortError')) {
-            errorMessage = "Превышено время ожидания. Файл слишком большой или медленное соединение. Попробуйте позже.";
-          } else if (errorDetails.includes('401') || errorDetails.includes('403') || errorDetails.includes('Unauthorized')) {
-            errorMessage = "Ошибка авторизации. Войдите в систему заново.";
-          } else if (errorDetails.includes('404') || errorDetails.includes('Not Found')) {
-            errorMessage = "Аудиофайл не найден. Возможно, он был удален.";
-          } else if (errorDetails.includes('CORS') || errorDetails.includes('cors')) {
-            errorMessage = "Ошибка доступа к файлу. Обратитесь к администратору.";
-          } else if (errorDetails) {
-            errorMessage = `Ошибка загрузки: ${errorDetails}`;
-          }
-          
-          // Добавляем информацию о браузере для диагностики
-          const userAgent = navigator.userAgent;
-          const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(userAgent);
-          console.error('Audio load error details:', {
-            error: errorDetails,
-            isMobile: isMobileDevice,
-            userAgent,
-            audioUrl: directUrl || 'not set',
+        // Формируем детальное сообщение об ошибке
+        let errorMessage = "Не удалось загрузить аудиофайл.";
+        const errorDetails = error?.message || '';
+        
+        if (errorDetails.includes('network') || errorDetails.includes('Failed to fetch') || errorDetails.includes('NetworkError')) {
+          errorMessage = "Ошибка сети. Проверьте подключение к интернету и попробуйте еще раз.";
+        } else if (errorDetails.includes('timeout') || errorDetails.includes('Таймаут') || errorDetails.includes('AbortError')) {
+          errorMessage = "Превышено время ожидания. Файл слишком большой или медленное соединение. Попробуйте позже.";
+        } else if (errorDetails.includes('401') || errorDetails.includes('403') || errorDetails.includes('Unauthorized')) {
+          errorMessage = "Ошибка авторизации. Войдите в систему заново.";
+        } else if (errorDetails.includes('404') || errorDetails.includes('Not Found')) {
+          errorMessage = "Аудиофайл не найден. Возможно, он был удален.";
+        } else if (errorDetails.includes('405') || errorDetails.includes('Method Not Allowed')) {
+          errorMessage = "Метод запроса не поддерживается. Обратитесь к администратору.";
+        } else if (errorDetails.includes('500') || errorDetails.includes('Internal Server Error')) {
+          errorMessage = "Ошибка сервера. Попробуйте позже.";
+        } else if (errorDetails.includes('CORS') || errorDetails.includes('cors')) {
+          errorMessage = "Ошибка доступа к файлу. Обратитесь к администратору.";
+        } else if (errorDetails) {
+          errorMessage = `Ошибка загрузки: ${errorDetails}`;
+        }
+        
+        setAudioError(errorMessage);
+        
+        // Добавляем информацию о браузере для диагностики
+        const userAgent = navigator.userAgent;
+        const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(userAgent);
+        console.error('Audio load error details:', {
+          error: errorDetails,
+          isMobile: isMobileDevice,
+          userAgent,
+        });
+        
+        // Показываем уведомление только на десктопе (аудиоплеер скрыт на мобильных)
+        if (!isMobileDevice) {
+          toast({
+            title: "Ошибка загрузки аудио",
+            description: errorMessage,
+            variant: "destructive",
           });
-          
-          // Показываем уведомление только на десктопе (аудиоплеер скрыт на мобильных)
-          if (!isMobileDevice) {
-            toast({
-              title: "Ошибка загрузки аудио",
-              description: errorMessage,
-              variant: "destructive",
-            });
-          }
         }
       }
     };
@@ -291,12 +301,23 @@ export function ConsultationAudioPlayer({
   }, [isPlaying]);
 
   // Генерация статичной формы волны из аудио файла
+  // ВАЖНО: Если аудио на внешнем сервере (S3) без CORS, генерация waveform не будет работать
+  // В этом случае используем динамическую визуализацию или минимальные значения
   useEffect(() => {
     if (!audioUrl) return;
 
     const generateStaticWaveform = async () => {
       try {
-        const response = await fetch(audioUrl);
+        // Пытаемся загрузить через fetch с CORS
+        const response = await fetch(audioUrl, {
+          mode: 'cors',
+          credentials: 'omit',
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         const arrayBuffer = await response.arrayBuffer();
         
         const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -329,9 +350,15 @@ export function ConsultationAudioPlayer({
         
         setStaticWaveform(waveform);
         audioContext.close();
-      } catch (error) {
-        console.error('Failed to generate static waveform:', error);
-        // В случае ошибки используем минимальные значения
+      } catch (error: any) {
+        // Если CORS ошибка или другая ошибка загрузки, просто пропускаем генерацию waveform
+        // Audio элемент сам попробует загрузить файл, и если CORS настроен правильно, он загрузится
+        if (error?.message?.includes('CORS') || error?.message?.includes('fetch')) {
+          console.warn('[Audio Player] Cannot generate static waveform due to CORS. Audio playback should still work.');
+        } else {
+          console.error('Failed to generate static waveform:', error);
+        }
+        // В случае ошибки используем минимальные значения (динамическая визуализация будет работать)
         setStaticWaveform(Array(AUDIO_BARS_COUNT).fill(5));
       }
     };
@@ -379,10 +406,11 @@ export function ConsultationAudioPlayer({
       setCurrentTime(0);
     };
 
-    const handleError = (e: Event) => {
+    const handleError = async (e: Event) => {
       console.error('Audio error:', e);
       const audioErrorObj = audio.error;
       let errorMessage = "Не удалось воспроизвести аудио.";
+      let shouldRetryWithBlob = false;
       
       if (audioErrorObj) {
         switch (audioErrorObj.code) {
@@ -391,12 +419,27 @@ export function ConsultationAudioPlayer({
             break;
           case MediaError.MEDIA_ERR_NETWORK:
             errorMessage = "Ошибка сети при загрузке аудио. Проверьте подключение к интернету и попробуйте еще раз.";
+            // Пытаемся загрузить через fetch и создать Blob URL
+            shouldRetryWithBlob = true;
             break;
           case MediaError.MEDIA_ERR_DECODE:
-            errorMessage = "Формат аудио не поддерживается вашим браузером. Попробуйте использовать Chrome, Safari или Firefox.";
+            // Проверяем формат файла
+            const isOgg = audio.src.includes('.ogg');
+            if (isOgg) {
+              errorMessage = "Формат OGG может не поддерживаться вашим браузером. Попробуйте использовать Chrome или Firefox.";
+            } else {
+              errorMessage = "Формат аудио не поддерживается вашим браузером. Попробуйте использовать Chrome, Safari или Firefox.";
+            }
             break;
           case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
-            errorMessage = "Формат аудио не поддерживается. Обратитесь к администратору.";
+            // Проверяем, может быть проблема с CORS
+            if (audio.networkState === HTMLMediaElement.NETWORK_NO_SOURCE) {
+              errorMessage = "Источник аудио не найден. Возможно, проблема с доступом к файлу.";
+              // Пытаемся загрузить через fetch и создать Blob URL
+              shouldRetryWithBlob = true;
+            } else {
+              errorMessage = "Формат аудио не поддерживается. Обратитесь к администратору.";
+            }
             break;
         }
         
@@ -409,6 +452,35 @@ export function ConsultationAudioPlayer({
           src: audio.src.substring(0, 100), // Ограничиваем длину для безопасности
           isMobile: /iPhone|iPad|iPod|Android/i.test(navigator.userAgent),
         });
+        
+        // Пытаемся загрузить через fetch и создать Blob URL, если прямая ссылка не работает
+        if (shouldRetryWithBlob && audio.src && audio.src.startsWith('http')) {
+          try {
+            console.log('[Audio Player] Attempting to load audio via fetch and create Blob URL');
+            const response = await fetch(audio.src, {
+              mode: 'cors',
+              credentials: 'omit',
+            });
+            
+            if (response.ok) {
+              const blob = await response.blob();
+              const blobUrl = URL.createObjectURL(blob);
+              console.log('[Audio Player] Successfully created Blob URL, retrying playback');
+              
+              // Обновляем src на Blob URL
+              audio.src = blobUrl;
+              setAudioUrl(blobUrl);
+              setAudioError(null);
+              
+              // Пытаемся загрузить снова
+              await audio.load();
+              return; // Выходим, если успешно
+            }
+          } catch (fetchError: any) {
+            console.error('[Audio Player] Failed to load audio via fetch:', fetchError);
+            // Если fetch тоже не работает, показываем ошибку
+          }
+        }
       } else {
         // Если нет кода ошибки, но событие error произошло
         console.error('Audio error event without error code:', {
@@ -740,7 +812,6 @@ export function ConsultationAudioPlayer({
           ref={audioRef}
           src={audioUrl}
           preload="metadata"
-          crossOrigin="anonymous"
           playsInline
           controls={false}
         />
