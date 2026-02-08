@@ -86,6 +86,8 @@ export default function PatientProfile() {
 
   // Timeouts для автосохранения каждого поля
   const medicalRecordTimeouts = useRef<Record<string, NodeJS.Timeout | null>>({});
+  // Timeouts для скрытия индикатора "Сохранено"
+  const savingStatusTimeouts = useRef<Record<string, NodeJS.Timeout | null>>({});
 
   // Загрузка данных пациента
   const { data: patientData, isLoading: isLoadingPatient, error: patientError } = useQuery({
@@ -171,7 +173,8 @@ export default function PatientProfile() {
       return;
     }
 
-    updateSavingStatus(fieldName, { isSaving: true, isSaved: false });
+    // Используем fieldKey для ключа в savingStatus, так как компоненты используют fieldKey
+    updateSavingStatus(fieldKey, { isSaving: true, isSaved: false });
 
     try {
       // Формируем объект с только измененным полем
@@ -225,15 +228,23 @@ export default function PatientProfile() {
         },
       });
 
-      updateSavingStatus(fieldName, { isSaving: false, isSaved: true });
+      // Используем fieldKey для ключа в savingStatus
+      updateSavingStatus(fieldKey, { isSaving: false, isSaved: true });
 
-      // Скрываем индикатор сохранения через 2 секунды
-      setTimeout(() => {
-        updateSavingStatus(fieldName, { isSaving: false, isSaved: false });
-      }, 2000);
+      // Очищаем предыдущий таймер скрытия, если он есть
+      if (savingStatusTimeouts.current[fieldKey]) {
+        clearTimeout(savingStatusTimeouts.current[fieldKey]!);
+      }
+
+      // Скрываем индикатор сохранения через 3 секунды для лучшей видимости
+      savingStatusTimeouts.current[fieldKey] = setTimeout(() => {
+        updateSavingStatus(fieldKey, { isSaving: false, isSaved: false });
+        savingStatusTimeouts.current[fieldKey] = null;
+      }, 3000);
     } catch (error) {
       console.error(`Auto-save medical record field ${fieldName} error:`, error);
-      updateSavingStatus(fieldName, { isSaving: false, isSaved: false });
+      // Используем fieldKey для ключа в savingStatus
+      updateSavingStatus(fieldKey, { isSaving: false, isSaved: false });
       toast({
         title: "Ошибка сохранения",
         description: `Не удалось сохранить поле "${fieldName}". Попробуйте еще раз.`,
@@ -257,9 +268,16 @@ export default function PatientProfile() {
       ref.current.style.height = `${ref.current.scrollHeight}px`;
     }
 
-    // Очищаем предыдущий таймер
+    // Сбрасываем индикатор "Сохранено" при новом изменении (используем fieldKey)
+    updateSavingStatus(fieldKey, { isSaving: false, isSaved: false });
+
+    // Очищаем предыдущие таймеры
     if (medicalRecordTimeouts.current[fieldKey]) {
       clearTimeout(medicalRecordTimeouts.current[fieldKey]!);
+    }
+    if (savingStatusTimeouts.current[fieldKey]) {
+      clearTimeout(savingStatusTimeouts.current[fieldKey]!);
+      savingStatusTimeouts.current[fieldKey] = null;
     }
 
     // Устанавливаем новый таймер для автосохранения (через 1 секунду после последнего изменения)
@@ -272,6 +290,9 @@ export default function PatientProfile() {
   useEffect(() => {
     return () => {
       Object.values(medicalRecordTimeouts.current).forEach(timeout => {
+        if (timeout) clearTimeout(timeout);
+      });
+      Object.values(savingStatusTimeouts.current).forEach(timeout => {
         if (timeout) clearTimeout(timeout);
       });
     };
@@ -934,14 +955,14 @@ function MedicalRecordSection({
             <div className="flex items-center gap-2 mb-1">
               <h3 className="text-lg font-bold">{title}</h3>
               {savingStatus?.isSaving && (
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground animate-in fade-in slide-in-from-right-2 duration-200">
                   <Loader2 className="w-3 h-3 animate-spin" />
                   <span>Сохранение...</span>
                 </div>
               )}
               {savingStatus?.isSaved && !savingStatus?.isSaving && (
-                <div className="flex items-center gap-1.5 text-xs text-green-600">
-                  <Check className="w-3 h-3" />
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/20 text-xs font-medium text-green-600 animate-in fade-in slide-in-from-right-2 duration-200">
+                  <Check className="w-3.5 h-3.5" />
                   <span>Сохранено</span>
                 </div>
               )}
