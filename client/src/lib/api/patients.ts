@@ -98,10 +98,26 @@ export const patientsApi = {
 
       // Бэкенд возвращает обёрнутый ответ { value: {...}, isSuccess: true, error: null }
       if (response.isSuccess && response.value) {
-        return {
+        const patient = {
           ...response.value,
           id: String(response.value.id),
         };
+        
+        // Логируем для отладки
+        console.log(`[Get Patient By ID] Patient ${id} loaded:`, {
+          hasMedicalRecord: !!patient.medicalRecord,
+          medicalRecordFields: patient.medicalRecord ? {
+            hasAllergy: !!patient.medicalRecord.allergy,
+            hasComorbidities: !!patient.medicalRecord.comorbidities,
+            hasAnamnesis: !!patient.medicalRecord.anamnesis,
+            hasComplaints: !!patient.medicalRecord.complaints,
+            hasDiagnosis: !!patient.medicalRecord.diagnosis,
+            hasTreatment: !!patient.medicalRecord.treatment,
+            hasOtherInfo: !!patient.medicalRecord.otherInfo,
+          } : null,
+        });
+        
+        return patient;
       }
 
       return null;

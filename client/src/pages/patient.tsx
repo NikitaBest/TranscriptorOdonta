@@ -5,6 +5,7 @@ import { Layout } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Mic, ArrowLeft, Phone, Calendar, FileText, Play, Loader2, Check, AlertCircle, Copy } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -285,7 +286,7 @@ export default function PatientProfile() {
 
   return (
     <Layout>
-      <div className="max-w-5xl mx-auto flex flex-col gap-8">
+      <div className="max-w-6xl mx-auto flex flex-col gap-8 px-4 sm:px-6 lg:px-8">
         {/* Navigation & Header */}
         <div>
           <Link href="/dashboard">
@@ -353,9 +354,28 @@ export default function PatientProfile() {
           </div>
         </div>
 
-        <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6 md:gap-8">
+        <Tabs defaultValue="consultations" className="w-full">
+          <div className="flex justify-start mb-6">
+            <TabsList className="inline-flex h-10 items-center justify-center rounded-xl bg-muted/50 p-1 text-muted-foreground border border-border/50">
+              <TabsTrigger 
+                value="consultations" 
+                className="px-4 md:px-6 py-2 text-sm md:text-base font-medium rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+              >
+                История консультаций
+              </TabsTrigger>
+              <TabsTrigger 
+                value="medical-record"
+                className="px-4 md:px-6 py-2 text-sm md:text-base font-medium rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+              >
+                Карта пациента
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          <TabsContent value="consultations" className="space-y-6 mt-0">
+            <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6 md:gap-8">
           {/* Sidebar - Notes (первым на мобильных, вторым на десктопе) */}
-          <div className="order-1 lg:order-2 space-y-4 md:space-y-6">
+          <div className="order-1 lg:order-2 space-y-4 md:space-y-6 lg:sticky lg:top-6 lg:self-start">
             <div className="flex items-center justify-between">
             <h2 className="text-lg md:text-xl font-display font-bold">Заметки врача</h2>
               {isSaving && (
@@ -512,6 +532,108 @@ export default function PatientProfile() {
             </div>
           </div>
         </div>
+          </TabsContent>
+
+          <TabsContent value="medical-record" className="space-y-6 mt-0">
+            <div className="space-y-6">
+              <h2 className="text-lg md:text-xl font-display font-bold">Карта пациента</h2>
+              
+              {patientData?.medicalRecord ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Аллергия */}
+                  {patientData.medicalRecord.allergy && (
+                    <Card className="border-border/50 rounded-3xl shadow-sm">
+                      <CardHeader>
+                        <CardTitle className="text-base font-semibold">Аллергия</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{patientData.medicalRecord.allergy}</p>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Сопутствующие заболевания */}
+                  {patientData.medicalRecord.comorbidities && (
+                    <Card className="border-border/50 rounded-3xl shadow-sm">
+                      <CardHeader>
+                        <CardTitle className="text-base font-semibold">Сопутствующие заболевания</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{patientData.medicalRecord.comorbidities}</p>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Анамнез */}
+                  {patientData.medicalRecord.anamnesis && (
+                    <Card className="border-border/50 rounded-3xl shadow-sm">
+                      <CardHeader>
+                        <CardTitle className="text-base font-semibold">Анамнез</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{patientData.medicalRecord.anamnesis}</p>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Жалобы */}
+                  {patientData.medicalRecord.complaints && (
+                    <Card className="border-border/50 rounded-3xl shadow-sm">
+                      <CardHeader>
+                        <CardTitle className="text-base font-semibold">Жалобы</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{patientData.medicalRecord.complaints}</p>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Диагноз */}
+                  {patientData.medicalRecord.diagnosis && (
+                    <Card className="border-border/50 rounded-3xl shadow-sm">
+                      <CardHeader>
+                        <CardTitle className="text-base font-semibold">Диагноз</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{patientData.medicalRecord.diagnosis}</p>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Лечение */}
+                  {patientData.medicalRecord.treatment && (
+                    <Card className="border-border/50 rounded-3xl shadow-sm md:col-span-2">
+                      <CardHeader>
+                        <CardTitle className="text-base font-semibold">Лечение</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{patientData.medicalRecord.treatment}</p>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Другая информация */}
+                  {patientData.medicalRecord.otherInfo && (
+                    <Card className="border-border/50 rounded-3xl shadow-sm md:col-span-2">
+                      <CardHeader>
+                        <CardTitle className="text-base font-semibold">Другая информация</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{patientData.medicalRecord.otherInfo}</p>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              ) : (
+                <Card className="border-border/50 rounded-3xl shadow-sm">
+                  <CardContent className="py-12 text-center">
+                    <p className="text-muted-foreground">Медицинская карта пока не заполнена.</p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </Layout>
   );

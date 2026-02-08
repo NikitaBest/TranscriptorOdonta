@@ -118,6 +118,22 @@ export interface GetPatientsRequest {
 /**
  * Пациент из API
  */
+export interface MedicalRecord {
+  tenantId?: string | number;
+  clientId?: string | number;
+  allergy?: string | null; // Аллергия
+  comorbidities?: string | null; // Сопутствующие заболевания
+  anamnesis?: string | null; // Анамнез
+  complaints?: string | null; // Жалобы
+  diagnosis?: string | null; // Диагноз
+  treatment?: string | null; // Лечение
+  otherInfo?: string | null; // Другая информация
+  id?: string | number;
+  createdAt?: string;
+  createdBy?: string | null;
+  updatedBy?: string | null;
+}
+
 export interface PatientResponse {
   id: string | number;
   firstName: string;
@@ -125,6 +141,7 @@ export interface PatientResponse {
   phone: string;
   comment?: string;
   birthDate?: string; // Дата рождения в формате ISO (YYYY-MM-DD)
+  medicalRecord?: MedicalRecord | null; // Медицинская карта пациента
   createdAt?: string;
   updatedAt?: string;
 }
