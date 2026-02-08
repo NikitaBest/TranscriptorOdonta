@@ -87,9 +87,35 @@ export function useAutoSaveConsultation({
     return property?.id || null;
   };
 
+  // Функция для проверки, можно ли редактировать поле
+  const isFieldEditable = (fieldKey: string): boolean => {
+    if (!enrichedConsultation?.properties) {
+      return false;
+    }
+    const property = enrichedConsultation.properties.find(p => p.parent?.key === fieldKey);
+    if (!property) {
+      return false;
+    }
+    // Если isEditable явно false, поле нельзя редактировать
+    // Если isEditable undefined или true, поле можно редактировать
+    return property.parent?.isEditable !== false;
+  };
+
   // Функция для сохранения одного поля
   const saveField = async (fieldKey: string, fieldName: string, value: string) => {
     const trimmedValue = value.trim() || '';
+    
+    // Проверяем, можно ли редактировать это поле
+    if (!isFieldEditable(fieldKey)) {
+      console.log(`[AutoSave] Field ${fieldName} (${fieldKey}) is not editable, skipping save`);
+      updateSavingStatus(fieldName, { isSaving: false, isSaved: false });
+      toast({
+        title: "Поле не редактируется",
+        description: `Поле "${fieldName}" нельзя редактировать. Оно генерируется автоматически.`,
+        variant: "default",
+      });
+      return;
+    }
     
     // Проверяем, не сохраняем ли мы уже это значение
     const lastSavedValue = lastSavedValuesRef.current[fieldName] || '';
@@ -220,14 +246,30 @@ export function useAutoSaveConsultation({
       setTimeout(() => {
         updateSavingStatus(fieldName, { isSaving: false, isSaved: false });
       }, SAVED_STATUS_DISPLAY_MS);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Auto-save consultation error:', error);
       updateSavingStatus(fieldName, { isSaving: false, isSaved: false });
-      toast({
-        title: "Ошибка сохранения",
-        description: "Не удалось сохранить изменения. Попробуйте еще раз.",
-        variant: "destructive",
-      });
+      
+      // Проверяем, не является ли ошибка связанной с нередактируемым полем
+      const errorMessage = error?.message || error?.toString() || '';
+      const isNotEditableError = errorMessage.includes('Нельзя редактировать') || 
+                                 errorMessage.includes('нельзя редактировать') ||
+                                 errorMessage.includes('Cannot edit') ||
+                                 errorMessage.includes('not editable');
+      
+      if (isNotEditableError) {
+        toast({
+          title: "Поле не редактируется",
+          description: `Поле "${fieldName}" нельзя редактировать. Оно генерируется автоматически.`,
+          variant: "default",
+        });
+      } else {
+        toast({
+          title: "Ошибка сохранения",
+          description: errorMessage || "Не удалось сохранить изменения. Попробуйте еще раз.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -354,10 +396,17 @@ export function useAutoSaveConsultation({
   }, [fields.treatmentPlan, consultationId, enrichedConsultation]);
 
   // Автосохранение для поля "Выжимка"
+  // ВАЖНО: Поле summary обычно не редактируемое (isEditable: false), поэтому автосохранение отключено
   useEffect(() => {
     if (!consultationId || !enrichedConsultation) return;
     
     if (!enrichedConsultation.properties || enrichedConsultation.properties.length === 0) {
+      return;
+    }
+
+    // Проверяем, можно ли редактировать это поле
+    if (!isFieldEditable('summary')) {
+      // Поле не редактируемое, не сохраняем
       return;
     }
 

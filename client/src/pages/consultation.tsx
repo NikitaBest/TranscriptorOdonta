@@ -173,6 +173,16 @@ export default function ConsultationPage() {
     return property?.parent?.description;
   };
 
+  // Проверяем, можно ли редактировать поле
+  const isFieldEditable = (key: string): boolean => {
+    if (!enrichedConsultation?.properties) return true; // По умолчанию разрешаем редактирование
+    const property = enrichedConsultation.properties.find(p => p.parent?.key === key);
+    if (!property) return true; // Если свойство не найдено, разрешаем редактирование
+    // Если isEditable явно false, поле нельзя редактировать
+    // Если isEditable undefined или true, поле можно редактировать
+    return property.parent?.isEditable !== false;
+  };
+
   // Синхронизируем локальные состояния с данными из API
   // ВАЖНО: Обновляем локальные состояния при загрузке данных с бэкенда
   useEffect(() => {
@@ -823,7 +833,7 @@ export default function ConsultationPage() {
                       title={getFieldTitle('summary', 'Резюме консультации')}
                       description={getFieldDescription('summary')}
                       content={summary} 
-                      onChange={setSummary}
+                      onChange={isFieldEditable('summary') ? setSummary : undefined}
                       placeholder="Не указано"
                       savingStatus={savingStatus.summary}
                     />
