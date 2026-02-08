@@ -134,6 +134,38 @@ export interface MedicalRecord {
   updatedBy?: string | null;
 }
 
+/**
+ * Запрос на обновление медицинской карты пациента
+ * PUT /client/medical-record/update
+ */
+export interface UpdateMedicalRecordRequest {
+  clientId: string | number;
+  allergy?: string | null;
+  comorbidities?: string | null;
+  anamnesis?: string | null;
+  complaints?: string | null;
+  diagnosis?: string | null;
+  treatment?: string | null;
+  otherInfo?: string | null;
+}
+
+/**
+ * Ответ при успешном обновлении медицинской карты
+ */
+export interface UpdateMedicalRecordResponse {
+  id?: string | number;
+  clientId?: string | number;
+  allergy?: string | null;
+  comorbidities?: string | null;
+  anamnesis?: string | null;
+  complaints?: string | null;
+  diagnosis?: string | null;
+  treatment?: string | null;
+  otherInfo?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface PatientResponse {
   id: string | number;
   firstName: string;

@@ -4,6 +4,8 @@ import type {
   CreatePatientResponse,
   UpdatePatientRequest,
   UpdatePatientResponse,
+  UpdateMedicalRecordRequest,
+  UpdateMedicalRecordResponse,
   GetPatientsRequest,
   GetPatientsResponse,
   PatientResponse,
@@ -198,6 +200,27 @@ export const patientsApi = {
 
     console.warn('Неожиданный формат ответа от сервера при получении консультаций:', response);
     return [];
+  },
+
+  /**
+   * Обновление медицинской карты пациента
+   * PUT /client/medical-record/update
+   * Передаются только те поля, которые нужно изменить
+   */
+  async updateMedicalRecord(data: UpdateMedicalRecordRequest): Promise<UpdateMedicalRecordResponse> {
+    const response = await ApiClient.put<ApiResponse<UpdateMedicalRecordResponse>>(
+      'client/medical-record/update',
+      data,
+      { requireAuth: true }
+    );
+
+    // Бэкенд возвращает обёрнутый ответ { value: {...}, isSuccess: true, error: null }
+    if (response.isSuccess && response.value) {
+      return response.value;
+    }
+
+    // Если структура неожиданная, пробрасываем ошибку
+    throw new Error('Неожиданный формат ответа от сервера');
   },
 };
 

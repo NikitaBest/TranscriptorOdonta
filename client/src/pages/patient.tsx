@@ -59,6 +59,34 @@ export default function PatientProfile() {
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
+  // Состояния для полей медицинской карты
+  const [medicalRecordFields, setMedicalRecordFields] = useState({
+    allergy: '',
+    comorbidities: '',
+    anamnesis: '',
+    complaints: '',
+    diagnosis: '',
+    treatment: '',
+    otherInfo: '',
+  });
+
+  // Состояния сохранения для каждого поля
+  const [savingStatus, setSavingStatus] = useState<Record<string, { isSaving: boolean; isSaved: boolean }>>({});
+  
+  // Refs для textarea полей медицинской карты
+  const medicalRecordRefs = {
+    allergy: useRef<HTMLTextAreaElement | null>(null),
+    comorbidities: useRef<HTMLTextAreaElement | null>(null),
+    anamnesis: useRef<HTMLTextAreaElement | null>(null),
+    complaints: useRef<HTMLTextAreaElement | null>(null),
+    diagnosis: useRef<HTMLTextAreaElement | null>(null),
+    treatment: useRef<HTMLTextAreaElement | null>(null),
+    otherInfo: useRef<HTMLTextAreaElement | null>(null),
+  };
+
+  // Timeouts для автосохранения каждого поля
+  const medicalRecordTimeouts = useRef<Record<string, NodeJS.Timeout | null>>({});
+
   // Загрузка данных пациента
   const { data: patientData, isLoading: isLoadingPatient, error: patientError } = useQuery({
     queryKey: ['patient', id],
@@ -76,6 +104,32 @@ export default function PatientProfile() {
     }
   }, [patientData?.comment]);
 
+  // Синхронизируем поля медицинской карты с данными из API
+  useEffect(() => {
+    if (patientData?.medicalRecord) {
+      setMedicalRecordFields({
+        allergy: patientData.medicalRecord.allergy || '',
+        comorbidities: patientData.medicalRecord.comorbidities || '',
+        anamnesis: patientData.medicalRecord.anamnesis || '',
+        complaints: patientData.medicalRecord.complaints || '',
+        diagnosis: patientData.medicalRecord.diagnosis || '',
+        treatment: patientData.medicalRecord.treatment || '',
+        otherInfo: patientData.medicalRecord.otherInfo || '',
+      });
+    } else {
+      // Если медицинской карты нет, инициализируем пустыми значениями
+      setMedicalRecordFields({
+        allergy: '',
+        comorbidities: '',
+        anamnesis: '',
+        complaints: '',
+        diagnosis: '',
+        treatment: '',
+        otherInfo: '',
+      });
+    }
+  }, [patientData?.medicalRecord]);
+
   // Автоматическое изменение высоты textarea при изменении содержимого
   useEffect(() => {
     if (textareaRef.current) {
@@ -85,6 +139,143 @@ export default function PatientProfile() {
       textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
   }, [comment]);
+
+  // Автоматическое изменение высоты textarea для полей медицинской карты
+  useEffect(() => {
+    Object.entries(medicalRecordRefs).forEach(([key, ref]) => {
+      if (ref.current) {
+        ref.current.style.height = 'auto';
+        ref.current.style.height = `${ref.current.scrollHeight}px`;
+      }
+    });
+  }, [medicalRecordFields]);
+
+  // Функция для обновления статуса сохранения поля
+  const updateSavingStatus = (fieldName: string, status: { isSaving: boolean; isSaved: boolean }) => {
+    setSavingStatus(prev => ({
+      ...prev,
+      [fieldName]: status,
+    }));
+  };
+
+  // Функция автосохранения поля медицинской карты
+  const saveMedicalRecordField = async (fieldKey: string, fieldName: string, value: string) => {
+    if (!id || !patientData) return;
+
+    const trimmedValue = value.trim() || '';
+    const originalValue = patientData.medicalRecord?.[fieldKey as keyof typeof patientData.medicalRecord] || '';
+    const originalValueStr = originalValue || '';
+
+    // Если значение не изменилось, не сохраняем
+    if (trimmedValue === originalValueStr) {
+      return;
+    }
+
+    updateSavingStatus(fieldName, { isSaving: true, isSaved: false });
+
+    try {
+      // Формируем объект с только измененным полем
+      const updateData: {
+        clientId: string | number;
+        allergy?: string | null;
+        comorbidities?: string | null;
+        anamnesis?: string | null;
+        complaints?: string | null;
+        diagnosis?: string | null;
+        treatment?: string | null;
+        otherInfo?: string | null;
+      } = {
+        clientId: id,
+      };
+
+      // Добавляем только измененное поле
+      switch (fieldKey) {
+        case 'allergy':
+          updateData.allergy = trimmedValue || null;
+          break;
+        case 'comorbidities':
+          updateData.comorbidities = trimmedValue || null;
+          break;
+        case 'anamnesis':
+          updateData.anamnesis = trimmedValue || null;
+          break;
+        case 'complaints':
+          updateData.complaints = trimmedValue || null;
+          break;
+        case 'diagnosis':
+          updateData.diagnosis = trimmedValue || null;
+          break;
+        case 'treatment':
+          updateData.treatment = trimmedValue || null;
+          break;
+        case 'otherInfo':
+          updateData.otherInfo = trimmedValue || null;
+          break;
+      }
+
+      await patientsApi.updateMedicalRecord(updateData);
+
+      // Обновляем кэш с сохранением всех полей медицинской карты
+      queryClient.setQueryData(['patient', id], {
+        ...patientData,
+        medicalRecord: {
+          ...(patientData.medicalRecord || {}),
+          clientId: patientData.medicalRecord?.clientId || id,
+          [fieldKey]: trimmedValue || null,
+        },
+      });
+
+      updateSavingStatus(fieldName, { isSaving: false, isSaved: true });
+
+      // Скрываем индикатор сохранения через 2 секунды
+      setTimeout(() => {
+        updateSavingStatus(fieldName, { isSaving: false, isSaved: false });
+      }, 2000);
+    } catch (error) {
+      console.error(`Auto-save medical record field ${fieldName} error:`, error);
+      updateSavingStatus(fieldName, { isSaving: false, isSaved: false });
+      toast({
+        title: "Ошибка сохранения",
+        description: `Не удалось сохранить поле "${fieldName}". Попробуйте еще раз.`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Обработчик изменения поля медицинской карты
+  const handleMedicalRecordFieldChange = (fieldKey: string, fieldName: string, value: string) => {
+    // Обновляем локальное состояние
+    setMedicalRecordFields(prev => ({
+      ...prev,
+      [fieldKey]: value,
+    }));
+
+    // Автоматически изменяем высоту textarea
+    const ref = medicalRecordRefs[fieldKey as keyof typeof medicalRecordRefs];
+    if (ref.current) {
+      ref.current.style.height = 'auto';
+      ref.current.style.height = `${ref.current.scrollHeight}px`;
+    }
+
+    // Очищаем предыдущий таймер
+    if (medicalRecordTimeouts.current[fieldKey]) {
+      clearTimeout(medicalRecordTimeouts.current[fieldKey]!);
+    }
+
+    // Устанавливаем новый таймер для автосохранения (через 1 секунду после последнего изменения)
+    medicalRecordTimeouts.current[fieldKey] = setTimeout(() => {
+      saveMedicalRecordField(fieldKey, fieldName, value);
+    }, 1000);
+  };
+
+  // Очистка таймеров при размонтировании
+  useEffect(() => {
+    return () => {
+      Object.values(medicalRecordTimeouts.current).forEach(timeout => {
+        if (timeout) clearTimeout(timeout);
+      });
+    };
+  }, []);
 
   // Автосохранение комментария с debounce
   useEffect(() => {
@@ -538,103 +729,252 @@ export default function PatientProfile() {
             <div className="space-y-6">
               <h2 className="text-lg md:text-xl font-display font-bold">Карта пациента</h2>
               
-              {patientData?.medicalRecord ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Аллергия */}
-                  {patientData.medicalRecord.allergy && (
-                    <Card className="border-border/50 rounded-3xl shadow-sm">
-                      <CardHeader>
-                        <CardTitle className="text-base font-semibold">Аллергия</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{patientData.medicalRecord.allergy}</p>
-                      </CardContent>
-                    </Card>
-                  )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Аллергия */}
+                <MedicalRecordSection
+                  title="Аллергия"
+                  content={medicalRecordFields.allergy}
+                  onChange={(value) => handleMedicalRecordFieldChange('allergy', 'Аллергия', value)}
+                  placeholder="Добавить информацию об аллергии..."
+                  savingStatus={savingStatus.allergy}
+                  textareaRef={medicalRecordRefs.allergy}
+                  disabled={isLoadingPatient || !patientData}
+                />
 
-                  {/* Сопутствующие заболевания */}
-                  {patientData.medicalRecord.comorbidities && (
-                    <Card className="border-border/50 rounded-3xl shadow-sm">
-                      <CardHeader>
-                        <CardTitle className="text-base font-semibold">Сопутствующие заболевания</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{patientData.medicalRecord.comorbidities}</p>
-                      </CardContent>
-                    </Card>
-                  )}
+                {/* Сопутствующие заболевания */}
+                <MedicalRecordSection
+                  title="Сопутствующие заболевания"
+                  content={medicalRecordFields.comorbidities}
+                  onChange={(value) => handleMedicalRecordFieldChange('comorbidities', 'Сопутствующие заболевания', value)}
+                  placeholder="Добавить информацию о сопутствующих заболеваниях..."
+                  savingStatus={savingStatus.comorbidities}
+                  textareaRef={medicalRecordRefs.comorbidities}
+                  disabled={isLoadingPatient || !patientData}
+                />
 
-                  {/* Анамнез */}
-                  {patientData.medicalRecord.anamnesis && (
-                    <Card className="border-border/50 rounded-3xl shadow-sm">
-                      <CardHeader>
-                        <CardTitle className="text-base font-semibold">Анамнез</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{patientData.medicalRecord.anamnesis}</p>
-                      </CardContent>
-                    </Card>
-                  )}
+                {/* Анамнез */}
+                <MedicalRecordSection
+                  title="Анамнез"
+                  content={medicalRecordFields.anamnesis}
+                  onChange={(value) => handleMedicalRecordFieldChange('anamnesis', 'Анамнез', value)}
+                  placeholder="Добавить информацию об анамнезе..."
+                  savingStatus={savingStatus.anamnesis}
+                  textareaRef={medicalRecordRefs.anamnesis}
+                  disabled={isLoadingPatient || !patientData}
+                />
 
-                  {/* Жалобы */}
-                  {patientData.medicalRecord.complaints && (
-                    <Card className="border-border/50 rounded-3xl shadow-sm">
-                      <CardHeader>
-                        <CardTitle className="text-base font-semibold">Жалобы</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{patientData.medicalRecord.complaints}</p>
-                      </CardContent>
-                    </Card>
-                  )}
+                {/* Жалобы */}
+                <MedicalRecordSection
+                  title="Жалобы"
+                  content={medicalRecordFields.complaints}
+                  onChange={(value) => handleMedicalRecordFieldChange('complaints', 'Жалобы', value)}
+                  placeholder="Добавить жалобы пациента..."
+                  savingStatus={savingStatus.complaints}
+                  textareaRef={medicalRecordRefs.complaints}
+                  disabled={isLoadingPatient || !patientData}
+                />
 
-                  {/* Диагноз */}
-                  {patientData.medicalRecord.diagnosis && (
-                    <Card className="border-border/50 rounded-3xl shadow-sm">
-                      <CardHeader>
-                        <CardTitle className="text-base font-semibold">Диагноз</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{patientData.medicalRecord.diagnosis}</p>
-                      </CardContent>
-                    </Card>
-                  )}
+                {/* Диагноз */}
+                <MedicalRecordSection
+                  title="Диагноз"
+                  content={medicalRecordFields.diagnosis}
+                  onChange={(value) => handleMedicalRecordFieldChange('diagnosis', 'Диагноз', value)}
+                  placeholder="Добавить диагноз..."
+                  savingStatus={savingStatus.diagnosis}
+                  textareaRef={medicalRecordRefs.diagnosis}
+                  disabled={isLoadingPatient || !patientData}
+                />
 
-                  {/* Лечение */}
-                  {patientData.medicalRecord.treatment && (
-                    <Card className="border-border/50 rounded-3xl shadow-sm md:col-span-2">
-                      <CardHeader>
-                        <CardTitle className="text-base font-semibold">Лечение</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{patientData.medicalRecord.treatment}</p>
-                      </CardContent>
-                    </Card>
-                  )}
+                {/* Лечение */}
+                <MedicalRecordSection
+                  title="Лечение"
+                  content={medicalRecordFields.treatment}
+                  onChange={(value) => handleMedicalRecordFieldChange('treatment', 'Лечение', value)}
+                  placeholder="Добавить информацию о лечении..."
+                  savingStatus={savingStatus.treatment}
+                  textareaRef={medicalRecordRefs.treatment}
+                  disabled={isLoadingPatient || !patientData}
+                  className="md:col-span-2"
+                />
 
-                  {/* Другая информация */}
-                  {patientData.medicalRecord.otherInfo && (
-                    <Card className="border-border/50 rounded-3xl shadow-sm md:col-span-2">
-                      <CardHeader>
-                        <CardTitle className="text-base font-semibold">Другая информация</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{patientData.medicalRecord.otherInfo}</p>
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
-              ) : (
-                <Card className="border-border/50 rounded-3xl shadow-sm">
-                  <CardContent className="py-12 text-center">
-                    <p className="text-muted-foreground">Медицинская карта пока не заполнена.</p>
-                  </CardContent>
-                </Card>
-              )}
+                {/* Другая информация */}
+                <MedicalRecordSection
+                  title="Другая информация"
+                  content={medicalRecordFields.otherInfo}
+                  onChange={(value) => handleMedicalRecordFieldChange('otherInfo', 'Другая информация', value)}
+                  placeholder="Добавить другую информацию..."
+                  savingStatus={savingStatus.otherInfo}
+                  textareaRef={medicalRecordRefs.otherInfo}
+                  disabled={isLoadingPatient || !patientData}
+                  className="md:col-span-2"
+                />
+              </div>
             </div>
           </TabsContent>
         </Tabs>
       </div>
     </Layout>
+  );
+}
+
+function MedicalRecordSection({ 
+  title,
+  content, 
+  onChange,
+  placeholder = '',
+  savingStatus,
+  textareaRef,
+  disabled = false,
+  className = ''
+}: { 
+  title: string;
+  content: string; 
+  onChange: (value: string) => void;
+  placeholder?: string;
+  savingStatus?: { isSaving: boolean; isSaved: boolean };
+  textareaRef: React.RefObject<HTMLTextAreaElement>;
+  disabled?: boolean;
+  className?: string;
+}) {
+  const { toast } = useToast();
+
+  // Автоматическое изменение высоты textarea при изменении содержимого
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [content, textareaRef]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value;
+    onChange(newValue);
+    // Автоматически изменяем высоту при вводе
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  };
+
+  const handleCopy = async () => {
+    if (!content || content.trim() === '') {
+      toast({
+        title: "Нет текста для копирования",
+        description: "Блок пуст",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Проверяем доступность Clipboard API
+    if (navigator.clipboard && window.isSecureContext) {
+      try {
+        await navigator.clipboard.writeText(content);
+        toast({
+          title: "Скопировано",
+          description: `Текст из блока "${title}" скопирован в буфер обмена`,
+        });
+        return;
+      } catch (error) {
+        console.warn('Clipboard API failed, trying fallback:', error);
+      }
+    }
+
+    // Fallback для старых браузеров
+    try {
+      const textArea = document.createElement('textarea');
+      textArea.value = content;
+      textArea.style.position = 'fixed';
+      textArea.style.top = '0';
+      textArea.style.left = '0';
+      textArea.style.width = '2em';
+      textArea.style.height = '2em';
+      textArea.style.padding = '0';
+      textArea.style.border = 'none';
+      textArea.style.outline = 'none';
+      textArea.style.boxShadow = 'none';
+      textArea.style.background = 'transparent';
+      textArea.style.opacity = '0';
+      textArea.style.zIndex = '-1';
+      textArea.setAttribute('readonly', '');
+      textArea.setAttribute('aria-hidden', 'true');
+      
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      textArea.setSelectionRange(0, content.length);
+      
+      const successful = document.execCommand('copy');
+      document.body.removeChild(textArea);
+      
+      if (successful) {
+        toast({
+          title: "Скопировано",
+          description: `Текст из блока "${title}" скопирован в буфер обмена`,
+        });
+      } else {
+        throw new Error('execCommand failed');
+      }
+    } catch (error) {
+      console.error('Copy failed:', error);
+      toast({
+        title: "Копирование не поддерживается",
+        description: "Пожалуйста, выделите текст вручную и скопируйте его",
+        variant: "destructive",
+        duration: 5000,
+      });
+    }
+  };
+
+  return (
+    <Card className={cn("rounded-3xl border-border/50 transition-all hover:border-primary/20 overflow-hidden", className)}>
+      <div className="p-4 pb-2 border-b border-border/50">
+        <div className="flex justify-between items-start gap-2">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="text-lg font-bold">{title}</h3>
+              {savingStatus?.isSaving && (
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <span>Сохранение...</span>
+                </div>
+              )}
+              {savingStatus?.isSaved && !savingStatus?.isSaving && (
+                <div className="flex items-center gap-1.5 text-xs text-green-600">
+                  <Check className="w-3 h-3" />
+                  <span>Сохранено</span>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 w-7 p-0 hover:bg-secondary transition-all active:scale-95 active:opacity-70"
+              onClick={handleCopy}
+              title="Копировать текст"
+            >
+              <Copy className="w-3.5 h-3.5 text-muted-foreground" />
+            </Button>
+          </div>
+        </div>
+      </div>
+      <div className="relative">
+        <Textarea 
+          ref={textareaRef}
+          className={cn(
+            "min-h-[120px] w-full border-none resize-none focus-visible:ring-1 focus-visible:ring-ring bg-transparent pt-4 pl-4 pr-4 pb-4 text-base leading-relaxed break-words overflow-hidden transition-colors",
+            "text-foreground focus:text-foreground",
+            savingStatus?.isSaving && "opacity-70"
+          )}
+          value={content || ''}
+          onChange={handleChange}
+          disabled={disabled}
+          placeholder={placeholder}
+          rows={1}
+        />
+      </div>
+    </Card>
   );
 }
