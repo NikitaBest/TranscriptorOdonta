@@ -700,7 +700,7 @@ export function ConsultationAudioPlayer({
   }
 
   return (
-    <Card className="hidden md:block rounded-3xl border-border/50 bg-secondary/30 overflow-hidden">
+    <Card className="rounded-3xl border-border/50 bg-secondary/30 overflow-hidden">
       {/* Отображение ошибки воспроизведения */}
       {audioError && (
         <div className="px-4 py-3 bg-destructive/10 border-b border-destructive/20">
