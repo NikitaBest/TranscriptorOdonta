@@ -13,6 +13,32 @@ import { cn } from '@/lib/utils';
 const AUDIO_BARS_COUNT = 120;
 const AUDIO_LOAD_TIMEOUT = 15000; // 15 секунд таймаут для загрузки аудио
 
+// Статичная "красивая" волна-заглушка, имитирующая реальную запись.
+// Используем комбинацию нескольких синусоид и небольшого "шума" от индекса,
+// чтобы получить неровный, но детерминированный рисунок.
+function buildPlaceholderWaveform(): number[] {
+  return Array.from({ length: AUDIO_BARS_COUNT }, (_, i) => {
+    const x = i / AUDIO_BARS_COUNT;
+    const t = x * Math.PI;
+
+    // Базовая огибающая (одна большая "горка" по центру)
+    const envelope = Math.sin(t);
+
+    // Дополнительные мелкие "колебания"
+    const wave1 = Math.sin(t * 3.2 + 0.7);
+    const wave2 = Math.cos(t * 5.7 - 1.1);
+
+    // Псевдослучайный лёгкий шум от индекса, но детерминированный
+    const jitter = ((i * 37) % 11) - 5; // от -5 до 5
+
+    let value = 40 + envelope * 40 + wave1 * 10 + wave2 * 6 + jitter;
+
+    // Ограничиваем значения, чтобы бары не были слишком низкими/высокими
+    value = Math.max(8, Math.min(100, value));
+    return value;
+  });
+}
+
 interface ConsultationAudioPlayerProps {
   consultationId: string | number;
   audioDuration?: number;
@@ -173,75 +199,11 @@ export function ConsultationAudioPlayer({
     };
   }, [consultationId, processingStatus, toast]);
 
-  // Инициализация AudioContext и AnalyserNode для визуализации
+  // Инициализацию AudioContext/Analyser отключаем, чтобы не вмешиваться в
+  // стандартный аудиопоток и не зависеть от CORS. Визуализацию строим на
+  // статичной заглушке (staticWaveform), поэтому тут ничего не делаем.
   useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio || !audioUrl) return;
-
-    // Проверяем, не был ли уже создан source для этого audio элемента
-    // Если audio элемент уже подключен к другому source, пропускаем инициализацию
-    if (sourceRef.current) {
-      // Если source уже существует, просто возвращаемся
-      return;
-    }
-
-    // Создаем AudioContext и подключаем к audio элементу
-    try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const analyser = audioContext.createAnalyser();
-      analyser.fftSize = 256; // Размер FFT для анализа частот
-      analyser.smoothingTimeConstant = 0.8; // Сглаживание для более плавной визуализации
-      
-      // Проверяем, не подключен ли уже audio элемент к другому source
-      // Если audio.srcObject существует, это может означать, что элемент уже подключен
-      let source: MediaElementAudioSourceNode;
-      try {
-        source = audioContext.createMediaElementSource(audio);
-        source.connect(analyser);
-        analyser.connect(audioContext.destination);
-
-        audioContextRef.current = audioContext;
-        analyserRef.current = analyser;
-        sourceRef.current = source;
-
-        // Инициализируем массив данных для визуализации
-        setAudioData(Array(AUDIO_BARS_COUNT).fill(0));
-      } catch (sourceError: any) {
-        // Если ошибка связана с тем, что элемент уже подключен, просто закрываем контекст
-        if (sourceError.message && sourceError.message.includes('already connected')) {
-          console.warn('Audio element already connected, skipping AudioContext initialization');
-          audioContext.close().catch(console.error);
-          return;
-        }
-        throw sourceError;
-      }
-    } catch (error) {
-      console.error('Failed to initialize AudioContext:', error);
-    }
-
-    return () => {
-      // Очистка при размонтировании
-      if (sourceRef.current) {
-        try {
-          sourceRef.current.disconnect();
-        } catch (e) {
-          // Игнорируем ошибки при отключении
-        }
-        sourceRef.current = null;
-      }
-      if (analyserRef.current) {
-        try {
-          analyserRef.current.disconnect();
-        } catch (e) {
-          // Игнорируем ошибки
-        }
-        analyserRef.current = null;
-      }
-      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-        audioContextRef.current.close().catch(console.error);
-        audioContextRef.current = null;
-      }
-    };
+    return;
   }, [audioUrl]);
 
   // Визуализация звука в реальном времени
@@ -300,12 +262,25 @@ export function ConsultationAudioPlayer({
     };
   }, [isPlaying]);
 
-  // Генерация статичной формы волны из аудио файла
-  // ВАЖНО: Если аудио на внешнем сервере (S3) без CORS, генерация waveform не будет работать
-  // В этом случае используем динамическую визуализацию или минимальные значения
   useEffect(() => {
     if (!audioUrl) return;
 
+    // Если аудио лежит на другом домене (например, S3), не пытаемся загружать
+    // его через fetch, чтобы не ловить CORS‑ошибки. В этом случае используем
+    // статичную «красивую» заглушку волны и воспроизводим файл напрямую через
+    // <audio src={audioUrl}>.
+    try {
+      const audioOrigin = new URL(audioUrl).origin;
+      if (audioOrigin !== window.location.origin) {
+        setStaticWaveform(buildPlaceholderWaveform());
+        return;
+      }
+    } catch {
+      setStaticWaveform(buildPlaceholderWaveform());
+      return;
+    }
+
+    // Генерация статичной формы волны из аудиофайла для ресурсов с тем же origin
     const generateStaticWaveform = async () => {
       try {
         // Пытаемся загрузить через fetch с CORS
