@@ -30,12 +30,49 @@ export interface LoginRequest {
 }
 
 /**
- * Данные пользователя
+ * Данные пользователя (базовые)
  */
 export interface User {
   id: string;
   email: string;
   emailConfirmed?: boolean; // Статус подтверждения email
+}
+
+/**
+ * Полный профиль пользователя (врача)
+ */
+export interface UserProfile {
+  id: string;
+  firstName?: string | null;
+  middleName?: string | null;
+  lastName?: string | null;
+  hiddenDescription?: string | null;
+  phoneNumber?: string | null;
+  birthDate?: string | null; // Дата в формате ISO (YYYY-MM-DD)
+  gender?: number | null; // 0 - не указан, 1 - мужской, 2 - женский и т.д.
+  additional?: {
+    rootElement?: string | null;
+  } | null;
+  email?: string; // Email может быть в профиле
+  emailConfirmed?: boolean; // Статус подтверждения email
+}
+
+/**
+ * Запрос на обновление профиля пользователя
+ * Все поля присутствуют в теле запроса, как в спецификации бэкенда.
+ */
+export interface UpdateUserProfileRequest {
+  id: string;
+  firstName: string;
+  middleName: string;
+  lastName: string;
+  hiddenDescription: string;
+  phoneNumber: string;
+  birthDate: string; // Дата в формате ISO (YYYY-MM-DD)
+  gender: number;
+  additional: {
+    rootElement: string;
+  };
 }
 
 /**

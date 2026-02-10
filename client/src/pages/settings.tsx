@@ -4,23 +4,71 @@ import { Layout } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { authApi } from '@/lib/api/auth';
+import { userApi } from '@/lib/api/user';
 import { useToast } from '@/hooks/use-toast';
-import { useQuery } from '@tanstack/react-query';
-import type { ApiError } from '@/lib/api/types';
-import { Loader2, Mail, Lock, CheckCircle2, XCircle, ArrowLeft } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import type { ApiError, UserProfile } from '@/lib/api/types';
+import { Loader2, Mail, Lock, CheckCircle2, XCircle, ArrowLeft, User, Save } from 'lucide-react';
 
 export default function SettingsPage() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [isSendingConfirmation, setIsSendingConfirmation] = useState(false);
   const [isSendingPasswordReset, setIsSendingPasswordReset] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
 
-  // Загружаем данные текущего пользователя
+  // Загружаем данные текущего пользователя (базовые)
   const { data: currentUser, isLoading: isLoadingUser, refetch: refetchUser } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => authApi.getCurrentUser(),
     retry: false,
   });
+
+  // Загружаем полный профиль пользователя
+  const { data: userProfile, isLoading: isLoadingProfile, refetch: refetchProfile } = useQuery({
+    queryKey: ['userProfile'],
+    queryFn: () => userApi.getProfile(),
+    retry: false,
+  });
+
+  // Состояния формы для редактирования профиля
+  const [formData, setFormData] = useState<{
+    firstName: string;
+    lastName: string;
+    middleName: string;
+    phoneNumber: string;
+    birthDate: string;
+    gender: number | null;
+    hiddenDescription: string;
+  }>({
+    firstName: '',
+    lastName: '',
+    middleName: '',
+    phoneNumber: '',
+    birthDate: '',
+    gender: null,
+    hiddenDescription: '',
+  });
+
+  // Синхронизируем форму с данными профиля
+  useEffect(() => {
+    if (userProfile) {
+      setFormData({
+        firstName: userProfile.firstName || '',
+        lastName: userProfile.lastName || '',
+        middleName: userProfile.middleName || '',
+        phoneNumber: userProfile.phoneNumber || '',
+        birthDate: userProfile.birthDate ? userProfile.birthDate.split('T')[0] : '', // Извлекаем только дату из ISO строки
+        gender: userProfile.gender ?? null,
+        hiddenDescription: userProfile.hiddenDescription || '',
+      });
+    }
+  }, [userProfile]);
 
   // Обновляем данные пользователя при изменении localStorage (например, после подтверждения email)
   useEffect(() => {
@@ -114,7 +162,55 @@ export default function SettingsPage() {
     }
   };
 
-  if (isLoadingUser) {
+  const handleSaveProfile = async () => {
+    if (!userProfile?.id) {
+      toast({
+        title: 'Ошибка',
+        description: 'Профиль пользователя не загружен',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsSavingProfile(true);
+    try {
+      const updateData = {
+        id: userProfile.id,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        middleName: formData.middleName,
+        hiddenDescription: formData.hiddenDescription,
+        phoneNumber: formData.phoneNumber,
+        birthDate: formData.birthDate || '',
+        gender: formData.gender ?? 0,
+        additional: {
+          rootElement: userProfile.additional?.rootElement ?? '',
+        },
+      };
+
+      await userApi.updateProfile(updateData);
+      
+      // Обновляем кэш профиля
+      queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+      
+      toast({
+        title: 'Профиль обновлен',
+        description: 'Данные вашего профиля успешно сохранены',
+      });
+    } catch (err) {
+      console.error('Update profile error:', err);
+      const apiError = err as ApiError;
+      toast({
+        title: 'Ошибка',
+        description: apiError.message || 'Не удалось сохранить изменения. Попробуйте еще раз.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
+  if (isLoadingUser || isLoadingProfile) {
     return (
       <Layout>
         <div className="max-w-2xl mx-auto flex flex-col gap-4 md:gap-8">
@@ -146,6 +242,147 @@ export default function SettingsPage() {
             Управление настройками аккаунта
           </p>
         </div>
+
+        {/* User Profile Section */}
+        <Card className="rounded-2xl md:rounded-3xl border-border/50 shadow-sm">
+          <CardHeader className="p-4 md:p-6">
+            <CardTitle className="text-base md:text-lg lg:text-xl xl:text-2xl font-display flex items-center gap-2">
+              <User className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
+              <span>Профиль врача</span>
+            </CardTitle>
+            <CardDescription className="text-xs md:text-sm">
+              Редактирование личных данных вашего аккаунта
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-4 md:p-6 space-y-4 md:space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+              {/* Имя */}
+              <div className="space-y-2">
+                <Label htmlFor="firstName" className="text-sm font-medium">
+                  Имя *
+                </Label>
+                <Input
+                  id="firstName"
+                  value={formData.firstName}
+                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                  placeholder="Введите имя"
+                  className="h-11 md:h-12 text-sm md:text-base"
+                />
+              </div>
+
+              {/* Фамилия */}
+              <div className="space-y-2">
+                <Label htmlFor="lastName" className="text-sm font-medium">
+                  Фамилия *
+                </Label>
+                <Input
+                  id="lastName"
+                  value={formData.lastName}
+                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                  placeholder="Введите фамилию"
+                  className="h-11 md:h-12 text-sm md:text-base"
+                />
+              </div>
+
+              {/* Отчество */}
+              <div className="space-y-2">
+                <Label htmlFor="middleName" className="text-sm font-medium">
+                  Отчество
+                </Label>
+                <Input
+                  id="middleName"
+                  value={formData.middleName}
+                  onChange={(e) => setFormData({ ...formData, middleName: e.target.value })}
+                  placeholder="Введите отчество"
+                  className="h-11 md:h-12 text-sm md:text-base"
+                />
+              </div>
+
+              {/* Телефон */}
+              <div className="space-y-2">
+                <Label htmlFor="phoneNumber" className="text-sm font-medium">
+                  Номер телефона
+                </Label>
+                <Input
+                  id="phoneNumber"
+                  type="tel"
+                  value={formData.phoneNumber}
+                  onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                  placeholder="+7 (999) 123-45-67"
+                  className="h-11 md:h-12 text-sm md:text-base"
+                />
+              </div>
+
+              {/* Дата рождения */}
+              <div className="space-y-2">
+                <Label htmlFor="birthDate" className="text-sm font-medium">
+                  Дата рождения
+                </Label>
+                <Input
+                  id="birthDate"
+                  type="date"
+                  value={formData.birthDate}
+                  onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
+                  className="h-11 md:h-12 text-sm md:text-base"
+                />
+              </div>
+
+              {/* Пол */}
+              <div className="space-y-2">
+                <Label htmlFor="gender" className="text-sm font-medium">
+                  Пол
+                </Label>
+                <Select
+                  value={formData.gender?.toString() || ''}
+                  onValueChange={(value) => setFormData({ ...formData, gender: value ? Number(value) : null })}
+                >
+                  <SelectTrigger id="gender" className="h-11 md:h-12 text-sm md:text-base">
+                    <SelectValue placeholder="Выберите пол" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">Не указан</SelectItem>
+                    <SelectItem value="1">Мужской</SelectItem>
+                    <SelectItem value="2">Женский</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Описание */}
+            <div className="space-y-2">
+              <Label htmlFor="hiddenDescription" className="text-sm font-medium">
+                Описание
+              </Label>
+              <Textarea
+                id="hiddenDescription"
+                value={formData.hiddenDescription}
+                onChange={(e) => setFormData({ ...formData, hiddenDescription: e.target.value })}
+                placeholder="Дополнительная информация о себе"
+                className="min-h-[100px] text-sm md:text-base resize-none"
+                rows={4}
+              />
+            </div>
+
+            {/* Кнопка сохранения */}
+            <Button
+              onClick={handleSaveProfile}
+              disabled={isSavingProfile || !formData.firstName || !formData.lastName}
+              className="w-full h-11 md:h-12 text-sm md:text-base"
+            >
+              {isSavingProfile ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Сохранение...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Сохранить изменения
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
 
         {/* Email Confirmation Section */}
         <Card className="rounded-2xl md:rounded-3xl border-border/50 shadow-sm">

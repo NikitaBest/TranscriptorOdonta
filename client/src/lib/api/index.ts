@@ -8,4 +8,5 @@ export * from './client';
 export { authApi } from './auth';
 export { patientsApi } from './patients';
 export { consultationsApi } from './consultations';
+export { userApi } from './user';
 
