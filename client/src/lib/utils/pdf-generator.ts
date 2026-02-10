@@ -88,16 +88,60 @@ export async function generateConsultationPDF(
       return section;
     };
 
-    // Добавляем секции
-    pdfContainer.appendChild(createSection('Жалобы', fields.complaints || consultation.complaints || ''));
-    pdfContainer.appendChild(createSection('Объективный статус', fields.objective || consultation.objective || ''));
-    pdfContainer.appendChild(createSection('План лечения', fields.treatmentPlan || consultation.plan || ''));
-    pdfContainer.appendChild(createSection('Выжимка', fields.summary || consultation.summary || ''));
+    // Если бэкенд прислал динамические свойства (properties), используем их
+    if (consultation.properties && consultation.properties.length > 0) {
+      const baseKeys = new Set(['complaints', 'objective', 'treatment_plan', 'summary', 'comment']);
 
-    if (fields.comment || consultation.comments) {
-      const commentSection = createSection('Комментарий врача', fields.comment || consultation.comments || '');
-      commentSection.style.color = '#666666';
-      pdfContainer.appendChild(commentSection);
+      // Подготовим карту базовых значений с учетом локальных правок
+      const baseValues: Record<string, string> = {
+        complaints: fields.complaints || consultation.complaints || '',
+        objective: fields.objective || consultation.objective || '',
+        treatment_plan: fields.treatmentPlan || consultation.plan || consultation.treatmentPlan || '',
+        summary: fields.summary || consultation.summary || '',
+        comment: fields.comment || consultation.comments || consultation.comment || '',
+      };
+
+      consultation.properties
+        .slice()
+        .sort((a, b) => {
+          const orderA = typeof a.parent?.order === 'number' ? a.parent!.order : 0;
+          const orderB = typeof b.parent?.order === 'number' ? b.parent!.order : 0;
+          return orderA - orderB;
+        })
+        .forEach((prop) => {
+          const key = prop.parent?.key;
+          const title = prop.parent?.title || 'Без названия';
+
+          // Берем либо соответствующее базовое поле (с учётом правок),
+          // либо значение из проперти
+          let content = '';
+          if (key && baseKeys.has(key)) {
+            content = baseValues[key] ?? '';
+          } else {
+            content = prop.value ?? '';
+          }
+
+          const section = createSection(title, content);
+
+          // Для комментария врача делаем более мягкий цвет, как раньше
+          if (key === 'comment') {
+            section.style.color = '#666666';
+          }
+
+          pdfContainer.appendChild(section);
+        });
+    } else {
+      // Старый формат без properties: используем фиксированные блоки
+      pdfContainer.appendChild(createSection('Жалобы', fields.complaints || consultation.complaints || ''));
+      pdfContainer.appendChild(createSection('Объективный статус', fields.objective || consultation.objective || ''));
+      pdfContainer.appendChild(createSection('План лечения', fields.treatmentPlan || consultation.plan || ''));
+      pdfContainer.appendChild(createSection('Выжимка', fields.summary || consultation.summary || ''));
+
+      if (fields.comment || consultation.comments || consultation.comment) {
+        const commentSection = createSection('Комментарий врача', fields.comment || consultation.comments || consultation.comment || '');
+        commentSection.style.color = '#666666';
+        pdfContainer.appendChild(commentSection);
+      }
     }
 
     // Добавляем контейнер в DOM

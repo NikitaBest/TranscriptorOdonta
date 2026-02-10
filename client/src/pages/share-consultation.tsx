@@ -37,15 +37,20 @@ export default function ShareConsultationPage() {
   };
 
   // Функция для создания секции отчета
-  const createReportSection = (title: string, content: string | null | undefined) => {
-    if (!content) return null;
-    
+  const createReportSection = (
+    title: string,
+    description: string | null | undefined,
+    content: string | null | undefined
+  ) => {
     return (
       <Card className="rounded-3xl border-border/50 mb-6">
         <CardContent className="p-6">
-          <h3 className="text-lg font-bold mb-4">{title}</h3>
+          <h3 className="text-lg font-bold mb-2">{title}</h3>
+          {description && (
+            <p className="text-xs text-muted-foreground mb-3">{description}</p>
+          )}
           <p className="text-base leading-relaxed whitespace-pre-wrap text-foreground">
-            {content}
+            {content || 'Не указано'}
           </p>
         </CardContent>
       </Card>
@@ -116,18 +121,53 @@ export default function ShareConsultationPage() {
         return section;
       };
 
-      // Добавляем секции
-      if (consultation.complaints) {
-        pdfContainer.appendChild(createSection('Жалобы', consultation.complaints));
-      }
-      if (consultation.objective) {
-        pdfContainer.appendChild(createSection('Объективный статус', consultation.objective));
-      }
-      if (consultation.treatmentPlan) {
-        pdfContainer.appendChild(createSection('План лечения', consultation.treatmentPlan));
-      }
-      if (consultation.summary) {
-        pdfContainer.appendChild(createSection('Выжимка', consultation.summary));
+      // Добавляем секции на основе properties, если они есть
+      if (consultation.properties && consultation.properties.length > 0) {
+        const baseKeys = new Set(['complaints', 'objective', 'treatment_plan', 'summary', 'comment']);
+
+        const baseValues: Record<string, string> = {
+          complaints: consultation.complaints || '',
+          objective: consultation.objective || '',
+          treatment_plan: consultation.treatmentPlan || consultation.plan || '',
+          summary: consultation.summary || '',
+          comment: consultation.comments || consultation.comment || '',
+        };
+
+        consultation.properties
+          .slice()
+          .sort((a, b) => {
+            const orderA = typeof a.parent?.order === 'number' ? a.parent!.order : 0;
+            const orderB = typeof b.parent?.order === 'number' ? b.parent!.order : 0;
+            return orderA - orderB;
+          })
+          .forEach((prop) => {
+            const key = prop.parent?.key;
+            const title = prop.parent?.title || 'Без названия';
+
+            let content = '';
+            if (key && baseKeys.has(key)) {
+              content = baseValues[key] ?? '';
+            } else {
+              content = prop.value ?? '';
+            }
+
+            const section = createSection(title, content);
+            pdfContainer.appendChild(section);
+          });
+      } else {
+        // Старый формат без properties
+        pdfContainer.appendChild(
+          createSection('Жалобы', consultation.complaints || '')
+        );
+        pdfContainer.appendChild(
+          createSection('Объективный статус', consultation.objective || '')
+        );
+        pdfContainer.appendChild(
+          createSection('План лечения', consultation.treatmentPlan || '')
+        );
+        pdfContainer.appendChild(
+          createSection('Выжимка', consultation.summary || '')
+        );
       }
 
       // Добавляем контейнер в DOM
@@ -304,10 +344,31 @@ export default function ShareConsultationPage() {
 
         {/* Report Content */}
         <div className="space-y-6">
-          {createReportSection('Жалобы', consultation.complaints)}
-          {createReportSection('Объективный статус', consultation.objective)}
-          {createReportSection('План лечения', consultation.treatmentPlan)}
-          {createReportSection('Выжимка', consultation.summary)}
+          {consultation.properties && consultation.properties.length > 0 ? (
+            consultation.properties
+              .slice()
+              .sort((a, b) => {
+                const orderA = typeof a.parent?.order === 'number' ? a.parent!.order : 0;
+                const orderB = typeof b.parent?.order === 'number' ? b.parent!.order : 0;
+                return orderA - orderB;
+              })
+              .map((prop) => (
+                <div key={String(prop.id)}>
+                  {createReportSection(
+                    prop.parent?.title || 'Без названия',
+                    prop.parent?.description,
+                    prop.value
+                  )}
+                </div>
+              ))
+          ) : (
+            <>
+              {createReportSection('Жалобы', null, consultation.complaints)}
+              {createReportSection('Объективный статус', null, consultation.objective)}
+              {createReportSection('План лечения', null, consultation.treatmentPlan)}
+              {createReportSection('Выжимка', null, consultation.summary)}
+            </>
+          )}
 
           {/* Транскрипция */}
           {(consultation.transcript || consultation.transcriptionResult) && (
