@@ -13,6 +13,8 @@ import { userApi } from '@/lib/api/user';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ApiError, UserProfile } from '@/lib/api/types';
+import { normalizePhone, handlePhoneInput } from '@/lib/utils/phone';
+import { normalizeDate, handleDateInput, isValidDate, formatDateForDisplay } from '@/lib/utils/date';
 import { Loader2, Mail, Lock, CheckCircle2, XCircle, ArrowLeft, User, Save } from 'lucide-react';
 
 export default function SettingsPage() {
@@ -55,15 +57,21 @@ export default function SettingsPage() {
     hiddenDescription: '',
   });
 
+
   // Синхронизируем форму с данными профиля
   useEffect(() => {
     if (userProfile) {
+      // Форматируем дату для отображения (из YYYY-MM-DD в DD.MM.YYYY)
+      const birthDateDisplay = userProfile.birthDate 
+        ? formatDateForDisplay(userProfile.birthDate) 
+        : '';
+      
       setFormData({
         firstName: userProfile.firstName || '',
         lastName: userProfile.lastName || '',
         middleName: userProfile.middleName || '',
         phoneNumber: userProfile.phoneNumber || '',
-        birthDate: userProfile.birthDate ? userProfile.birthDate.split('T')[0] : '', // Извлекаем только дату из ISO строки
+        birthDate: birthDateDisplay, // Храним в формате DD.MM.YYYY для отображения
         gender: userProfile.gender ?? null,
         hiddenDescription: userProfile.hiddenDescription || '',
       });
@@ -172,17 +180,29 @@ export default function SettingsPage() {
       return;
     }
 
+    // Валидация даты рождения, если она указана
+    if (formData.birthDate && formData.birthDate.trim() !== '') {
+      if (!isValidDate(formData.birthDate)) {
+        toast({
+          title: 'Ошибка',
+          description: 'Неверный формат даты рождения. Используйте формат ДД.ММ.ГГГГ (например, 15.01.1990)',
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
+
     setIsSavingProfile(true);
     try {
       const updateData = {
         id: userProfile.id,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        middleName: formData.middleName,
-        hiddenDescription: formData.hiddenDescription,
-        phoneNumber: formData.phoneNumber,
-        birthDate: formData.birthDate || '',
-        gender: formData.gender ?? 0,
+        firstName: formData.firstName || null,
+        lastName: formData.lastName || null,
+        middleName: formData.middleName || null,
+        hiddenDescription: formData.hiddenDescription || null,
+        phoneNumber: formData.phoneNumber ? normalizePhone(formData.phoneNumber) : null,
+        birthDate: formData.birthDate ? normalizeDate(formData.birthDate) : null,
+        gender: formData.gender ?? null,
         additional: {
           rootElement: userProfile.additional?.rootElement ?? '',
         },
@@ -307,9 +327,9 @@ export default function SettingsPage() {
                   id="phoneNumber"
                   type="tel"
                   value={formData.phoneNumber}
-                  onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, phoneNumber: handlePhoneInput(e.target.value) })}
                   placeholder="+7 (999) 123-45-67"
-                  className="h-11 md:h-12 text-sm md:text-base"
+                  className="h-11 md:h-12 text-sm md:text-base rounded-xl"
                 />
               </div>
 
@@ -320,11 +340,17 @@ export default function SettingsPage() {
                 </Label>
                 <Input
                   id="birthDate"
-                  type="date"
+                  type="text"
                   value={formData.birthDate}
-                  onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
-                  className="h-11 md:h-12 text-sm md:text-base"
+                  onChange={(e) => setFormData({ ...formData, birthDate: handleDateInput(e.target.value) })}
+                  placeholder="ДД.ММ.ГГГГ"
+                  className="h-11 md:h-12 text-sm md:text-base rounded-xl"
                 />
+                {formData.birthDate && !isValidDate(formData.birthDate) && (
+                  <p className="text-xs text-destructive mt-1">
+                    Неверный формат. Используйте ДД.ММ.ГГГГ (например, 15.01.1990)
+                  </p>
+                )}
               </div>
 
               {/* Пол */}
@@ -366,7 +392,7 @@ export default function SettingsPage() {
             {/* Кнопка сохранения */}
             <Button
               onClick={handleSaveProfile}
-              disabled={isSavingProfile || !formData.firstName || !formData.lastName}
+              disabled={isSavingProfile || !formData.firstName || !formData.lastName || (formData.birthDate && !isValidDate(formData.birthDate))}
               className="w-full h-11 md:h-12 text-sm md:text-base"
             >
               {isSavingProfile ? (
