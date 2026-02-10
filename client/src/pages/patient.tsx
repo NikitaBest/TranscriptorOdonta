@@ -12,10 +12,26 @@ import { ru } from 'date-fns/locale';
 import { Textarea } from '@/components/ui/textarea';
 import { patientsApi } from '@/lib/api/patients';
 import { consultationsApi } from '@/lib/api/consultations';
-import { ConsultationProcessingStatus } from '@/lib/api/types';
+import { ConsultationProcessingStatus, ConsultationType } from '@/lib/api/types';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { PatientResponse, ConsultationResponse } from '@/lib/api/types';
+
+// Функция для получения названия типа консультации
+function getConsultationTypeName(type: number | undefined): string {
+  if (!type) return 'Консультация';
+  
+  switch (type) {
+    case ConsultationType.PrimaryDoctorClient:
+      return 'Первичная консультация';
+    case ConsultationType.SecondaryDoctorClient:
+      return 'Вторичная консультация';
+    case ConsultationType.CoordinatorClient:
+      return 'Консультация координатора';
+    default:
+      return 'Консультация';
+  }
+}
 
 export default function PatientProfile() {
   const { id } = useParams();
@@ -433,6 +449,7 @@ export default function PatientProfile() {
       patientId: c.patientId ? String(c.patientId) : undefined,
       patientName: c.patientName,
       doctorName: c.doctorName,
+      type: c.type,
       date: c.date,
       createdAt: c.createdAt,
       dateObj,
@@ -649,7 +666,7 @@ export default function PatientProfile() {
                             <FileText className="w-5 h-5" />
                           </div>
                           <div>
-                            <div className="font-bold">Консультация</div>
+                            <div className="font-bold">{getConsultationTypeName(consultation.type)}</div>
                             <div className="text-xs text-muted-foreground flex flex-col md:flex-row md:items-center md:gap-2 md:flex-wrap">
                               <span>
                                 {consultation.dateObj ? (

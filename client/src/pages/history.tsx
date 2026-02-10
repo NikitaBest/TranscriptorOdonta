@@ -9,13 +9,29 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { consultationsApi } from '@/lib/api/consultations';
 import { patientsApi } from '@/lib/api/patients';
-import { ConsultationProcessingStatus } from '@/lib/api/types';
+import { ConsultationProcessingStatus, ConsultationType } from '@/lib/api/types';
 import type { ConsultationResponse } from '@/lib/api/types';
 import { Search, Calendar, Filter, ArrowUpRight, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { getAllSavedRecordings, type RecordingMetadata } from '@/lib/utils/audio-storage';
+
+// Функция для получения названия типа консультации
+function getConsultationTypeName(type: number | undefined): string {
+  if (!type) return 'Консультация';
+  
+  switch (type) {
+    case ConsultationType.PrimaryDoctorClient:
+      return 'Первичная консультация';
+    case ConsultationType.SecondaryDoctorClient:
+      return 'Вторичная консультация';
+    case ConsultationType.CoordinatorClient:
+      return 'Консультация координатора';
+    default:
+      return 'Консультация';
+  }
+}
 
 export default function HistoryPage() {
   const [search, setSearch] = useState('');
@@ -429,6 +445,11 @@ export default function HistoryPage() {
                         <h3 className={cn("text-base font-bold", !consultation.patientName && "text-muted-foreground italic")}>
                           {consultation.patientName || "Пациент не назначен"}
                         </h3>
+                        {consultation.type && (
+                          <span className="text-xs text-muted-foreground font-medium">
+                            {getConsultationTypeName(consultation.type)}
+                          </span>
+                        )}
                         <span className={cn(
                           "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border flex-shrink-0",
                           statusInfo.className
@@ -499,6 +520,11 @@ export default function HistoryPage() {
                         <h3 className={cn("text-lg font-bold", !consultation.patientName && "text-muted-foreground italic")}>
                           {consultation.patientName || "Пациент не назначен"}
                         </h3>
+                        {consultation.type && (
+                          <span className="text-xs text-muted-foreground font-medium">
+                            {getConsultationTypeName(consultation.type)}
+                          </span>
+                        )}
                         <span className={cn(
                           "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border",
                           statusInfo.className

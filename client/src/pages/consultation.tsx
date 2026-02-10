@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { consultationsApi } from '@/lib/api/consultations';
 import { patientsApi } from '@/lib/api/patients';
-import { ConsultationProcessingStatus } from '@/lib/api/types';
+import { ConsultationProcessingStatus, ConsultationType } from '@/lib/api/types';
 import type { ConsultationResponse, ConsultationProperty } from '@/lib/api/types';
 import { ArrowLeft, Download, Share2, Copy, RefreshCw, Check, Loader2, AlertCircle, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -29,6 +29,22 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { generateConsultationPDF } from '@/lib/utils/pdf-generator';
+
+// Функция для получения названия типа консультации
+function getConsultationTypeName(type: number | undefined): string {
+  if (!type) return 'консультации';
+  
+  switch (type) {
+    case ConsultationType.PrimaryDoctorClient:
+      return 'первичной консультации';
+    case ConsultationType.SecondaryDoctorClient:
+      return 'вторичной консультации';
+    case ConsultationType.CoordinatorClient:
+      return 'консультации координатора';
+    default:
+      return 'консультации';
+  }
+}
 
 export default function ConsultationPage() {
   const { id } = useParams();
@@ -652,7 +668,7 @@ export default function ConsultationPage() {
             <div className="flex items-start justify-between gap-4">
               <div>
             <h1 className="text-2xl md:text-3xl font-display font-bold tracking-tight">
-              Отчет о консультации
+              Отчет о {getConsultationTypeName(enrichedConsultation.type)}
             </h1>
             <p className="flex flex-wrap items-center gap-2 text-sm md:text-base text-muted-foreground mt-1">
               <span>
