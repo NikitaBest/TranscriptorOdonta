@@ -318,8 +318,8 @@ export default function SettingsPage() {
                 />
               </div>
 
-              {/* Телефон */}
-              <div className="space-y-2">
+              {/* Телефон - скрыто */}
+              {/* <div className="space-y-2">
                 <Label htmlFor="phoneNumber" className="text-sm font-medium">
                   Номер телефона
                 </Label>
@@ -331,7 +331,7 @@ export default function SettingsPage() {
                   placeholder="+7 (999) 123-45-67"
                   className="h-11 md:h-12 text-sm md:text-base rounded-xl"
                 />
-              </div>
+              </div> */}
 
               {/* Дата рождения */}
               <div className="space-y-2">
@@ -353,8 +353,8 @@ export default function SettingsPage() {
                 )}
               </div>
 
-              {/* Пол */}
-              <div className="space-y-2">
+              {/* Пол - скрыто */}
+              {/* <div className="space-y-2">
                 <Label htmlFor="gender" className="text-sm font-medium">
                   Пол
                 </Label>
@@ -371,11 +371,11 @@ export default function SettingsPage() {
                     <SelectItem value="2">Женский</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
+              </div> */}
             </div>
 
-            {/* Описание */}
-            <div className="space-y-2">
+            {/* Описание - скрыто */}
+            {/* <div className="space-y-2">
               <Label htmlFor="hiddenDescription" className="text-sm font-medium">
                 Описание
               </Label>
@@ -387,7 +387,7 @@ export default function SettingsPage() {
                 className="min-h-[100px] text-sm md:text-base resize-none"
                 rows={4}
               />
-            </div>
+            </div> */}
 
             {/* Кнопка сохранения */}
             <Button
