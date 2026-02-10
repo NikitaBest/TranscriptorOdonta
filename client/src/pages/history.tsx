@@ -289,15 +289,8 @@ export default function HistoryPage() {
       status = ConsultationProcessingStatus.None;
     }
     
-    // Дополнительная проверка: если есть данные консультации, считаем готовой
-    const hasData = consultation.summary || 
-                    consultation.complaints || 
-                    consultation.objective || 
-                    consultation.treatmentPlan ||
-                    consultation.transcriptionResult;
-    
-    // Если статус Completed или есть данные - консультация готова
-    if (status === ConsultationProcessingStatus.Completed || hasData) {
+    // Если статус Completed - консультация готова
+    if (status === ConsultationProcessingStatus.Completed) {
       return { label: 'Готово', className: 'bg-green-50 text-green-700 border-green-200' };
     }
     

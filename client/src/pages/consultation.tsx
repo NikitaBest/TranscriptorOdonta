@@ -69,6 +69,10 @@ export default function ConsultationPage() {
     summary: { isSaving: false, isSaved: false },
     comment: { isSaving: false, isSaved: false },
   });
+  // Значения динамических блоков отчета (все, что не входит в базовые поля)
+  const [dynamicPropertyValues, setDynamicPropertyValues] = useState<Record<string, string>>({});
+  const dynamicSaveTimeouts = useRef<Record<string, NodeJS.Timeout | null>>({});
+  const dynamicLastSavedValues = useRef<Record<string, string>>({});
 
   // Загрузка данных консультации
   // Если консультация обрабатывается, периодически обновляем данные
@@ -175,30 +179,6 @@ export default function ConsultationPage() {
                  (patientData ? `${patientData.firstName} ${patientData.lastName}` : undefined),
   } : null;
 
-  // Получаем названия полей из properties (динамические названия от бэкенда)
-  const getFieldTitle = (key: string, defaultTitle: string): string => {
-    if (!enrichedConsultation?.properties) return defaultTitle;
-    const property = enrichedConsultation.properties.find(p => p.parent?.key === key);
-    return property?.parent?.title || defaultTitle;
-  };
-
-  // Получаем описание поля из properties
-  const getFieldDescription = (key: string): string | undefined => {
-    if (!enrichedConsultation?.properties) return undefined;
-    const property = enrichedConsultation.properties.find(p => p.parent?.key === key);
-    return property?.parent?.description;
-  };
-
-  // Проверяем, можно ли редактировать поле
-  const isFieldEditable = (key: string): boolean => {
-    if (!enrichedConsultation?.properties) return true; // По умолчанию разрешаем редактирование
-    const property = enrichedConsultation.properties.find(p => p.parent?.key === key);
-    if (!property) return true; // Если свойство не найдено, разрешаем редактирование
-    // Если isEditable явно false, поле нельзя редактировать
-    // Если isEditable undefined или true, поле можно редактировать
-    return property.parent?.isEditable !== false;
-  };
-
   // Синхронизируем локальные состояния с данными из API
   // ВАЖНО: Обновляем локальные состояния при загрузке данных с бэкенда
   useEffect(() => {
@@ -216,8 +196,31 @@ export default function ConsultationPage() {
       setTreatmentPlan(enrichedConsultation.plan || '');
       setSummary(enrichedConsultation.summary || '');
       setComment(enrichedConsultation.comments || '');
+
+      // Инициализируем значения динамических блоков (все свойства, кроме базовых ключей)
+      if (enrichedConsultation.properties && enrichedConsultation.properties.length > 0) {
+        const baseKeys = new Set(['complaints', 'objective', 'treatment_plan', 'summary', 'comment']);
+        const newDynamicValues: Record<string, string> = {};
+        const newLastSavedValues: Record<string, string> = { ...dynamicLastSavedValues.current };
+
+        enrichedConsultation.properties.forEach((prop) => {
+          const key = prop.parent?.key;
+          const id = String(prop.id);
+          const value = prop.value ?? '';
+
+          if (!key || baseKeys.has(key)) {
+            return;
+          }
+
+          newDynamicValues[id] = value;
+          newLastSavedValues[id] = value;
+        });
+
+        setDynamicPropertyValues(newDynamicValues);
+        dynamicLastSavedValues.current = newLastSavedValues;
+      }
     }
-  }, [enrichedConsultation?.complaints, enrichedConsultation?.objective, enrichedConsultation?.plan, enrichedConsultation?.summary, enrichedConsultation?.comments]);
+  }, [enrichedConsultation?.complaints, enrichedConsultation?.objective, enrichedConsultation?.plan, enrichedConsultation?.summary, enrichedConsultation?.comments, enrichedConsultation?.properties]);
 
   // Автосохранение всех полей консультации
   useAutoSaveConsultation({
@@ -240,6 +243,101 @@ export default function ConsultationPage() {
     onSavingStatusChange: setSavingStatus,
   });
 
+  // Автосохранение динамических блоков отчета (все свойства, кроме базовых ключей)
+  useEffect(() => {
+    if (!id || !enrichedConsultation?.properties) return;
+
+    const baseKeys = new Set(['complaints', 'objective', 'treatment_plan', 'summary', 'comment']);
+    const propertiesById = new Map(
+      enrichedConsultation.properties.map((p) => [String(p.id), p])
+    );
+
+    Object.entries(dynamicPropertyValues).forEach(([propertyId, value]) => {
+      const property = propertiesById.get(propertyId);
+      if (!property) return;
+
+      const key = property.parent?.key;
+      // Базовые поля сохраняются через useAutoSaveConsultation
+      if (key && baseKeys.has(key)) return;
+
+      const trimmedValue = (value ?? '').trim();
+      const lastSavedValue = dynamicLastSavedValues.current[propertyId] ?? '';
+
+      // Если значение не изменилось – ничего не делаем
+      if (trimmedValue === lastSavedValue) return;
+
+      // Чистим предыдущий таймаут
+      if (dynamicSaveTimeouts.current[propertyId]) {
+        clearTimeout(dynamicSaveTimeouts.current[propertyId]!);
+      }
+
+      // Если поле не редактируемое – не отправляем запрос
+      if (property.parent?.isEditable === false) {
+        setSavingStatus((prev) => ({
+          ...prev,
+          [propertyId]: { isSaving: false, isSaved: false },
+        }));
+        return;
+      }
+
+      // Устанавливаем новый таймаут автосохранения
+      dynamicSaveTimeouts.current[propertyId] = setTimeout(async () => {
+        setSavingStatus((prev) => ({
+          ...prev,
+          [propertyId]: { isSaving: true, isSaved: false },
+        }));
+
+        try {
+          await consultationsApi.update({
+            consultationId: String(id),
+            propertyId: String(propertyId),
+            value: trimmedValue,
+          });
+
+          // Обновляем последнее сохранённое значение
+          dynamicLastSavedValues.current[propertyId] = trimmedValue;
+
+          // Помечаем как "Сохранено"
+          setSavingStatus((prev) => ({
+            ...prev,
+            [propertyId]: { isSaving: false, isSaved: true },
+          }));
+
+          // Через 2 секунды скрываем "Сохранено"
+          setTimeout(() => {
+            setSavingStatus((prev) => {
+              const current = prev[propertyId];
+              if (!current) return prev;
+              return {
+                ...prev,
+                [propertyId]: { ...current, isSaved: false },
+              };
+            });
+          }, 2000);
+        } catch (error) {
+          console.error('Auto-save dynamic consultation field error:', error);
+          setSavingStatus((prev) => ({
+            ...prev,
+            [propertyId]: { isSaving: false, isSaved: false },
+          }));
+
+          toast({
+            title: 'Ошибка сохранения',
+            description: 'Не удалось сохранить изменения. Попробуйте еще раз.',
+            variant: 'destructive',
+          });
+        }
+      }, 1000); // 1 секунда debounce
+    });
+
+    return () => {
+      // При размонтировании очищаем все таймауты
+      Object.values(dynamicSaveTimeouts.current).forEach((timeoutId) => {
+        if (timeoutId) clearTimeout(timeoutId);
+      });
+    };
+  }, [id, enrichedConsultation?.properties, dynamicPropertyValues, toast]);
+  
   
   // Определяем статус обработки
   // Используем актуальный статус из отдельного запроса
@@ -264,39 +362,19 @@ export default function ConsultationPage() {
     }
   }
   
-  // Определяем, обрабатывается ли консультация
+  // Определяем, обрабатывается ли консультация только по статусу
   // Completed (3) - консультация готова, НЕ обрабатывается
   // Failed (2) - ошибка, НЕ обрабатывается
   // InProgress (1) или None (0) - обрабатывается
-  const isStatusProcessing = processingStatus === ConsultationProcessingStatus.InProgress || 
-                            processingStatus === ConsultationProcessingStatus.None;
-  
-  // Дополнительная проверка: если есть данные консультации (summary, complaints и т.д.), 
-  // значит консультация готова, даже если статус не обновился
-  const hasConsultationData = enrichedConsultation && (
-    enrichedConsultation.summary || 
-    enrichedConsultation.complaints || 
-    enrichedConsultation.objective || 
-    enrichedConsultation.treatmentPlan ||
-    enrichedConsultation.transcriptionResult
-  );
-  
-  // Консультация обрабатывается ТОЛЬКО если:
-  // 1. Статус явно InProgress или None
-  // 2. И нет данных консультации
-  // 3. И статус НЕ Completed
-  const finalIsProcessing = processingStatus !== ConsultationProcessingStatus.Completed && 
-                            processingStatus !== ConsultationProcessingStatus.Failed &&
-                            isStatusProcessing && 
-                            !hasConsultationData;
+  const finalIsProcessing =
+    processingStatus === ConsultationProcessingStatus.InProgress ||
+    processingStatus === ConsultationProcessingStatus.None;
   
   // Логируем для отладки
   console.log('[Consultation Status] Final check:', {
     currentStatus,
     processingStatus,
     statusName: ConsultationProcessingStatus[processingStatus],
-    isStatusProcessing,
-    hasConsultationData,
     finalIsProcessing,
     consultationStatus: enrichedConsultation?.status,
   });
@@ -794,7 +872,7 @@ export default function ConsultationPage() {
                 <TabsTrigger value="report" className="rounded-xl">Медицинский отчет</TabsTrigger>
                 <TabsTrigger value="transcript" className="rounded-xl">Транскрипция</TabsTrigger>
               </TabsList>
-
+            
               <TabsContent value="report" className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
                 {finalIsProcessing ? (
                   <Card className="rounded-3xl border-border/50">
@@ -842,47 +920,82 @@ export default function ConsultationPage() {
                   </Card>
                 ) : (
                   <>
-                    <ReportSection 
-                      title={getFieldTitle('complaints', 'Жалобы')}
-                      description={getFieldDescription('complaints')}
-                      content={complaints} 
-                      onChange={setComplaints}
-                      placeholder="Не указано"
-                      savingStatus={savingStatus.complaints}
-                    />
-                    <ReportSection 
-                      title={getFieldTitle('objective', 'Объективный статус')}
-                      description={getFieldDescription('objective')}
-                      content={objective} 
-                      onChange={setObjective}
-                      placeholder="Не указано"
-                      savingStatus={savingStatus.objective}
-                    />
-                    <ReportSection 
-                      title={getFieldTitle('treatment_plan', 'План лечения')}
-                      description={getFieldDescription('treatment_plan')}
-                      content={treatmentPlan} 
-                      onChange={setTreatmentPlan}
-                      placeholder="Не указано"
-                      savingStatus={savingStatus.treatmentPlan}
-                    />
-                    <ReportSection 
-                      title={getFieldTitle('summary', 'Резюме консультации')}
-                      description={getFieldDescription('summary')}
-                      content={summary} 
-                      onChange={isFieldEditable('summary') ? setSummary : undefined}
-                      placeholder="Не указано"
-                      savingStatus={savingStatus.summary}
-                    />
-                    <ReportSection 
-                      title={getFieldTitle('comment', 'Комментарий врача')}
-                      description={getFieldDescription('comment')}
-                      content={comment} 
-                      onChange={setComment}
-                      placeholder="Не указано"
-                      isPrivate 
-                      savingStatus={savingStatus.comment}
-                    />
+                    {(enrichedConsultation.properties || [])
+                      .slice()
+                      .sort((a, b) => {
+                        const orderA = typeof a.parent?.order === 'number' ? a.parent!.order : 0;
+                        const orderB = typeof b.parent?.order === 'number' ? b.parent!.order : 0;
+                        return orderA - orderB;
+                      })
+                      .map((property) => {
+                        const key = property.parent?.key;
+                        const id = String(property.id);
+                        const baseKey = key === 'complaints' ||
+                                        key === 'objective' ||
+                                        key === 'treatment_plan' ||
+                                        key === 'summary' ||
+                                        key === 'comment'
+                                          ? key
+                                          : null;
+
+                        // Определяем текущее значение блока
+                        let content = '';
+                        if (baseKey === 'complaints') {
+                          content = complaints;
+                        } else if (baseKey === 'objective') {
+                          content = objective;
+                        } else if (baseKey === 'treatment_plan') {
+                          content = treatmentPlan;
+                        } else if (baseKey === 'summary') {
+                          content = summary;
+                        } else if (baseKey === 'comment') {
+                          content = comment;
+                        } else {
+                          content = dynamicPropertyValues[id] ?? property.value ?? '';
+                        }
+
+                        // Можно ли редактировать блок
+                        const isEditable = property.parent?.isEditable !== false;
+
+                        // Хендлер изменения
+                        const handleChange =
+                          !isEditable
+                            ? undefined
+                            : (value: string) => {
+                                if (baseKey === 'complaints') {
+                                  setComplaints(value);
+                                } else if (baseKey === 'objective') {
+                                  setObjective(value);
+                                } else if (baseKey === 'treatment_plan') {
+                                  setTreatmentPlan(value);
+                                } else if (baseKey === 'summary') {
+                                  setSummary(value);
+                                } else if (baseKey === 'comment') {
+                                  setComment(value);
+                                } else {
+                                  setDynamicPropertyValues((prev) => ({
+                                    ...prev,
+                                    [id]: value,
+                                  }));
+                                }
+                              };
+
+                        const isPrivate = key === 'comment';
+                        const statusKey = baseKey ?? id;
+
+                        return (
+                          <ReportSection
+                            key={id}
+                            title={property.parent?.title || 'Без названия'}
+                            description={property.parent?.description || undefined}
+                            content={content}
+                            onChange={handleChange}
+                            placeholder="Не указано"
+                            isPrivate={isPrivate}
+                            savingStatus={savingStatus[statusKey]}
+                          />
+                        );
+                      })}
                   </>
                 )}
               </TabsContent>
