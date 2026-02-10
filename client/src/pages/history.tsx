@@ -10,7 +10,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { consultationsApi } from '@/lib/api/consultations';
 import { patientsApi } from '@/lib/api/patients';
 import { ConsultationProcessingStatus, ConsultationType } from '@/lib/api/types';
-import type { ConsultationResponse } from '@/lib/api/types';
+import type { ConsultationResponse, ConsultationProperty } from '@/lib/api/types';
 import { Search, Calendar, Filter, ArrowUpRight, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -270,6 +270,77 @@ export default function HistoryPage() {
     return matchesSearch;
   });
 
+  // Получаем текстовое превью консультации для карточки
+  const getConsultationPreview = (consultation: ConsultationResponse): string => {
+    // 1. Предпочитаем выжимку
+    if (consultation.summary && consultation.summary.trim() !== '') {
+      return consultation.summary;
+    }
+
+    // 2. Затем транскрипцию
+    if (consultation.transcript && consultation.transcript.trim() !== '') {
+      return consultation.transcript;
+    }
+
+    // 3. Если есть properties — ищем первую непустую секцию от бэкенда
+    if (consultation.properties && consultation.properties.length > 0) {
+      // Приоритет по ключам, если они есть
+      const priorityKeys = [
+        'summary',
+        'diagnosis',
+        'disease_anamnesis',
+        'treatment',
+        'recommendations',
+        'complaints',
+        'objective',
+        'treatment_plan',
+        'examination_results',
+      ];
+
+      const byKey = new Map<string, ConsultationProperty[]>();
+      consultation.properties.forEach((p) => {
+        const key = p.parent?.key;
+        if (!key) return;
+        if (!byKey.has(key)) byKey.set(key, []);
+        byKey.get(key)!.push(p);
+      });
+
+      // 3.1. Пытаемся найти по приоритетным ключам
+      for (const key of priorityKeys) {
+        const props = byKey.get(key);
+        if (!props) continue;
+        // внутри ключа сортируем по order и берём первую с непустым value
+        const sorted = props
+          .slice()
+          .sort((a, b) => {
+            const orderA = typeof a.parent?.order === 'number' ? a.parent!.order : 0;
+            const orderB = typeof b.parent?.order === 'number' ? b.parent!.order : 0;
+            return orderA - orderB;
+          });
+        const withValue = sorted.find((p) => (p.value ?? '').trim() !== '');
+        if (withValue) {
+          return withValue.value!.trim();
+        }
+      }
+
+      // 3.2. Если по приоритету ничего не нашли — берём первую непустую секцию по order
+      const firstNonEmpty = consultation.properties
+        .slice()
+        .sort((a, b) => {
+          const orderA = typeof a.parent?.order === 'number' ? a.parent!.order : 0;
+          const orderB = typeof b.parent?.order === 'number' ? b.parent!.order : 0;
+          return orderA - orderB;
+        })
+        .find((p) => (p.value ?? '').trim() !== '');
+
+      if (firstNonEmpty && firstNonEmpty.value) {
+        return firstNonEmpty.value.trim();
+      }
+    }
+
+    return '';
+  };
+
   // Получаем статус для отображения
   const getStatusInfo = (consultation: ConsultationResponse) => {
     // Определяем статус с приоритетом: status > processingStatus > None
@@ -458,7 +529,9 @@ export default function HistoryPage() {
 
                       {/* Summary */}
                       <p className="text-sm text-muted-foreground line-clamp-2">
-                        {consultation.summary || consultation.transcript || (isLocal ? 'Запись сохранена локально и ожидает отправки' : 'Нет описания')}
+                        {isLocal
+                          ? 'Запись сохранена локально и ожидает отправки'
+                          : getConsultationPreview(consultation) || 'Нет описания'}
                       </p>
 
                       {/* Doctor */}
@@ -531,7 +604,9 @@ export default function HistoryPage() {
                         )}
                       </div>
                       <p className="text-sm text-muted-foreground line-clamp-2">
-                        {consultation.summary || consultation.transcript || (isLocal ? 'Запись сохранена локально и ожидает отправки' : 'Нет описания')}
+                        {isLocal
+                          ? 'Запись сохранена локально и ожидает отправки'
+                          : getConsultationPreview(consultation) || 'Нет описания'}
                       </p>
                       <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2 flex-wrap">
                         {dateObj && (

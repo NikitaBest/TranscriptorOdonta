@@ -15,7 +15,7 @@ import { consultationsApi } from '@/lib/api/consultations';
 import { ConsultationProcessingStatus, ConsultationType } from '@/lib/api/types';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import type { PatientResponse, ConsultationResponse } from '@/lib/api/types';
+import type { PatientResponse, ConsultationResponse, ConsultationProperty } from '@/lib/api/types';
 
 // Функция для получения названия типа консультации
 function getConsultationTypeName(type: number | undefined): string {
@@ -439,34 +439,92 @@ export default function PatientProfile() {
     }
   };
 
-  // Преобразуем консультации в формат для отображения
-  const consultations = consultationsData.map((c: ConsultationResponse) => {
-    const timeSource = c.createdAt || c.date;
-    const { dateObj, moscowHours, moscowMinutes } = convertToMoscowTime(timeSource);
-    
-    return {
-      id: String(c.id),
-      patientId: c.patientId ? String(c.patientId) : undefined,
-      patientName: c.patientName,
-      doctorName: c.doctorName,
-      type: c.type,
-      date: c.date,
-      createdAt: c.createdAt,
-      dateObj,
-      moscowHours,
-      moscowMinutes,
-      duration: c.duration,
-      status: c.status,
-      processingStatus: c.processingStatus ?? (c.status as ConsultationProcessingStatus) ?? ConsultationProcessingStatus.None,
-      summary: c.summary,
-      complaints: c.complaints,
-      objective: c.objective,
-      plan: c.plan,
-      comments: c.comments,
-      transcript: c.transcript,
-      audioUrl: c.audioUrl,
-    };
-  });
+  // Преобразуем консультации в формат для отображения, сохраняя все данные из API
+  const consultations: (ConsultationResponse & { dateObj: Date | null; moscowHours: number; moscowMinutes: number })[] =
+    consultationsData.map((c: ConsultationResponse) => {
+      const timeSource = c.createdAt || c.date;
+      const { dateObj, moscowHours, moscowMinutes } = convertToMoscowTime(timeSource);
+      
+      return {
+        ...c,
+        id: String(c.id),
+        patientId: c.patientId ? String(c.patientId) : c.clientId ? String(c.clientId) : undefined,
+        dateObj,
+        moscowHours,
+        moscowMinutes,
+      };
+    });
+
+  // Получаем текстовое превью консультации для карточки истории пациента
+  const getConsultationPreview = (consultation: ConsultationResponse): string => {
+    // 1. Предпочитаем выжимку
+    if (consultation.summary && consultation.summary.trim() !== '') {
+      return consultation.summary;
+    }
+
+    // 2. Затем транскрипцию
+    if (consultation.transcript && consultation.transcript.trim() !== '') {
+      return consultation.transcript;
+    }
+
+    // 3. Если есть properties — ищем первую непустую секцию от бэкенда
+    if (consultation.properties && consultation.properties.length > 0) {
+      const priorityKeys = [
+        'summary',
+        'diagnosis',
+        'disease_anamnesis',
+        'treatment',
+        'recommendations',
+        'complaints',
+        'objective',
+        'treatment_plan',
+        'examination_results',
+      ];
+
+      const byKey = new Map<string, ConsultationProperty[]>();
+      consultation.properties.forEach((p) => {
+        const key = p.parent?.key;
+        if (!key) return;
+        if (!byKey.has(key)) byKey.set(key, []);
+        byKey.get(key)!.push(p);
+      });
+
+      // Сначала пробуем пройтись по приоритетным ключам
+      for (const key of priorityKeys) {
+        const props = byKey.get(key);
+        if (!props) continue;
+
+        const sorted = props
+          .slice()
+          .sort((a, b) => {
+            const orderA = typeof a.parent?.order === 'number' ? a.parent!.order : 0;
+            const orderB = typeof b.parent?.order === 'number' ? b.parent!.order : 0;
+            return orderA - orderB;
+          });
+
+        const withValue = sorted.find((p) => (p.value ?? '').trim() !== '');
+        if (withValue && withValue.value) {
+          return withValue.value.trim();
+        }
+      }
+
+      // Если по приоритету ничего не нашли — берём первую непустую секцию по order
+      const firstNonEmpty = consultation.properties
+        .slice()
+        .sort((a, b) => {
+          const orderA = typeof a.parent?.order === 'number' ? a.parent!.order : 0;
+          const orderB = typeof b.parent?.order === 'number' ? b.parent!.order : 0;
+          return orderA - orderB;
+        })
+        .find((p) => (p.value ?? '').trim() !== '');
+
+      if (firstNonEmpty && firstNonEmpty.value) {
+        return firstNonEmpty.value.trim();
+      }
+    }
+
+    return '';
+  };
 
   // Получаем текстовое описание статуса
   const getStatusText = (status: ConsultationProcessingStatus) => {
@@ -763,7 +821,7 @@ export default function PatientProfile() {
                         </div>
                       </div>
                       <p className="text-sm text-muted-foreground line-clamp-2 mb-4 pl-[3.25rem]">
-                        {consultation.summary}
+                        {getConsultationPreview(consultation) || 'Нет описания'}
                       </p>
                       <div className="pl-[3.25rem]">
                          <Button variant="link" className="p-0 h-auto text-primary gap-1 group-hover:underline">
