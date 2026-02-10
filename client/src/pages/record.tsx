@@ -1029,25 +1029,25 @@ export default function RecordPage() {
                   
                   {isRecommendationsOpen && (
                     <div className="px-4 md:px-5 pb-4 md:pb-5 space-y-3 animate-in slide-in-from-top-2 fade-in duration-200">
-                      <ul className="space-y-2 text-xs md:text-sm text-muted-foreground">
-                        <li className="flex items-start gap-2">
-                          <span className="text-primary mt-0.5">•</span>
-                          <span>Держите телефон/микрофон близко к говорящему </span>
+                      <ul className="space-y-2 text-xs md:text-sm text-muted-foreground text-left">
+                        <li className="flex items-start gap-2 text-left">
+                          <span className="text-primary mt-0.5 flex-shrink-0">•</span>
+                          <span className="text-left">Держите телефон/микрофон близко к говорящему</span>
                         </li>
-                        <li className="flex items-start gap-2">
-                          <span className="text-primary mt-0.5">•</span>
-                          <span>Не кладите устройство в карман, тумбочку или в сумку</span>
+                        <li className="flex items-start gap-2 text-left">
+                          <span className="text-primary mt-0.5 flex-shrink-0">•</span>
+                          <span className="text-left">Не кладите устройство в карман, тумбочку или в сумку</span>
                         </li>
-                        <li className="flex items-start gap-2">
-                          <span className="text-primary mt-0.5">•</span>
-                          <span>Расположите устройство на столе или держите в руке</span>
+                        <li className="flex items-start gap-2 text-left">
+                          <span className="text-primary mt-0.5 flex-shrink-0">•</span>
+                          <span className="text-left">Расположите устройство на столе или держите в руке</span>
                         </li>
-                        <li className="flex items-start gap-2">
-                          <span className="text-primary mt-0.5">•</span>
-                          <span>Избегайте фонового шума и посторонних разговоров</span>
+                        <li className="flex items-start gap-2 text-left">
+                          <span className="text-primary mt-0.5 flex-shrink-0">•</span>
+                          <span className="text-left">Избегайте фонового шума и посторонних разговоров</span>
                         </li>
                       </ul>
-                      <p className="text-xs md:text-sm text-muted-foreground pt-2 border-t border-border/50">
+                      <p className="text-xs md:text-sm text-muted-foreground pt-2 border-t border-border/50 text-left">
                         Чем лучше качество звука, тем точнее будет транскрипция и медицинский отчет
                       </p>
                     </div>
