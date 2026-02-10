@@ -436,11 +436,19 @@ export const consultationsApi = {
       : (consultation.audioDuration ? `${Math.floor(consultation.audioDuration / 60)}:${String(consultation.audioDuration % 60).padStart(2, '0')}` : '0:00');
     
     // Определяем имя врача
-    const doctorName =
-      consultation.createdByUser?.alias ||
-      (consultation.createdByUser?.firstName && consultation.createdByUser?.lastName
-        ? `${consultation.createdByUser.firstName} ${consultation.createdByUser.lastName}`
-        : undefined);
+    // Формат строго: "Фамилия Имя Отчество"
+    let doctorName: string | undefined;
+    if (consultation.createdByUser?.lastName || consultation.createdByUser?.firstName) {
+      const parts = [
+        consultation.createdByUser.lastName,
+        consultation.createdByUser.firstName,
+        consultation.createdByUser.middleName,
+      ].filter(Boolean);
+      doctorName = parts.join(' ');
+    } else if (consultation.createdByUser?.alias) {
+      // Fallback на alias, если фамилия/имя отсутствуют
+      doctorName = consultation.createdByUser.alias;
+    }
     
     // ВАЖНО: Сохраняем ВСЕ исходные поля из consultation, чтобы не потерять данные
     return {
