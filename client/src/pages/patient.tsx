@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Layout } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Mic, ArrowLeft, Phone, Calendar, FileText, Play, Loader2, Check, AlertCircle, Copy } from 'lucide-react';
 import { format } from 'date-fns';
@@ -432,6 +432,7 @@ export default function PatientProfile() {
       id: String(c.id),
       patientId: c.patientId ? String(c.patientId) : undefined,
       patientName: c.patientName,
+      doctorName: c.doctorName,
       date: c.date,
       createdAt: c.createdAt,
       dateObj,
@@ -649,13 +650,40 @@ export default function PatientProfile() {
                           </div>
                           <div>
                             <div className="font-bold">Консультация</div>
-                            <div className="text-xs text-muted-foreground">
-                              {consultation.dateObj ? (
+                            <div className="text-xs text-muted-foreground flex flex-col md:flex-row md:items-center md:gap-2 md:flex-wrap">
+                              <span>
+                                {consultation.dateObj ? (
+                                  <>
+                                    {format(consultation.dateObj, 'd MMMM yyyy', { locale: ru })} • {String(consultation.moscowHours).padStart(2, '0')}:{String(consultation.moscowMinutes).padStart(2, '0')}
+                                  </>
+                                ) : (
+                                  consultation.date ? format(new Date(consultation.date), 'd MMMM yyyy • HH:mm', { locale: ru }) : '---'
+                                )}
+                              </span>
+                              {consultation.duration && (
                                 <>
-                                  {format(consultation.dateObj, 'd MMMM yyyy', { locale: ru })} • {String(consultation.moscowHours).padStart(2, '0')}:{String(consultation.moscowMinutes).padStart(2, '0')}
+                                  <span className="hidden md:inline">•</span>
+                                  <span>Длительность: {consultation.duration}</span>
                                 </>
-                              ) : (
-                                consultation.date ? format(new Date(consultation.date), 'd MMMM yyyy • HH:mm', { locale: ru }) : '---'
+                              )}
+                              {consultation.doctorName && (
+                                <>
+                                  <span className="hidden md:inline">•</span>
+                                  <span className="flex items-center gap-1.5">
+                                    <Avatar className="w-5 h-5 flex-shrink-0 hidden md:inline-flex">
+                                      <AvatarImage src="/doctor.png" alt="Врач" />
+                                      <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                                        Д
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <img
+                                      src="/doctor.png"
+                                      alt="Врач"
+                                      className="w-3.5 h-3.5 rounded-full object-cover md:hidden"
+                                    />
+                                    <span>Врач: {consultation.doctorName}</span>
+                                  </span>
+                                </>
                               )}
                             </div>
                           </div>

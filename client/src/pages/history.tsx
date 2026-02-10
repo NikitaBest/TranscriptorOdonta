@@ -6,6 +6,7 @@ import { Layout } from '@/components/layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { consultationsApi } from '@/lib/api/consultations';
 import { patientsApi } from '@/lib/api/patients';
 import { ConsultationProcessingStatus } from '@/lib/api/types';
@@ -446,6 +447,21 @@ export default function HistoryPage() {
                         {consultation.summary || consultation.transcript || (isLocal ? 'Запись сохранена локально и ожидает отправки' : 'Нет описания')}
                       </p>
 
+                      {/* Doctor */}
+                      {consultation.doctorName && (
+                        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <Avatar className="w-5 h-5 flex-shrink-0">
+                            <AvatarImage src="/doctor.png" alt="Врач" />
+                            <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                              Д
+                            </AvatarFallback>
+                          </Avatar>
+                          <span>
+                            Врач: {consultation.doctorName}
+                          </span>
+                        </p>
+                      )}
+
                       {/* Time and Duration */}
                       <div className="flex items-center gap-4 text-xs text-muted-foreground">
                         {dateObj && (
@@ -498,7 +514,7 @@ export default function HistoryPage() {
                       <p className="text-sm text-muted-foreground line-clamp-2">
                         {consultation.summary || consultation.transcript || (isLocal ? 'Запись сохранена локально и ожидает отправки' : 'Нет описания')}
                       </p>
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2">
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2 flex-wrap">
                         {dateObj && (
                           <span className="flex items-center gap-1">
                             <Calendar className="w-3 h-3" /> {
@@ -511,6 +527,17 @@ export default function HistoryPage() {
                         )}
                         {consultation.duration && (
                           <span>Длительность: {consultation.duration}</span>
+                        )}
+                        {consultation.doctorName && (
+                          <span className="flex items-center gap-1.5">
+                            <Avatar className="w-5 h-5 flex-shrink-0">
+                              <AvatarImage src="/doctor.png" alt="Врач" />
+                              <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                                Д
+                              </AvatarFallback>
+                            </Avatar>
+                            <span>Врач: {consultation.doctorName}</span>
+                          </span>
                         )}
                       </div>
                     </div>

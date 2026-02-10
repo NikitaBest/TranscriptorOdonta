@@ -654,9 +654,30 @@ export default function ConsultationPage() {
             <h1 className="text-2xl md:text-3xl font-display font-bold tracking-tight">
               Отчет о консультации
             </h1>
-            <p className="text-sm md:text-base text-muted-foreground mt-1">
-                  {enrichedConsultation.date ? format(new Date(enrichedConsultation.date), 'd MMMM yyyy', { locale: ru }) : 'Дата не указана'} • {enrichedConsultation.duration || '0:00'} • {enrichedConsultation.patientName || "Пациент не назначен"}
-                </p>
+            <p className="flex flex-wrap items-center gap-2 text-sm md:text-base text-muted-foreground mt-1">
+              <span>
+                {enrichedConsultation.date
+                  ? format(new Date(enrichedConsultation.date), 'd MMMM yyyy', { locale: ru })
+                  : 'Дата не указана'}
+              </span>
+              <span>•</span>
+              <span>{enrichedConsultation.duration || '0:00'}</span>
+              <span>•</span>
+              <span>{enrichedConsultation.patientName || 'Пациент не назначен'}</span>
+              {enrichedConsultation.doctorName && (
+                <>
+                  <span>•</span>
+                  <span className="flex items-center gap-1">
+                    <img
+                      src="/doctor.png"
+                      alt="Врач"
+                      className="w-3.5 h-3.5 rounded-full object-cover"
+                    />
+                    <span>Врач: {enrichedConsultation.doctorName}</span>
+                  </span>
+                </>
+              )}
+            </p>
               </div>
               {finalIsProcessing && (
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">

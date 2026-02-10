@@ -243,6 +243,18 @@ export interface ConsultationResponse {
   tenantId?: string | number;
   userId?: string | number;
   clientId?: string | number;
+  // Пользователь, создавший консультацию (врач)
+  createdByUser?: {
+    id: string | number;
+    tenantId?: string | number;
+    userName?: string;
+    email?: string;
+    firstName?: string;
+    lastName?: string;
+    middleName?: string | null;
+    photoUrl?: string | null;
+    alias?: string | null;
+  };
   client?: {
     id: string | number;
     firstName: string;
@@ -269,6 +281,7 @@ export interface ConsultationResponse {
   processingStatus?: ConsultationProcessingStatus;
   patientId?: string | number;
   patientName?: string;
+  doctorName?: string; // Имя врача (alias или ФИО)
   date?: string;
   duration?: string;
   plan?: string;

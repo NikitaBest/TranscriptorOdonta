@@ -437,6 +437,13 @@ export const consultationsApi = {
       ? `${Math.floor(audioDuration / 60)}:${String(audioDuration % 60).padStart(2, '0')}`
       : (consultation.audioDuration ? `${Math.floor(consultation.audioDuration / 60)}:${String(consultation.audioDuration % 60).padStart(2, '0')}` : '0:00');
     
+    // Определяем имя врача
+    const doctorName =
+      consultation.createdByUser?.alias ||
+      (consultation.createdByUser?.firstName && consultation.createdByUser?.lastName
+        ? `${consultation.createdByUser.firstName} ${consultation.createdByUser.lastName}`
+        : undefined);
+    
     // ВАЖНО: Сохраняем ВСЕ исходные поля из consultation, чтобы не потерять данные
     return {
       ...consultation, // Сохраняем все исходные поля (включая audioNotes, properties, client, clientId)
@@ -444,6 +451,7 @@ export const consultationsApi = {
       clientId: consultation.clientId ? String(consultation.clientId) : undefined,
       patientId: consultation.clientId ? String(consultation.clientId) : undefined,
       patientName: consultation.client ? `${consultation.client.firstName} ${consultation.client.lastName}` : undefined,
+      doctorName,
       createdAt: isValidCreatedAt ? originalCreatedAt : (consultation.createdAt || consultation.date),
       date: isValidCreatedAt ? originalCreatedAt : (consultation.createdAt || consultation.date || new Date().toISOString()),
       // Данные из properties (дополняем, не заменяем)
