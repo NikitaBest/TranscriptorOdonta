@@ -272,15 +272,13 @@ export const consultationsApi = {
 
   /**
    * Переобработка консультации
-   * TODO: Уточнить эндпоинт в новом API (возможно удален или изменен)
-   * Временно оставлен для обратной совместимости
+   * POST /consultation/reprocess
+   * Перезапускает весь пайплайн обработки консультации: очищает историю шагов и очередь заданий, перепланирует выполнение с начала
    */
   async reprocess(id: string | number): Promise<ConsultationResponse> {
-    // TODO: Заменить на правильный эндпоинт из нового API
-    // Пока используем старый эндпоинт для обратной совместимости
     const response = await ApiClient.post<ApiResponse<ConsultationResponse>>(
-      'note/reprocess',
-      { id },
+      'consultation/reprocess',
+      { id: String(id) },
       { requireAuth: true }
     );
 
