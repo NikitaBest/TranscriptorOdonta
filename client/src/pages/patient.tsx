@@ -745,16 +745,16 @@ export default function PatientProfile() {
                                 <>
                                   <span className="hidden md:inline">•</span>
                                   <span className="flex items-center gap-1.5">
-                                    <Avatar className="w-5 h-5 flex-shrink-0 hidden md:inline-flex">
+                                    <Avatar className="w-4 h-4 flex-shrink-0 hidden md:inline-flex">
                                       <AvatarImage src="/doctor.png" alt="Врач" />
-                                      <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                                      <AvatarFallback className="text-[8px] bg-primary/10 text-primary">
                                         Д
                                       </AvatarFallback>
                                     </Avatar>
                                     <img
                                       src="/doctor.png"
                                       alt="Врач"
-                                      className="w-3.5 h-3.5 rounded-full object-cover md:hidden"
+                                      className="w-3 h-3 rounded-full object-cover md:hidden"
                                     />
                                     <span>Врач: {consultation.doctorName}</span>
                                   </span>

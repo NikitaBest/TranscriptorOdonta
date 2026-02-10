@@ -11,7 +11,7 @@ import { consultationsApi } from '@/lib/api/consultations';
 import { patientsApi } from '@/lib/api/patients';
 import { ConsultationProcessingStatus, ConsultationType } from '@/lib/api/types';
 import type { ConsultationResponse, ConsultationProperty } from '@/lib/api/types';
-import { Search, Calendar, Filter, ArrowUpRight, Loader2 } from 'lucide-react';
+import { Search, Filter, ArrowUpRight, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -537,9 +537,9 @@ export default function HistoryPage() {
                       {/* Doctor */}
                       {consultation.doctorName && (
                         <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <Avatar className="w-5 h-5 flex-shrink-0">
+                          <Avatar className="w-4 h-4 flex-shrink-0">
                             <AvatarImage src="/doctor.png" alt="Врач" />
-                            <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                            <AvatarFallback className="text-[8px] bg-primary/10 text-primary">
                               Д
                             </AvatarFallback>
                           </Avatar>
@@ -553,7 +553,11 @@ export default function HistoryPage() {
                       <div className="flex items-center gap-4 text-xs text-muted-foreground">
                         {dateObj && (
                           <span className="flex items-center gap-1">
-                            <Calendar className="w-3 h-3" /> {
+                            <img
+                              src="/time.png"
+                              alt="Время консультации"
+                              className="w-3 h-3"
+                            /> {
                               // Используем московское время напрямую, если оно сохранено
                               (dateObj as any).__moscowHours !== undefined
                                 ? `${String((dateObj as any).__moscowHours).padStart(2, '0')}:${String((dateObj as any).__moscowMinutes).padStart(2, '0')}`
@@ -611,7 +615,11 @@ export default function HistoryPage() {
                       <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2 flex-wrap">
                         {dateObj && (
                           <span className="flex items-center gap-1">
-                            <Calendar className="w-3 h-3" /> {
+                            <img
+                              src="/time.png"
+                              alt="Время консультации"
+                              className="w-3 h-3"
+                            /> {
                               // Используем московское время напрямую, если оно сохранено
                               (dateObj as any).__moscowHours !== undefined
                                 ? `${String((dateObj as any).__moscowHours).padStart(2, '0')}:${String((dateObj as any).__moscowMinutes).padStart(2, '0')}`
@@ -624,9 +632,9 @@ export default function HistoryPage() {
                         )}
                         {consultation.doctorName && (
                           <span className="flex items-center gap-1.5">
-                            <Avatar className="w-5 h-5 flex-shrink-0">
+                            <Avatar className="w-4 h-4 flex-shrink-0">
                               <AvatarImage src="/doctor.png" alt="Врач" />
-                              <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                              <AvatarFallback className="text-[8px] bg-primary/10 text-primary">
                                 Д
                               </AvatarFallback>
                             </Avatar>
