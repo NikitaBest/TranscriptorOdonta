@@ -98,14 +98,17 @@ export default function PatientEditPage() {
     setIsSaving(true);
 
     try {
-      const updatedPatient = await patientsApi.update({
+      const payload: Parameters<typeof patientsApi.update>[0] = {
         id,
         firstName: firstName.trim(),
         lastName: lastName.trim(),
-        phone: normalizePhone(phone),
         birthDate: dateOfBirth ? normalizeDate(dateOfBirth) : undefined,
         comment: comment.trim() || undefined,
-      });
+      };
+      if (phone?.trim()) {
+        payload.phone = normalizePhone(phone);
+      }
+      const updatedPatient = await patientsApi.update(payload);
 
       // Обновляем кэш напрямую с новыми данными
       queryClient.setQueryData(['patient', id], {

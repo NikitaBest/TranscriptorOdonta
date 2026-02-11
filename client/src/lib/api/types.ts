@@ -122,7 +122,7 @@ export interface UpdatePatientRequest {
   id: string | number;
   firstName: string;
   lastName: string;
-  phone: string;
+  phone?: string | null; // необязательно; при отсутствии — null
   comment?: string;
   birthDate?: string; // Дата рождения в формате ISO (YYYY-MM-DD)
 }

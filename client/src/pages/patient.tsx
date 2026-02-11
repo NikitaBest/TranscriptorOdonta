@@ -338,14 +338,17 @@ export default function PatientProfile() {
       setIsSaved(false);
       
       try {
-        const updatedPatient = await patientsApi.update({
+        const payload: Parameters<typeof patientsApi.update>[0] = {
           id,
           firstName: patientData.firstName,
           lastName: patientData.lastName,
-          phone: patientData.phone || '',
           birthDate: patientData.birthDate || undefined,
           comment: currentComment.trim() || undefined,
-        });
+        };
+
+        // Поле телефона при автосохранении заметок не отправляем —
+        // обновляем только нужные данные пациента
+        const updatedPatient = await patientsApi.update(payload);
 
         // Обновляем кэш с новыми данными
         queryClient.setQueryData(['patient', id], {
