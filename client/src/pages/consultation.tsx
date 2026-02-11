@@ -197,9 +197,10 @@ export default function ConsultationPage() {
       setSummary(enrichedConsultation.summary || '');
       setComment(enrichedConsultation.comments || '');
 
-      // Инициализируем значения динамических блоков (все свойства, кроме базовых ключей)
+      // Инициализируем значения динамических блоков (все свойства, кроме базовых полей и AI-оценки)
       if (enrichedConsultation.properties && enrichedConsultation.properties.length > 0) {
         const baseKeys = new Set(['complaints', 'objective', 'treatment_plan', 'summary', 'comment']);
+        const aiReportKey = 'calgary_сambridge_report';
         const newDynamicValues: Record<string, string> = {};
         const newLastSavedValues: Record<string, string> = { ...dynamicLastSavedValues.current };
 
@@ -208,7 +209,8 @@ export default function ConsultationPage() {
           const id = String(prop.id);
           const value = prop.value ?? '';
 
-          if (!key || baseKeys.has(key)) {
+          // Пропускаем базовые поля и AI-оценку (она показывается на отдельной странице)
+          if (!key || baseKeys.has(key) || key === aiReportKey) {
             return;
           }
 
@@ -248,6 +250,7 @@ export default function ConsultationPage() {
     if (!id || !enrichedConsultation?.properties) return;
 
     const baseKeys = new Set(['complaints', 'objective', 'treatment_plan', 'summary', 'comment']);
+    const aiReportKey = 'calgary_сambridge_report';
     const propertiesById = new Map(
       enrichedConsultation.properties.map((p) => [String(p.id), p])
     );
@@ -257,8 +260,8 @@ export default function ConsultationPage() {
       if (!property) return;
 
       const key = property.parent?.key;
-      // Базовые поля сохраняются через useAutoSaveConsultation
-      if (key && baseKeys.has(key)) return;
+      // Базовые поля сохраняются через useAutoSaveConsultation, AI-оценку не редактируем с этой страницы
+      if (key && (baseKeys.has(key) || key === aiReportKey)) return;
 
       const trimmedValue = (value ?? '').trim();
       const lastSavedValue = dynamicLastSavedValues.current[propertyId] ?? '';
@@ -728,6 +731,13 @@ export default function ConsultationPage() {
     }
   };
 
+  // Находим AI-оценку консультации (Калгари–Кембридж)
+  const aiReportProperty = enrichedConsultation.properties?.find(
+    (p) => p.parent?.key === 'calgary_сambridge_report'
+  );
+  const aiReportValue = aiReportProperty?.value ?? '';
+  const hasAiReport = aiReportValue.trim().length > 0;
+
   return (
     <Layout>
       <div className="max-w-5xl mx-auto flex flex-col gap-6">
@@ -921,6 +931,7 @@ export default function ConsultationPage() {
                 ) : (
                   <>
                     {(enrichedConsultation.properties || [])
+                      .filter((p) => p.parent?.key !== 'calgary_сambridge_report')
                       .slice()
                       .sort((a, b) => {
                         const orderA = typeof a.parent?.order === 'number' ? a.parent!.order : 0;
@@ -1052,6 +1063,24 @@ export default function ConsultationPage() {
                 <CardTitle className="text-lg">Действия ИИ</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
+                {/* AI рекомендации */}
+                <Button
+                  className="w-full justify-start rounded-xl h-12 gap-3 transition-all active:scale-95 active:opacity-70 disabled:opacity-60 disabled:cursor-not-allowed"
+                  variant="outline"
+                  disabled={!hasAiReport}
+                  onClick={() => {
+                    if (!id || !hasAiReport) return;
+                    setLocation(`/consultation/${id}/ai-report`);
+                  }}
+                >
+                  <img
+                    src="/ideas.png"
+                    alt="AI рекомендации"
+                    className="w-5 h-5"
+                  />
+                  <span>AI рекомендации</span>
+                </Button>
+
                 <AlertDialog open={reprocessDialogOpen} onOpenChange={setReprocessDialogOpen}>
                   <AlertDialogTrigger asChild>
                     <Button 
@@ -1061,7 +1090,7 @@ export default function ConsultationPage() {
                     >
                       <RefreshCw className={cn("w-4 h-4", isReprocessing && "animate-spin")} /> 
                       {isReprocessing ? "Переобработка..." : "Пересоздать отчет"}
-                </Button>
+                    </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent className="rounded-3xl">
                     <AlertDialogHeader>

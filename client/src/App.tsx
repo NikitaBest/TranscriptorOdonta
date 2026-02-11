@@ -22,6 +22,7 @@ import PatientEditPage from "@/pages/patient-edit";
 import PatientCreatePage from "@/pages/patient-create";
 import RecordPage from "@/pages/record";
 import ConsultationPage from "@/pages/consultation";
+import ConsultationAIReportPage from "@/pages/consultation-ai-report";
 import HistoryPage from "@/pages/history";
 import ShareConsultationPage from "@/pages/share-consultation";
 import ConfirmEmailPage from "@/pages/confirm-email";
@@ -170,6 +171,7 @@ function Router() {
         <Route path="/patient/:id/edit" component={PatientEditPage} />
         <Route path="/record" component={RecordPage} />
         <Route path="/consultation/:id" component={ConsultationPage} />
+        <Route path="/consultation/:id/ai-report" component={ConsultationAIReportPage} />
         <Route path="/history" component={HistoryPage} />
         <Route path="/settings" component={SettingsPage} />
         <Route path="/share/consultation/:id" component={ShareConsultationPage} />
