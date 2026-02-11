@@ -1416,21 +1416,21 @@ function ReportSection({
         </div>
       </div>
       <div className="relative">
-      <Textarea 
+        <Textarea 
           ref={textareaRef}
           className={cn(
-            "min-h-[120px] w-full border-none resize-none focus-visible:ring-1 focus-visible:ring-ring bg-transparent pt-4 pl-4 pr-4 pb-4 text-base leading-relaxed break-words overflow-hidden transition-colors",
+            "min-h-[72px] md:min-h-[100px] w-full border-none resize-none focus-visible:ring-1 focus-visible:ring-ring bg-transparent pt-3 pb-3 px-4 text-sm md:text-base leading-relaxed break-words overflow-hidden transition-colors",
             isEditable 
               ? "text-foreground focus:text-foreground" 
               : "text-muted-foreground focus:text-foreground"
           )}
-        value={content || ''}
-        onChange={handleChange}
-        readOnly={!isEditable}
-        disabled={!isEditable}
-        placeholder={placeholder}
-        rows={1}
-      />
+          value={content || ''}
+          onChange={handleChange}
+          readOnly={!isEditable}
+          disabled={!isEditable}
+          placeholder={placeholder}
+          rows={1}
+        />
       </div>
     </Card>
   );
