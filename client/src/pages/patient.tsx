@@ -648,22 +648,20 @@ export default function PatientProfile() {
         </div>
 
         <Tabs defaultValue="consultations" className="w-full">
-          <div className="flex justify-start mb-6">
-            <TabsList className="inline-flex h-10 items-center justify-center rounded-xl bg-muted/50 p-1 text-muted-foreground border border-border/50">
-              <TabsTrigger 
-                value="consultations" 
-                className="px-4 md:px-6 py-2 text-sm md:text-base font-medium rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
-              >
-                История консультаций
-              </TabsTrigger>
-              <TabsTrigger 
-                value="medical-record"
-                className="px-4 md:px-6 py-2 text-sm md:text-base font-medium rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
-              >
-                Карта пациента
-              </TabsTrigger>
-            </TabsList>
-          </div>
+          <TabsList className="grid w-full max-w-md grid-cols-2 h-10 md:h-11 p-0 rounded-full bg-background text-muted-foreground mb-4 md:mb-6 shadow-sm overflow-hidden border border-border/50">
+            <TabsTrigger
+              value="consultations"
+              className="rounded-full px-3 sm:px-4 md:px-6 py-1.5 sm:py-2 text-xs sm:text-sm md:text-base font-medium whitespace-nowrap transition-all data-[state=active]:bg-secondary data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+            >
+              История консультаций
+            </TabsTrigger>
+            <TabsTrigger
+              value="medical-record"
+              className="rounded-full px-3 sm:px-4 md:px-6 py-1.5 sm:py-2 text-xs sm:text-sm md:text-base font-medium whitespace-nowrap transition-all data-[state=active]:bg-secondary data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+            >
+              Карта пациента
+            </TabsTrigger>
+          </TabsList>
 
           <TabsContent value="consultations" className="space-y-6 mt-0">
             <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6 md:gap-8">

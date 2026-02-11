@@ -871,9 +871,19 @@ export default function ConsultationPage() {
           {/* Main Report */}
           <div className="lg:col-span-2 space-y-4 md:space-y-6">
             <Tabs defaultValue="report" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-4 md:mb-6 h-10 md:h-12 p-1 bg-secondary/50 rounded-2xl">
-                <TabsTrigger value="report" className="rounded-xl">Медицинский отчет</TabsTrigger>
-                <TabsTrigger value="transcript" className="rounded-xl">Транскрипция</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 h-10 md:h-11 p-0 rounded-full bg-background text-muted-foreground mb-4 md:mb-6 shadow-sm overflow-hidden border border-border/50">
+                <TabsTrigger
+                  value="report"
+                  className="rounded-full px-3 sm:px-4 md:px-6 py-1.5 sm:py-2 text-xs sm:text-sm md:text-base font-medium whitespace-nowrap transition-all data-[state=active]:bg-secondary data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                >
+                  Медицинский отчет
+                </TabsTrigger>
+                <TabsTrigger
+                  value="transcript"
+                  className="rounded-full px-3 sm:px-4 md:px-6 py-1.5 sm:py-2 text-xs sm:text-sm md:text-base font-medium whitespace-nowrap transition-all data-[state=active]:bg-secondary data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                >
+                  Транскрипция
+                </TabsTrigger>
               </TabsList>
             
               <TabsContent value="report" className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
