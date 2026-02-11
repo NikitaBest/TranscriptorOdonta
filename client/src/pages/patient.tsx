@@ -592,15 +592,17 @@ export default function PatientProfile() {
               <div className="flex-1 min-w-0">
                 <h1 className="text-xl sm:text-2xl md:text-3xl font-display font-bold tracking-tight mb-2 truncate">{patient.firstName} {patient.lastName}</h1>
                 <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 md:gap-4 text-xs md:text-sm text-muted-foreground">
-                  <span 
-                    className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-full bg-secondary/50 border border-border/50 whitespace-nowrap cursor-pointer hover:bg-secondary/70 hover:text-foreground transition-colors group/phone"
-                    onClick={() => handleCopyPhone(patient.phone)}
-                    title="Нажмите, чтобы скопировать номер"
-                  >
-                    <Phone className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" /> 
-                    <span className="truncate max-w-[120px] sm:max-w-none">{patient.phone}</span>
-                    <Copy className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0 opacity-0 group-hover/phone:opacity-100 transition-opacity" />
-                  </span>
+                  {patient.phone?.trim() && (
+                    <span 
+                      className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-full bg-secondary/50 border border-border/50 whitespace-nowrap cursor-pointer hover:bg-secondary/70 hover:text-foreground transition-colors group/phone"
+                      onClick={() => handleCopyPhone(patient.phone)}
+                      title="Нажмите, чтобы скопировать номер"
+                    >
+                      <Phone className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" /> 
+                      <span className="truncate max-w-[120px] sm:max-w-none">{patient.phone}</span>
+                      <Copy className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0 opacity-0 group-hover/phone:opacity-100 transition-opacity" />
+                    </span>
+                  )}
                   {patientData?.birthDate && (() => {
                     try {
                       // Парсим дату (может быть в формате YYYY-MM-DD или ISO)

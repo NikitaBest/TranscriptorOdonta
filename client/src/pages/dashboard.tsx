@@ -175,23 +175,25 @@ export default function Dashboard() {
                       </Avatar>
                       <div>
                         <h3 className="font-bold text-lg leading-none mb-1">{patient.firstName} {patient.lastName}</h3>
-                        <div 
-                          className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer hover:text-foreground transition-colors group/phone relative z-10"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleCopyPhone(e, patient.phone);
-                          }}
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                          }}
-                          title="Нажмите, чтобы скопировать номер"
-                        >
-                          <Phone className="w-3 h-3" />
-                          <span>{patient.phone}</span>
-                          <Copy className="w-3 h-3 opacity-0 group-hover/phone:opacity-100 transition-opacity" />
-                        </div>
+                        {patient.phone?.trim() && (
+                          <div 
+                            className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer hover:text-foreground transition-colors group/phone relative z-10"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleCopyPhone(e, patient.phone);
+                            }}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                            }}
+                            title="Нажмите, чтобы скопировать номер"
+                          >
+                            <Phone className="w-3 h-3" />
+                            <span>{patient.phone}</span>
+                            <Copy className="w-3 h-3 opacity-0 group-hover/phone:opacity-100 transition-opacity" />
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="w-8 h-8 rounded-full bg-secondary/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity -mr-2 -mt-2">
