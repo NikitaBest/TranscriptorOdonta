@@ -749,20 +749,7 @@ export default function PatientProfile() {
                               {consultation.doctorName && (
                                 <>
                                   <span className="hidden md:inline">•</span>
-                                  <span className="flex items-center gap-1.5">
-                                    <Avatar className="w-4 h-4 flex-shrink-0 hidden md:inline-flex">
-                                      <AvatarImage src="/doctor.png" alt="Врач" />
-                                      <AvatarFallback className="text-[8px] bg-primary/10 text-primary">
-                                        Д
-                                      </AvatarFallback>
-                                    </Avatar>
-                                    <img
-                                      src="/doctor.png"
-                                      alt="Врач"
-                                      className="w-3 h-3 rounded-full object-cover md:hidden"
-                                    />
-                                    <span>Врач: {consultation.doctorName}</span>
-                                  </span>
+                                  <span>Врач: {consultation.doctorName}</span>
                                 </>
                               )}
                             </div>

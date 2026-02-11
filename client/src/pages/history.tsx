@@ -6,7 +6,6 @@ import { Layout } from '@/components/layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { consultationsApi } from '@/lib/api/consultations';
 import { patientsApi } from '@/lib/api/patients';
 import { ConsultationProcessingStatus, ConsultationType } from '@/lib/api/types';
@@ -536,16 +535,8 @@ export default function HistoryPage() {
 
                       {/* Doctor */}
                       {consultation.doctorName && (
-                        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <Avatar className="w-4 h-4 flex-shrink-0">
-                            <AvatarImage src="/doctor.png" alt="Врач" />
-                            <AvatarFallback className="text-[8px] bg-primary/10 text-primary">
-                              Д
-                            </AvatarFallback>
-                          </Avatar>
-                          <span>
-                            Врач: {consultation.doctorName}
-                          </span>
+                        <p className="text-xs text-muted-foreground">
+                          Врач: {consultation.doctorName}
                         </p>
                       )}
 
@@ -631,15 +622,7 @@ export default function HistoryPage() {
                           <span>Длительность: {consultation.duration}</span>
                         )}
                         {consultation.doctorName && (
-                          <span className="flex items-center gap-1.5">
-                            <Avatar className="w-4 h-4 flex-shrink-0">
-                              <AvatarImage src="/doctor.png" alt="Врач" />
-                              <AvatarFallback className="text-[8px] bg-primary/10 text-primary">
-                                Д
-                              </AvatarFallback>
-                            </Avatar>
-                            <span>Врач: {consultation.doctorName}</span>
-                          </span>
+                          <span>Врач: {consultation.doctorName}</span>
                         )}
                       </div>
                     </div>

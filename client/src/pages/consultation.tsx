@@ -771,14 +771,7 @@ export default function ConsultationPage() {
               {enrichedConsultation.doctorName && (
                 <>
                   <span>•</span>
-                  <span className="flex items-center gap-1">
-                    <img
-                      src="/doctor.png"
-                      alt="Врач"
-                      className="w-3.5 h-3.5 rounded-full object-cover"
-                    />
-                    <span>Врач: {enrichedConsultation.doctorName}</span>
-                  </span>
+                  <span>Врач: {enrichedConsultation.doctorName}</span>
                 </>
               )}
             </p>
