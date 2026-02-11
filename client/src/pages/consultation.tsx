@@ -74,6 +74,7 @@ export default function ConsultationPage() {
   const [dynamicPropertyValues, setDynamicPropertyValues] = useState<Record<string, string>>({});
   const dynamicSaveTimeouts = useRef<Record<string, NodeJS.Timeout | null>>({});
   const dynamicLastSavedValues = useRef<Record<string, string>>({});
+  const [showCompletedStatus, setShowCompletedStatus] = useState(true);
 
   // Загрузка данных консультации
   // Если консультация обрабатывается, периодически обновляем данные
@@ -373,6 +374,17 @@ export default function ConsultationPage() {
   const finalIsProcessing =
     processingStatus === ConsultationProcessingStatus.InProgress ||
     processingStatus === ConsultationProcessingStatus.None;
+  
+  // Управляем отображением зеленого статуса "Готово"
+  useEffect(() => {
+    if (!finalIsProcessing && processingStatus === ConsultationProcessingStatus.Completed) {
+      setShowCompletedStatus(true);
+      const timeout = setTimeout(() => setShowCompletedStatus(false), 4000);
+      return () => clearTimeout(timeout);
+    }
+    // Для остальных статусов не показываем зеленый чип
+    setShowCompletedStatus(false);
+  }, [finalIsProcessing, processingStatus]);
   
   // Логируем для отладки
   console.log('[Consultation Status] Final check:', {
@@ -754,12 +766,12 @@ export default function ConsultationPage() {
                 Назад
               </Button>
             </Link>
-            <div className="flex items-start justify-between gap-4">
-              <div>
-            <h1 className="text-2xl md:text-3xl font-display font-bold tracking-tight">
+            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 md:gap-4">
+              <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-display font-bold tracking-tight">
               Отчет о {getConsultationTypeName(enrichedConsultation.type)}
             </h1>
-            <p className="flex flex-wrap items-center gap-2 text-sm md:text-base text-muted-foreground mt-1">
+            <p className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs sm:text-sm md:text-base text-muted-foreground mt-1">
               <span>
                 {enrichedConsultation.date
                   ? format(new Date(enrichedConsultation.date), 'd MMMM yyyy', { locale: ru })
@@ -778,19 +790,19 @@ export default function ConsultationPage() {
             </p>
               </div>
               {finalIsProcessing && (
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
+                <div className="mt-2 md:mt-0 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 self-start">
                   <Loader2 className="w-4 h-4 animate-spin text-primary" />
                   <span className="text-sm font-medium text-primary">{getStatusText(processingStatus)}</span>
                 </div>
               )}
-              {!finalIsProcessing && processingStatus === ConsultationProcessingStatus.Completed && (
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/20">
+              {!finalIsProcessing && processingStatus === ConsultationProcessingStatus.Completed && showCompletedStatus && (
+                <div className="mt-2 md:mt-0 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/20 self-start">
                   <Check className="w-4 h-4 text-green-600" />
                   <span className="text-sm font-medium text-green-600">Готово</span>
                 </div>
               )}
               {processingStatus === ConsultationProcessingStatus.Failed && (
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-destructive/10 border border-destructive/20">
+                <div className="mt-2 md:mt-0 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-destructive/10 border border-destructive/20 self-start">
                   <AlertCircle className="w-4 h-4 text-destructive" />
                   <span className="text-sm font-medium text-destructive">{getStatusText(processingStatus)}</span>
                 </div>
