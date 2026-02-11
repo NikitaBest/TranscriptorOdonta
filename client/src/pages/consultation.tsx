@@ -24,6 +24,7 @@ import { ConsultationProcessingStatus, ConsultationType } from '@/lib/api/types'
 import type { ConsultationResponse, ConsultationProperty } from '@/lib/api/types';
 import { ArrowLeft, Download, Share2, Copy, RefreshCw, Check, Loader2, AlertCircle, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { useAutoSaveConsultation } from '@/hooks/use-auto-save-consultation';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -1221,6 +1222,8 @@ function ReportSection({
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const isEditable = !!onChange;
   const { toast } = useToast();
+  const [isDescriptionOpen, setIsDescriptionOpen] = useState(false);
+  const hasDescription = !!description && description.trim().length > 0;
 
   // Автоматическое изменение высоты textarea при изменении содержимого
   useEffect(() => {
@@ -1360,6 +1363,27 @@ function ReportSection({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <h3 className="text-lg font-bold">{title}</h3>
+              {hasDescription && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      onClick={() => setIsDescriptionOpen((prev) => !prev)}
+                      className="inline-flex items-center justify-center shrink-0 text-muted-foreground transition-colors"
+                      aria-label="Показать описание поля"
+                    >
+                      <img
+                        src="/help.png"
+                        alt=""
+                        className="w-5 h-5"
+                      />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" align="start" className="max-w-xs text-xs leading-snug">
+                    {description}
+                  </TooltipContent>
+                </Tooltip>
+              )}
               {savingStatus?.isSaving && (
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <Loader2 className="w-3 h-3 animate-spin" />
@@ -1373,7 +1397,7 @@ function ReportSection({
                 </div>
               )}
             </div>
-            {description && (
+            {hasDescription && isDescriptionOpen && (
               <p className="text-xs text-muted-foreground mt-1">{description}</p>
             )}
           </div>
