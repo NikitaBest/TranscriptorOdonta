@@ -1065,7 +1065,10 @@ export default function ConsultationPage() {
               <CardContent className="space-y-3">
                 {/* AI рекомендации */}
                 <Button
-                  className="w-full justify-start rounded-xl h-12 gap-3 transition-all active:scale-95 active:opacity-70 disabled:opacity-60 disabled:cursor-not-allowed"
+                  className={cn(
+                    "w-full justify-start rounded-xl h-12 gap-3 transition-all active:scale-95 active:opacity-70 disabled:cursor-not-allowed",
+                    !hasAiReport && "border-dashed bg-muted/40 text-muted-foreground opacity-80"
+                  )}
                   variant="outline"
                   disabled={!hasAiReport}
                   onClick={() => {
@@ -1076,10 +1079,16 @@ export default function ConsultationPage() {
                   <img
                     src="/ideas.png"
                     alt="AI рекомендации"
-                    className="w-5 h-5"
+                    className={cn("w-5 h-5", !hasAiReport && "opacity-60")}
                   />
                   <span>AI рекомендации</span>
                 </Button>
+                {!hasAiReport && (
+                  <p className="text-[11px] text-muted-foreground leading-snug">
+                    AI‑оценка для этой консультации пока недоступна. 
+                    Она появится, когда модель сформирует отчет по Калгари–Кембридж.
+                  </p>
+                )}
 
                 <AlertDialog open={reprocessDialogOpen} onOpenChange={setReprocessDialogOpen}>
                   <AlertDialogTrigger asChild>
