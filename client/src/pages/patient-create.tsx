@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useQueryClient } from '@tanstack/react-query';
 import { Layout } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Loader2 } from 'lucide-react';
@@ -24,6 +25,18 @@ export default function PatientCreatePage() {
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [comment, setComment] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const commentTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const autoResizeComment = () => {
+    if (commentTextareaRef.current) {
+      commentTextareaRef.current.style.height = 'auto';
+      commentTextareaRef.current.style.height = `${commentTextareaRef.current.scrollHeight}px`;
+    }
+  };
+
+  useEffect(() => {
+    autoResizeComment();
+  }, [comment]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -176,11 +189,12 @@ export default function PatientCreatePage() {
 
                 <div className="grid gap-1.5 sm:gap-2">
                   <Label htmlFor="comment" className="text-sm sm:text-base">Комментарий</Label>
-                  <Input 
+                  <Textarea
                     id="comment" 
+                    ref={commentTextareaRef}
                     value={comment} 
                     onChange={e => setComment(e.target.value)} 
-                    className="rounded-xl h-11 sm:h-12 text-sm sm:text-base"
+                    className="rounded-xl min-h-[80px] text-sm sm:text-base resize-none overflow-hidden"
                     placeholder="Дополнительная информация о пациенте"
                     disabled={isCreating}
                   />
