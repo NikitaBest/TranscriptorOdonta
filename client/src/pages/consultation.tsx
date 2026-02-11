@@ -797,6 +797,20 @@ export default function ConsultationPage() {
             </div>
           </div>
           <div className="flex gap-2">
+            {enrichedConsultation.patientId && (
+              <Button 
+                variant="outline" 
+                className="flex-1 md:flex-none rounded-xl gap-2 h-11 md:h-12 text-sm md:text-base transition-all active:scale-95 active:opacity-70" 
+                onClick={() => setLocation(`/patient/${enrichedConsultation.patientId}?tab=medical-record`)}
+              >
+                <img 
+                  src="/medical.png" 
+                  alt="Карта пациента" 
+                  className="w-4 h-4"
+                />
+                <span className="hidden sm:inline">Карта пациента</span>
+              </Button>
+            )}
             <Button 
               variant="outline" 
               className="flex-1 md:flex-none rounded-xl gap-2 h-11 md:h-12 text-sm md:text-base transition-all active:scale-95 active:opacity-70" 

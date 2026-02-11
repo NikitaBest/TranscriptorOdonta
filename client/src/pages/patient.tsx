@@ -38,6 +38,7 @@ export default function PatientProfile() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [comment, setComment] = useState('');
+  const [activeTab, setActiveTab] = useState<'consultations' | 'medical-record'>('consultations');
 
   const handleCopyPhone = async (phone: string) => {
     try {
@@ -104,6 +105,14 @@ export default function PatientProfile() {
   const medicalRecordTimeouts = useRef<Record<string, NodeJS.Timeout | null>>({});
   // Timeouts для скрытия индикатора "Сохранено"
   const savingStatusTimeouts = useRef<Record<string, NodeJS.Timeout | null>>({});
+
+  // Определяем активную вкладку из query-параметра ?tab=...
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get('tab');
+    setActiveTab(tabParam === 'medical-record' ? 'medical-record' : 'consultations');
+  }, [id]);
 
   // Загрузка данных пациента
   const { data: patientData, isLoading: isLoadingPatient, error: patientError } = useQuery({
@@ -647,7 +656,11 @@ export default function PatientProfile() {
           </div>
         </div>
 
-        <Tabs defaultValue="consultations" className="w-full">
+        <Tabs
+          value={activeTab}
+          onValueChange={(val) => setActiveTab(val as 'consultations' | 'medical-record')}
+          className="w-full"
+        >
           <TabsList className="grid w-full max-w-md grid-cols-2 h-10 md:h-11 p-0 rounded-full bg-background text-muted-foreground mb-4 md:mb-6 shadow-sm overflow-hidden border border-border/50">
             <TabsTrigger
               value="consultations"
