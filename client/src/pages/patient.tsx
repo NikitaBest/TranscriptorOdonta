@@ -160,15 +160,28 @@ export default function PatientProfile() {
     }
   }, [patientData?.medicalRecord]);
 
-  // Автоматическое изменение высоты textarea при изменении содержимого
+  // Автоматическое изменение высоты textarea при изменении содержимого (с буфером чтобы низ не обрезался)
   useEffect(() => {
     if (textareaRef.current) {
-      // Сбрасываем высоту, чтобы получить правильный scrollHeight
-      textareaRef.current.style.height = 'auto';
-      // Устанавливаем высоту на основе содержимого
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+      const ta = textareaRef.current;
+      ta.style.height = 'auto';
+      ta.style.height = `${ta.scrollHeight + 8}px`;
     }
   }, [comment]);
+
+  // При переключении на вкладку с заметками пересчитываем высоту (после скрытия вкладки scrollHeight был 0)
+  useEffect(() => {
+    if (activeTab !== 'consultations') return;
+    const runResize = () => {
+      if (textareaRef.current) {
+        const ta = textareaRef.current;
+        ta.style.height = 'auto';
+        ta.style.height = `${ta.scrollHeight + 8}px`;
+      }
+    };
+    const t = setTimeout(runResize, 50);
+    return () => clearTimeout(t);
+  }, [activeTab, comment]);
 
   // Автоматическое изменение высоты textarea для полей медицинской карты
   useEffect(() => {
@@ -703,21 +716,24 @@ export default function PatientProfile() {
                 </div>
               )}
             </div>
-            <Card className="border-border/50 rounded-2xl sm:rounded-3xl shadow-sm overflow-hidden border border-border/50">
+            <Card className="border-border/50 rounded-2xl sm:rounded-3xl shadow-sm border border-border/50 overflow-hidden">
               <Textarea 
                 ref={textareaRef}
                 placeholder="Добавить личные заметки о пациенте..." 
                 className={cn(
-                  "min-h-[200px] w-full border-none resize-none focus-visible:ring-1 focus-visible:ring-ring bg-transparent p-4 text-sm leading-relaxed break-words transition-colors overflow-hidden",
+                  "min-h-[100px] sm:min-h-[200px] w-full border-none resize-none focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none bg-transparent p-4 text-sm leading-relaxed break-words transition-colors overflow-hidden rounded-2xl sm:rounded-3xl shadow-none",
                   isSaving && "opacity-70"
                 )}
                 value={comment}
                 onChange={(e) => {
                   setComment(e.target.value);
-                  // Автоматически изменяем высоту при вводе
-                  if (textareaRef.current) {
-                    textareaRef.current.style.height = 'auto';
-                    textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+                  // Автоматически изменяем высоту при вводе (после отрисовки, с буфером чтобы низ не обрезался)
+                  const ta = textareaRef.current;
+                  if (ta) {
+                    requestAnimationFrame(() => {
+                      ta.style.height = 'auto';
+                      ta.style.height = `${ta.scrollHeight + 8}px`;
+                    });
                   }
                 }}
                 disabled={isLoadingPatient || !patientData}
