@@ -89,38 +89,29 @@ export default function ConsultationPage() {
     refetchOnMount: 'always', // Всегда обновляем данные при монтировании компонента (при открытии страницы)
     refetchOnWindowFocus: true, // Обновляем при возврате на вкладку
     staleTime: 0, // Данные считаются устаревшими сразу, чтобы всегда загружать свежие данные
-    // Периодически обновляем данные, если консультация еще обрабатывается
+    // Периодически обновляем данные, пока консультация еще обрабатывается
+    // ВАЖНО: ориентируемся только на статус, а не на наличие данных.
+    // Даже если часть полей уже пришла, продолжаем опрос до статуса Completed/Failed.
     refetchInterval: (query) => {
       const data = query.state.data as ConsultationResponse | undefined;
       if (!data) return false;
-      
-      // Проверяем статус
-      const status = typeof data.status === 'number' 
-        ? data.status 
-        : (typeof data.processingStatus === 'number' 
-          ? data.processingStatus 
-          : ConsultationProcessingStatus.None);
-      
-      // Проверяем наличие данных
-      const hasData = data.summary || 
-                     data.complaints || 
-                     data.objective || 
-                     data.treatmentPlan ||
-                     data.transcriptionResult;
-      
-      // Если статус Completed/Failed или есть данные, не обновляем
-      if (status === ConsultationProcessingStatus.Completed || 
-          status === ConsultationProcessingStatus.Failed ||
-          hasData) {
-        return false;
+
+      const status =
+        typeof data.status === 'number'
+          ? data.status
+          : typeof data.processingStatus === 'number'
+            ? data.processingStatus
+            : ConsultationProcessingStatus.None;
+
+      // Пока статус InProgress или None — продолжаем опрос каждые 5 секунд
+      if (
+        status === ConsultationProcessingStatus.InProgress ||
+        status === ConsultationProcessingStatus.None
+      ) {
+        return 5000;
       }
-      
-      // Если статус InProgress или None и нет данных, обновляем каждые 5 секунд
-      if (status === ConsultationProcessingStatus.InProgress || 
-          status === ConsultationProcessingStatus.None) {
-        return 5000; // Обновляем каждые 5 секунд
-      }
-      
+
+      // Для Completed / Failed и любых других статусов опрос отключаем
       return false;
     },
   });
