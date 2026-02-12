@@ -907,13 +907,13 @@ export default function ConsultationPage() {
               <TabsList className="grid w-full grid-cols-2 h-10 md:h-11 p-0 rounded-full bg-background text-muted-foreground mb-4 md:mb-6 shadow-sm overflow-hidden border border-border/50">
                 <TabsTrigger
                   value="report"
-                  className="rounded-full px-3 sm:px-4 md:px-6 py-1.5 sm:py-2 text-xs sm:text-sm md:text-base font-medium whitespace-nowrap transition-all data-[state=active]:bg-secondary data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                  className="h-full rounded-full px-3 sm:px-4 md:px-6 py-0 sm:py-1.5 md:py-2 text-xs sm:text-sm md:text-base font-medium whitespace-nowrap transition-all data-[state=active]:bg-secondary data-[state=active]:text-foreground data-[state=active]:shadow-sm"
                 >
                   Медицинский отчет
                 </TabsTrigger>
                 <TabsTrigger
                   value="transcript"
-                  className="rounded-full px-3 sm:px-4 md:px-6 py-1.5 sm:py-2 text-xs sm:text-sm md:text-base font-medium whitespace-nowrap transition-all data-[state=active]:bg-secondary data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                  className="h-full rounded-full px-3 sm:px-4 md:px-6 py-0 sm:py-1.5 md:py-2 text-xs sm:text-sm md:text-base font-medium whitespace-nowrap transition-all data-[state=active]:bg-secondary data-[state=active]:text-foreground data-[state=active]:shadow-sm"
                 >
                   Транскрипция
                 </TabsTrigger>
