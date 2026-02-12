@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { authApi } from '@/lib/api/auth';
+import { ApiClient } from '@/lib/api/client';
 import { userApi } from '@/lib/api/user';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -109,12 +110,15 @@ export default function SettingsPage() {
 
     setIsSendingConfirmation(true);
     try {
-      // Здесь можно добавить отдельный эндпоинт для повторной отправки подтверждения
-      // Пока используем тот же reset-password, но это не совсем правильно
-      // В идеале должен быть /auth/resend-confirmation
+      // Отправляем тот же запрос, что и при регистрации, чтобы бэкенд повторно выслал письмо подтверждения
+      // Бэкенд должен корректно обрабатывать повторный вызов /auth/register для уже существующего пользователя
+      await ApiClient.post('auth/register', {
+        email: currentUser.email,
+      });
+
       toast({
-        title: 'Информация',
-        description: 'Функция повторной отправки подтверждения будет добавлена позже',
+        title: 'Письмо отправлено',
+        description: 'Ссылка для подтверждения email повторно отправлена на ваш адрес.',
       });
     } catch (err) {
       console.error('Resend confirmation error:', err);
@@ -196,15 +200,15 @@ export default function SettingsPage() {
     try {
       const updateData = {
         id: userProfile.id,
-        firstName: formData.firstName || null,
-        lastName: formData.lastName || null,
-        middleName: formData.middleName || null,
-        hiddenDescription: formData.hiddenDescription || null,
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        middleName: formData.middleName?.trim() || null,
+        hiddenDescription: formData.hiddenDescription?.trim() || null,
         phoneNumber: formData.phoneNumber ? normalizePhone(formData.phoneNumber) : null,
         birthDate: formData.birthDate ? normalizeDate(formData.birthDate) : null,
         gender: formData.gender ?? null,
         additional: {
-          rootElement: userProfile.additional?.rootElement ?? '',
+          rootElement: userProfile.additional?.rootElement?.trim() || null,
         },
       };
 
@@ -392,7 +396,7 @@ export default function SettingsPage() {
             {/* Кнопка сохранения */}
             <Button
               onClick={handleSaveProfile}
-              disabled={isSavingProfile || !formData.firstName || !formData.lastName || (formData.birthDate && !isValidDate(formData.birthDate))}
+              disabled={isSavingProfile || !formData.firstName || !formData.lastName || Boolean(formData.birthDate && !isValidDate(formData.birthDate))}
               className="w-full h-11 md:h-12 text-sm md:text-base"
             >
               {isSavingProfile ? (

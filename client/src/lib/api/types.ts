@@ -58,20 +58,20 @@ export interface UserProfile {
 }
 
 /**
- * Запрос на обновление профиля пользователя
- * Все поля присутствуют в теле запроса, как в спецификации бэкенда.
+ * Запрос на обновление профиля пользователя.
+ * Пустые поля отправляются как null.
  */
 export interface UpdateUserProfileRequest {
   id: string;
   firstName: string;
-  middleName: string;
   lastName: string;
-  hiddenDescription: string;
-  phoneNumber: string;
-  birthDate: string; // Дата в формате ISO (YYYY-MM-DD)
-  gender: number;
+  middleName: string | null;
+  hiddenDescription: string | null;
+  phoneNumber: string | null;
+  birthDate: string | null; // ISO (YYYY-MM-DD) или null
+  gender: number | null;
   additional: {
-    rootElement: string;
+    rootElement: string | null;
   };
 }
 
