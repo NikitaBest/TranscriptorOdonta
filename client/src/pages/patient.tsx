@@ -665,26 +665,30 @@ export default function PatientProfile() {
           onValueChange={(val) => setActiveTab(val as 'consultations' | 'medical-record')}
           className="w-full"
         >
-          <TabsList className="grid w-full max-w-md grid-cols-2 h-10 md:h-11 p-0 rounded-full bg-background text-muted-foreground mb-4 md:mb-6 shadow-sm overflow-hidden border border-border/50">
+          {/* На мобильных вкладки растянуты с тем же отступом, что и блок о пациенте */}
+          <div className="-mx-6 sm:mx-0 mb-4 md:mb-6">
+          <TabsList className="grid w-full sm:max-w-md grid-cols-2 h-10 md:h-11 p-0 rounded-2xl sm:rounded-full bg-background text-muted-foreground shadow-sm overflow-hidden border border-border/50">
             <TabsTrigger
               value="consultations"
-              className="rounded-full px-3 sm:px-4 md:px-6 py-1.5 sm:py-2 text-xs sm:text-sm md:text-base font-medium whitespace-nowrap transition-all data-[state=active]:bg-secondary data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+              className="rounded-2xl sm:rounded-full px-3 sm:px-4 md:px-6 py-1.5 sm:py-2 text-xs sm:text-sm md:text-base font-medium whitespace-nowrap transition-all data-[state=active]:bg-secondary data-[state=active]:text-foreground data-[state=active]:shadow-sm"
             >
               История консультаций
             </TabsTrigger>
             <TabsTrigger
               value="medical-record"
-              className="rounded-full px-3 sm:px-4 md:px-6 py-1.5 sm:py-2 text-xs sm:text-sm md:text-base font-medium whitespace-nowrap transition-all data-[state=active]:bg-secondary data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+              className="rounded-2xl sm:rounded-full px-3 sm:px-4 md:px-6 py-1.5 sm:py-2 text-xs sm:text-sm md:text-base font-medium whitespace-nowrap transition-all data-[state=active]:bg-secondary data-[state=active]:text-foreground data-[state=active]:shadow-sm"
             >
               Карта пациента
             </TabsTrigger>
           </TabsList>
+          </div>
 
           <TabsContent value="consultations" className="space-y-6 mt-0">
             <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6 md:gap-8">
           {/* Sidebar - Notes (первым на мобильных, вторым на десктопе) */}
           <div className="order-1 lg:order-2 space-y-4 md:space-y-6 lg:sticky lg:top-6 lg:self-start">
-            <div className="flex items-center justify-between">
+            <div className="-mx-6 sm:mx-0 space-y-4 md:space-y-6">
+            <div className="flex items-center justify-between px-6 sm:px-0">
             <h2 className="text-lg md:text-xl font-display font-bold">Заметки врача</h2>
               {isSaving && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -699,7 +703,7 @@ export default function PatientProfile() {
                 </div>
               )}
             </div>
-            <Card className="border-border/50 rounded-3xl shadow-sm overflow-hidden">
+            <Card className="border-border/50 rounded-2xl sm:rounded-3xl shadow-sm overflow-hidden border border-border/50">
               <Textarea 
                 ref={textareaRef}
                 placeholder="Добавить личные заметки о пациенте..." 
@@ -720,11 +724,13 @@ export default function PatientProfile() {
                 rows={1}
               />
             </Card>
+            </div>
           </div>
 
           {/* Main Content - History (вторым на мобильных, первым на десктопе) */}
           <div className="order-2 lg:order-1 lg:col-span-2 space-y-4 md:space-y-6">
-            <h2 className="text-lg md:text-xl font-display font-bold">История консультаций</h2>
+            <div className="-mx-6 sm:mx-0 space-y-4 md:space-y-6">
+            <h2 className="text-lg md:text-xl font-display font-bold px-6 sm:px-0">История консультаций</h2>
             <div className="space-y-6 md:space-y-8">
               {isLoadingConsultations ? (
                 <div className="text-center py-12">
@@ -736,7 +742,7 @@ export default function PatientProfile() {
               {consultations.map(consultation => (
                 <div key={consultation.id}>
                   <Link href={`/consultation/${consultation.id}`} className="block">
-                    <Card className="group cursor-pointer hover:shadow-md transition-all duration-300 border-border/50 rounded-3xl overflow-hidden hover:border-primary/20">
+                    <Card className="group cursor-pointer hover:shadow-md transition-all duration-300 border-border/50 rounded-2xl sm:rounded-3xl overflow-hidden hover:border-primary/20">
                     <CardContent className="p-6">
                       <div className="flex justify-between items-start mb-4">
                         <div className="flex items-center gap-3">
@@ -842,7 +848,7 @@ export default function PatientProfile() {
               ))}
               
               {consultations.length === 0 && (
-                <div className="text-center py-12 bg-secondary/20 rounded-3xl border border-dashed border-border">
+                <div className="text-center py-12 bg-secondary/20 rounded-2xl sm:rounded-3xl border border-dashed border-border">
                   <p className="text-muted-foreground">Консультаций пока нет.</p>
                   <Link href={`/record?patientId=${patient.id}`}>
                     <Button variant="link" className="mt-2">Начать первую консультацию</Button>
@@ -852,13 +858,15 @@ export default function PatientProfile() {
                 </>
               )}
             </div>
+            </div>
           </div>
         </div>
           </TabsContent>
 
           <TabsContent value="medical-record" className="space-y-6 mt-0">
             <div className="space-y-6">
-              <h2 className="text-lg md:text-xl font-display font-bold">Карта пациента</h2>
+              <div className="-mx-6 sm:mx-0 space-y-6">
+              <h2 className="text-lg md:text-xl font-display font-bold px-6 sm:px-0">Карта пациента</h2>
               
               <div className="grid grid-cols-1 gap-6">
                 {/* Аллергия */}
@@ -937,6 +945,7 @@ export default function PatientProfile() {
                   textareaRef={medicalRecordRefs.otherInfo}
                   disabled={isLoadingPatient || !patientData}
                 />
+              </div>
               </div>
             </div>
           </TabsContent>
@@ -1056,7 +1065,7 @@ function MedicalRecordSection({
   };
 
   return (
-    <Card className={cn("rounded-3xl border-border/50 transition-all hover:border-primary/20 overflow-hidden", className)}>
+    <Card className={cn("rounded-2xl sm:rounded-3xl border-border/50 transition-all hover:border-primary/20 overflow-hidden", className)}>
       <div className="p-4 pb-2 border-b border-border/50">
         <div className="flex justify-between items-start gap-2">
           <div className="flex-1 min-w-0">
