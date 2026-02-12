@@ -163,67 +163,78 @@ export default function Dashboard() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredPatients.map((patient) => (
-            <Link key={patient.id} href={`/patient/${patient.id}?from=/dashboard`}>
-              <Card className="group cursor-pointer hover:shadow-md transition-all duration-300 border-border/50 rounded-3xl overflow-hidden hover:border-primary/20">
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between mb-6">
-                    <div className="flex items-center gap-4">
-                      <Avatar className="w-12 h-12 rounded-2xl bg-secondary text-secondary-foreground font-bold text-lg">
-                        <AvatarFallback className="rounded-2xl">{patient.avatar}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <h3 className="font-bold text-lg leading-none mb-1">{patient.firstName} {patient.lastName}</h3>
-                        {patient.phone?.trim() && (
-                          <div 
-                            className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer hover:text-foreground transition-colors group/phone relative z-10"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handleCopyPhone(e, patient.phone);
-                            }}
-                            onMouseDown={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                            }}
-                            title="Нажмите, чтобы скопировать номер"
-                          >
-                            <Phone className="w-3 h-3" />
-                            <span>{patient.phone}</span>
-                            <Copy className="w-3 h-3 opacity-0 group-hover/phone:opacity-100 transition-opacity" />
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-4">
+            {filteredPatients.map((patient) => {
+              const fullName = `${patient.firstName} ${patient.lastName}`;
+              const isLongName = fullName.length > 18;
+
+              return (
+                <Link key={patient.id} href={`/patient/${patient.id}?from=/dashboard`}>
+                  <Card className="group cursor-pointer hover:shadow-md transition-all duration-300 border-border/50 rounded-xl md:rounded-3xl overflow-hidden hover:border-primary/20">
+                    <CardContent className="p-3 md:p-6">
+                      <div className="flex items-start justify-between mb-2 md:mb-6">
+                        <div className="flex items-center gap-2 md:gap-4 min-w-0">
+                          <Avatar className="w-8 h-8 md:w-12 md:h-12 rounded-lg md:rounded-2xl bg-secondary text-secondary-foreground font-bold text-xs md:text-lg flex-shrink-0">
+                            <AvatarFallback className="rounded-lg md:rounded-2xl">{patient.avatar}</AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0 flex-1">
+                            <h3
+                              className={`font-bold leading-tight mb-0.5 md:mb-1 md:text-lg ${
+                                isLongName ? 'text-[11px]' : 'text-sm'
+                              }`}
+                            >
+                              {fullName}
+                            </h3>
+                            {patient.phone?.trim() && (
+                              <div
+                                className="flex items-center gap-1 md:gap-2 text-[10px] md:text-xs text-muted-foreground cursor-pointer hover:text-foreground transition-colors group/phone relative z-10 truncate"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  handleCopyPhone(e, patient.phone);
+                                }}
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                }}
+                                title="Нажмите, чтобы скопировать номер"
+                              >
+                                <Phone className="w-2.5 h-2.5 md:w-3 md:h-3 flex-shrink-0" />
+                                <span className="truncate">{patient.phone}</span>
+                                <Copy className="w-2.5 h-2.5 md:w-3 md:h-3 opacity-0 group-hover/phone:opacity-100 transition-opacity flex-shrink-0 hidden md:inline" />
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="w-8 h-8 rounded-full bg-secondary/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity -mr-2 -mt-2">
-                      <ChevronRight className="w-4 h-4" />
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <div className="bg-secondary/30 p-3 rounded-xl">
-                      <p className="text-sm line-clamp-2 text-muted-foreground leading-relaxed">
-                        {patient.summary || 'Комментарий отсутствует'}
-                      </p>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      {patient.birthDate && (
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Calendar className="w-3 h-3" />
-                          <span>Дата рождения: {formatDateForDisplay(patient.birthDate)}</span>
                         </div>
-                      )}
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Calendar className="w-3 h-3" />
-                        <span>С {format(new Date(patient.lastVisit), 'd MMM yyyy', { locale: ru })}</span>
+                        <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-secondary/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 hidden md:flex -mr-2 -mt-2">
+                          <ChevronRight className="w-3 h-3 md:w-4 md:h-4" />
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
+
+                      <div className="space-y-2 md:space-y-4">
+                        <div className="bg-secondary/30 p-2 md:p-3 rounded-lg md:rounded-xl">
+                          <p className="text-[10px] md:text-sm line-clamp-2 text-muted-foreground leading-snug md:leading-relaxed">
+                            {patient.summary || 'Комментарий отсутствует'}
+                          </p>
+                        </div>
+                        <div className="flex flex-col gap-0.5 md:gap-2">
+                          {patient.birthDate && (
+                            <div className="flex items-center gap-1 md:gap-2 text-[10px] md:text-xs text-muted-foreground">
+                              <Calendar className="w-2.5 h-2.5 md:w-3 md:h-3 flex-shrink-0" />
+                              <span className="truncate">Рожд.: {formatDateForDisplay(patient.birthDate)}</span>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-1 md:gap-2 text-[10px] md:text-xs text-muted-foreground">
+                            <Calendar className="w-2.5 h-2.5 md:w-3 md:h-3 flex-shrink-0" />
+                            <span className="truncate">С {format(new Date(patient.lastVisit), 'd MMM yyyy', { locale: ru })}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              );
+            })}
           </div>
         )}
       </div>
