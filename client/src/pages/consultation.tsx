@@ -1130,11 +1130,17 @@ export default function ConsultationPage() {
                   <AlertDialogTrigger asChild>
                     <Button 
                       variant="secondary" 
-                      className="w-full justify-start rounded-xl h-12 gap-3 transition-all active:scale-95 active:opacity-70 disabled:active:scale-100 disabled:active:opacity-50"
+                      className="w-full justify-start rounded-xl h-12 gap-3 min-w-0 transition-all active:scale-95 active:opacity-70 disabled:active:scale-100 disabled:active:opacity-50"
                       disabled={isReprocessing || isDeleting}
                     >
-                      <RefreshCw className={cn("w-4 h-4", isReprocessing && "animate-spin")} /> 
-                      {isReprocessing ? "Переобработка..." : "Пересоздать отчет"}
+                      <RefreshCw className={cn("w-4 h-4 shrink-0", isReprocessing && "animate-spin")} /> 
+                      <span className="truncate">
+                        {isReprocessing ? (
+                          <><span className="hidden sm:inline">Переобработка...</span><span className="sm:hidden">Ожидание...</span></>
+                        ) : (
+                          <><span className="hidden sm:inline">Пересоздать отчет</span><span className="sm:hidden">Пересоздать</span></>
+                        )}
+                      </span>
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent className="rounded-3xl">
@@ -1182,16 +1188,16 @@ export default function ConsultationPage() {
                 <Button
                   asChild
                   variant="outline"
-                  className="w-full justify-start rounded-xl h-10 gap-2 transition-all active:scale-95 active:opacity-70"
+                  className="w-full justify-start rounded-xl h-10 gap-2 min-w-0 transition-all active:scale-95 active:opacity-70"
                 >
                   <a
                     href="https://t.me/odonta_ai_support"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 min-w-0 w-full"
                   >
-                    <Share2 className="w-4 h-4" />
-                    <span>Поддержка в Telegram</span>
+                    <Share2 className="w-4 h-4 shrink-0" />
+                    <span className="truncate"><span className="hidden sm:inline">Поддержка в Telegram</span><span className="sm:hidden">Поддержка</span></span>
                   </a>
                 </Button>
               </CardContent>
