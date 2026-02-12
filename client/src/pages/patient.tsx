@@ -598,36 +598,36 @@ export default function PatientProfile() {
               {backHref.startsWith('/consultation') ? 'К консультации' : 'К списку пациентов'}
             </Button>
           </Link>
-          
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6 bg-card p-3 sm:p-4 md:p-6 lg:p-8 rounded-2xl md:rounded-[2rem] border border-border/50 shadow-sm">
+          {/* На мобильных блок почти на всю ширину с небольшим отступом и скруглением */}
+          <div className="-mx-6 sm:mx-0">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6 bg-card p-4 sm:p-4 md:p-6 lg:p-8 rounded-2xl md:rounded-[2rem] border border-border/50 shadow-sm">
             <div className="flex items-center gap-3 sm:gap-4 md:gap-6 w-full md:w-auto min-w-0">
               <Avatar className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-2xl md:rounded-[1.5rem] text-lg sm:text-xl md:text-2xl font-bold bg-secondary shrink-0">
                 <AvatarFallback className="rounded-2xl md:rounded-[1.5rem]">{patient.avatar}</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
                 <h1 className="text-xl sm:text-2xl md:text-3xl font-display font-bold tracking-tight mb-2 truncate">{patient.firstName} {patient.lastName}</h1>
-                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 md:gap-4 text-xs md:text-sm text-muted-foreground">
+                <div className="flex flex-nowrap sm:flex-wrap items-center gap-1 sm:gap-1.5 sm:gap-2 md:gap-4 text-[10px] sm:text-xs md:text-sm text-muted-foreground min-w-0 overflow-hidden">
                   {patient.phone?.trim() && (
                     <span 
-                      className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-full bg-secondary/50 border border-border/50 whitespace-nowrap cursor-pointer hover:bg-secondary/70 hover:text-foreground transition-colors group/phone"
+                      className="flex items-center gap-0.5 sm:gap-1.5 px-1 sm:px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-full bg-secondary/50 border border-border/50 shrink min-w-0 cursor-pointer hover:bg-secondary/70 hover:text-foreground transition-colors group/phone"
                       onClick={() => handleCopyPhone(patient.phone)}
                       title="Нажмите, чтобы скопировать номер"
                     >
                       <Phone className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" /> 
-                      <span className="truncate max-w-[120px] sm:max-w-none">{patient.phone}</span>
-                      <Copy className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0 opacity-0 group-hover/phone:opacity-100 transition-opacity" />
+                      <span className="truncate max-w-[72px] sm:max-w-[120px] md:max-w-none">{patient.phone}</span>
+                      <Copy className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0 opacity-0 group-hover/phone:opacity-100 transition-opacity hidden sm:block" />
                     </span>
                   )}
                   {patientData?.birthDate && (() => {
                     try {
-                      // Парсим дату (может быть в формате YYYY-MM-DD или ISO)
-                      const dateStr = patientData.birthDate.split('T')[0]; // Берем только дату без времени
-                      const date = new Date(dateStr + 'T00:00:00'); // Добавляем время для корректного парсинга
+                      const dateStr = patientData.birthDate.split('T')[0];
+                      const date = new Date(dateStr + 'T00:00:00');
                       if (!isNaN(date.getTime())) {
                         return (
-                          <span className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-full bg-secondary/50 border border-border/50 whitespace-nowrap">
+                          <span className="flex items-center gap-0.5 sm:gap-1.5 px-1 sm:px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-full bg-secondary/50 border border-border/50 shrink min-w-0">
                             <Calendar className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" />
-                            <span>{format(date, 'd MMM yyyy', { locale: ru })}</span>
+                            <span className="truncate whitespace-nowrap">{format(date, 'd MMM yyyy', { locale: ru })}</span>
                           </span>
                         );
                       }
@@ -636,8 +636,8 @@ export default function PatientProfile() {
                     }
                     return null;
                   })()}
-                  <span className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-full bg-secondary/50 border border-border/50 whitespace-nowrap">
-                    <Calendar className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" /> <span className="hidden xs:inline">С </span>{format(new Date(patient.lastVisit), 'MMM yyyy', { locale: ru })}
+                  <span className="flex items-center gap-0.5 sm:gap-1.5 px-1 sm:px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-full bg-secondary/50 border border-border/50 shrink min-w-0">
+                    <Calendar className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" /> <span className="hidden xs:inline">С </span><span className="truncate whitespace-nowrap">{format(new Date(patient.lastVisit), 'MMM yyyy', { locale: ru })}</span>
                   </span>
                 </div>
               </div>
@@ -656,6 +656,7 @@ export default function PatientProfile() {
                 </Button>
               </Link>
             </div>
+          </div>
           </div>
         </div>
 
