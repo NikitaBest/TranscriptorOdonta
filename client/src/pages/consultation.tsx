@@ -742,13 +742,19 @@ export default function ConsultationPage() {
   const aiReportValue = aiReportProperty?.value ?? '';
   const hasAiReport = aiReportValue.trim().length > 0;
 
+  // Формируем ссылку "Назад" с информацией о том, откуда пришли
+  const backHref =
+    enrichedConsultation.patientId && id
+      ? `/patient/${enrichedConsultation.patientId}?from=/consultation/${id}`
+      : '/dashboard';
+
   return (
     <Layout>
       <div className="max-w-5xl mx-auto flex flex-col gap-6">
         {/* Header */}
         <div className="flex flex-col gap-4">
           <div>
-            <Link href={enrichedConsultation.patientId ? `/patient/${enrichedConsultation.patientId}` : '/dashboard'}>
+            <Link href={backHref}>
               <Button 
                 variant="ghost" 
                 className="pl-0 mb-2 hover:bg-transparent hover:text-primary gap-2 text-muted-foreground text-sm md:text-base transition-all active:scale-95 active:opacity-70"
@@ -805,7 +811,16 @@ export default function ConsultationPage() {
               <Button 
                 variant="outline" 
                 className="flex-1 md:flex-none rounded-xl gap-2 h-11 md:h-12 text-sm md:text-base transition-all active:scale-95 active:opacity-70" 
-                onClick={() => setLocation(`/patient/${enrichedConsultation.patientId}?tab=medical-record`)}
+                onClick={() => {
+                  if (!enrichedConsultation.patientId) return;
+                  const baseUrl = `/patient/${enrichedConsultation.patientId}`;
+                  const queryParams = new URLSearchParams();
+                  queryParams.set('tab', 'medical-record');
+                  if (id) {
+                    queryParams.set('from', `/consultation/${id}`);
+                  }
+                  setLocation(`${baseUrl}?${queryParams.toString()}`);
+                }}
               >
                 <img 
                   src="/medical.png" 

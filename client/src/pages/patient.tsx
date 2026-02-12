@@ -39,6 +39,7 @@ export default function PatientProfile() {
   const { toast } = useToast();
   const [comment, setComment] = useState('');
   const [activeTab, setActiveTab] = useState<'consultations' | 'medical-record'>('consultations');
+  const [backHref, setBackHref] = useState<string>('/dashboard');
 
   const handleCopyPhone = async (phone: string) => {
     try {
@@ -112,6 +113,8 @@ export default function PatientProfile() {
     const params = new URLSearchParams(window.location.search);
     const tabParam = params.get('tab');
     setActiveTab(tabParam === 'medical-record' ? 'medical-record' : 'consultations');
+    const fromParam = params.get('from');
+    setBackHref(fromParam && fromParam.startsWith('/') ? fromParam : '/dashboard');
   }, [id]);
 
   // Загрузка данных пациента
@@ -589,10 +592,10 @@ export default function PatientProfile() {
       <div className="max-w-6xl mx-auto flex flex-col gap-8 px-4 sm:px-6 lg:px-8">
         {/* Navigation & Header */}
         <div>
-          <Link href="/dashboard">
+          <Link href={backHref}>
             <Button variant="ghost" className="pl-0 hover:bg-transparent hover:text-primary mb-4 gap-2 text-muted-foreground">
               <ArrowLeft className="w-4 h-4" />
-              К списку пациентов
+              {backHref.startsWith('/consultation') ? 'К консультации' : 'К списку пациентов'}
             </Button>
           </Link>
           

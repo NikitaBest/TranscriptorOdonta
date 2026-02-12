@@ -165,7 +165,7 @@ export default function Dashboard() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredPatients.map((patient) => (
-            <Link key={patient.id} href={`/patient/${patient.id}`}>
+            <Link key={patient.id} href={`/patient/${patient.id}?from=/dashboard`}>
               <Card className="group cursor-pointer hover:shadow-md transition-all duration-300 border-border/50 rounded-3xl overflow-hidden hover:border-primary/20">
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between mb-6">
