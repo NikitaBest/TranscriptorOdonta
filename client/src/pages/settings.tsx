@@ -461,7 +461,8 @@ export default function SettingsPage() {
                   ) : (
                     <>
                       <Mail className="w-4 h-4 mr-2" />
-                      <span className="whitespace-nowrap">Отправить письмо подтверждения</span>
+                      <span className="text-center text-sm sm:hidden">Подтвердить email</span>
+                      <span className="hidden sm:inline text-center">Отправить письмо подтверждения</span>
                     </>
                   )}
                 </Button>
@@ -500,7 +501,10 @@ export default function SettingsPage() {
                 ) : (
                   <>
                     <Mail className="w-4 h-4 mr-2" />
-                    Отправить ссылку для сброса пароля
+                    <span className="text-center text-sm sm:hidden">Сбросить пароль</span>
+                    <span className="hidden sm:inline text-center">
+                      Отправить ссылку для сброса пароля
+                    </span>
                   </>
                 )}
               </Button>
