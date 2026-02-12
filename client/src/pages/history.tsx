@@ -389,8 +389,8 @@ export default function HistoryPage() {
         <div className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-muted-foreground" />
           <Input 
-            placeholder="Поиск по транскрипциям, выжимкам или именам..." 
-            className="h-12 md:h-14 pl-10 md:pl-12 rounded-2xl bg-white border-border/50 shadow-sm text-base md:text-lg"
+            placeholder="Поиск по имени пациента" 
+            className="h-12 md:h-14 pl-10 md:pl-12 rounded-2xl bg-white border-border/50 shadow-sm text-sm md:text-lg"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -485,12 +485,12 @@ export default function HistoryPage() {
             
             const cardContent = (
               <Card className={cn(
-                "group transition-all duration-300 border-border/50 rounded-3xl overflow-hidden",
+                "group transition-all duration-300 border-border/50 rounded-2xl md:rounded-3xl overflow-hidden",
                 isLocal ? "cursor-default" : "cursor-pointer hover:shadow-md hover:border-primary/20"
               )}>
-                <CardContent className="p-6">
-                  {/* Mobile Layout: Date on left, Name and Summary on right */}
-                  <div className="flex md:hidden items-start gap-4">
+                <CardContent className="relative p-4 md:p-6">
+                  {/* Mobile Layout: Date on left, Name and short info on right */}
+                  <div className="flex md:hidden items-start gap-3">
                     {/* Date Box */}
                     <div className="flex-shrink-0 flex flex-col items-center justify-center w-14 h-14 bg-secondary/50 rounded-2xl border border-border/50">
                       <span className="text-xs font-bold uppercase text-muted-foreground">
@@ -501,8 +501,8 @@ export default function HistoryPage() {
                       </span>
                     </div>
 
-                    {/* Name, Status, Summary and Details - all on the right */}
-                    <div className="flex-1 min-w-0 space-y-2">
+                    {/* Name, Status (mobile) and Details - all on the right */}
+                    <div className="flex-1 min-w-0 space-y-1.5 pr-10 md:pr-0">
                       {/* Name and Status */}
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className={cn("text-base font-bold", !consultation.patientName && "text-muted-foreground italic")}>
@@ -513,10 +513,12 @@ export default function HistoryPage() {
                             {getConsultationTypeName(consultation.type)}
                           </span>
                         )}
-                        <span className={cn(
-                          "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border flex-shrink-0",
-                          statusInfo.className
-                        )}>
+                        <span
+                          className={cn(
+                            "px-1.5 py-0.5 rounded-full text-[9px] md:text-[10px] font-bold uppercase tracking-wider border flex-shrink-0 absolute right-4 top-4 md:static md:right-auto md:top-auto",
+                            statusInfo.className
+                          )}
+                        >
                           {statusInfo.label}
                         </span>
                         {isLocal && (
@@ -525,13 +527,6 @@ export default function HistoryPage() {
                           </span>
                         )}
                       </div>
-
-                      {/* Summary */}
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {isLocal
-                          ? 'Запись сохранена локально и ожидает отправки'
-                          : getConsultationPreview(consultation) || 'Нет описания'}
-                      </p>
 
                       {/* Doctor */}
                       {consultation.doctorName && (
