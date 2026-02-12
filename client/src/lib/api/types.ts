@@ -408,6 +408,21 @@ export interface ConfirmEmailResponse {
 }
 
 /**
+ * Запрос на повторную отправку письма подтверждения email (со страницы настроек)
+ */
+export interface ResendConfirmationEmailRequest {
+  email: string;
+}
+
+/**
+ * Ответ при запросе повторной отправки письма подтверждения
+ */
+export interface ResendConfirmationEmailResponse {
+  isSuccess: boolean;
+  error?: string;
+}
+
+/**
  * Запрос на сброс пароля (отправка email)
  */
 export interface ResetPasswordRequest {

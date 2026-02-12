@@ -7,6 +7,8 @@ import type {
   RefreshTokenResponse,
   ConfirmEmailRequest,
   ConfirmEmailResponse,
+  ResendConfirmationEmailRequest,
+  ResendConfirmationEmailResponse,
   ResetPasswordRequest,
   ResetPasswordResponse,
   CheckResetPasswordTokenRequest,
@@ -226,6 +228,29 @@ export const authApi = {
     }
 
     throw new Error(response.error || 'Ошибка подтверждения email');
+  },
+
+  /**
+   * Повторная отправка токена подтверждения email (со страницы настроек).
+   * POST /auth/resend-confirmation
+   * Тело: { email: string } — на указанный адрес отправится письмо с новым токеном подтверждения.
+   */
+  async resendConfirmationEmail(data: ResendConfirmationEmailRequest): Promise<ResendConfirmationEmailResponse> {
+    const response = await ApiClient.post<ApiResponse<ResendConfirmationEmailResponse> | ResendConfirmationEmailResponse>(
+      'auth/resend-confirmation',
+      data,
+      { requireAuth: true }
+    );
+    if ('value' in response && 'isSuccess' in response) {
+      const apiResponse = response as ApiResponse<ResendConfirmationEmailResponse>;
+      if (apiResponse.isSuccess) {
+        return apiResponse.value ?? { isSuccess: true };
+      }
+      throw new Error(apiResponse.error || 'Не удалось отправить письмо подтверждения');
+    }
+    const direct = response as ResendConfirmationEmailResponse;
+    if (direct.isSuccess) return direct;
+    throw new Error(direct.error || 'Не удалось отправить письмо подтверждения');
   },
 
   /**

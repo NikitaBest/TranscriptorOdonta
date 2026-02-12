@@ -9,7 +9,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { authApi } from '@/lib/api/auth';
-import { ApiClient } from '@/lib/api/client';
 import { userApi } from '@/lib/api/user';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -110,9 +109,8 @@ export default function SettingsPage() {
 
     setIsSendingConfirmation(true);
     try {
-      // Отправляем тот же запрос, что и при регистрации, чтобы бэкенд повторно выслал письмо подтверждения
-      // Бэкенд должен корректно обрабатывать повторный вызов /auth/register для уже существующего пользователя
-      await ApiClient.post('auth/register', {
+      // POST /auth/resend-confirmation, тело: { email }
+      await authApi.resendConfirmationEmail({
         email: currentUser.email,
       });
 
