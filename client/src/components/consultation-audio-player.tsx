@@ -397,15 +397,29 @@ export function ConsultationAudioPlayer({
             // Пытаемся загрузить через fetch и создать Blob URL
             shouldRetryWithBlob = true;
             break;
-          case MediaError.MEDIA_ERR_DECODE:
+          case MediaError.MEDIA_ERR_DECODE: {
             // Проверяем формат файла
             const isOgg = audio.src.includes('.ogg');
+            const isWebm = audio.src.includes('.webm');
+            const isMobileSafari = /iPhone|iPad|iPod/.test(navigator.userAgent);
+
             if (isOgg) {
-              errorMessage = "Формат OGG может не поддерживаться вашим браузером. Попробуйте использовать Chrome или Firefox.";
+              errorMessage =
+                "Формат OGG может не поддерживаться вашим браузером. Откройте запись в браузере Chrome/Firefox на компьютере.";
+            } else if (isWebm && isMobileSafari) {
+              // Типичный случай: запись сделана в Chrome (формат WebM/Opus), а прослушивается в мобильном Safari
+              errorMessage =
+                "Эта запись сделана в формате WebM, который не поддерживается на iPhone/iPad. " +
+                "Откройте отчет в десктопном браузере (Chrome/Firefox) или записывайте консультации прямо с телефона.";
+            } else if (isWebm) {
+              errorMessage =
+                "Формат WebM может не поддерживаться вашим браузером. Попробуйте открыть запись в Chrome или Firefox.";
             } else {
-              errorMessage = "Формат аудио не поддерживается вашим браузером. Попробуйте использовать Chrome, Safari или Firefox.";
+              errorMessage =
+                "Формат аудио не поддерживается вашим браузером. Попробуйте использовать современный браузер (Chrome, Safari или Firefox).";
             }
             break;
+          }
           case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
             // Проверяем, может быть проблема с CORS
             if (audio.networkState === HTMLMediaElement.NETWORK_NO_SOURCE) {
