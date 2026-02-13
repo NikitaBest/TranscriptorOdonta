@@ -705,27 +705,27 @@ export default function PatientProfile() {
               {backHref.startsWith('/consultation') ? 'К консультации' : 'К списку пациентов'}
             </Button>
           </Link>
-          {/* На мобильных блок почти на всю ширину с небольшим отступом и скруглением */}
-          <div className="-mx-6 sm:mx-0">
-          <div className="flex flex-col bg-card p-4 sm:p-4 md:p-6 lg:p-8 rounded-2xl md:rounded-[2rem] border border-border/50 shadow-sm">
+          {/* На мобильных блок на всю ширину, без внутреннего скролла, компактный текст */}
+          <div className="-mx-4 sm:-mx-6 sm:mx-0 overflow-visible">
+          <div className="flex flex-col bg-card p-3 sm:p-4 md:p-6 lg:p-8 rounded-2xl md:rounded-[2rem] border border-border/50 shadow-sm overflow-visible min-h-0">
             {/* Верх блока: аватар + столбик (телефон, дата рождения, дата создания), ФИО и «О пациенте», кнопки справа */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-start gap-4 md:gap-6">
-              <div className="flex gap-3 sm:gap-4 md:gap-6 w-full md:flex-1 min-w-0">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-start gap-3 sm:gap-4 md:gap-6">
+              <div className="flex gap-2 sm:gap-3 md:gap-6 w-full md:flex-1 min-w-0">
                 {/* Аватар и под ним столбиком: телефон, дата рождения, дата создания */}
-                <div className="flex flex-col items-start gap-2 shrink-0">
-                  <Avatar className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-2xl md:rounded-[1.5rem] text-lg sm:text-xl md:text-2xl font-bold bg-secondary">
-                    <AvatarFallback className="rounded-2xl md:rounded-[1.5rem]">{patient.avatar}</AvatarFallback>
+                <div className="flex flex-col items-start gap-1.5 sm:gap-2 shrink-0">
+                  <Avatar className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-xl sm:rounded-2xl md:rounded-[1.5rem] text-base sm:text-xl md:text-2xl font-bold bg-secondary">
+                    <AvatarFallback className="rounded-xl sm:rounded-2xl md:rounded-[1.5rem]">{patient.avatar}</AvatarFallback>
                   </Avatar>
-                  <div className="flex flex-col gap-1.5 w-full min-w-0">
+                  <div className="flex flex-col gap-1 sm:gap-1.5 w-full min-w-0">
                     {patient.phone?.trim() && (
                       <span
-                        className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-secondary/50 border border-border/50 text-[10px] sm:text-xs text-muted-foreground cursor-pointer hover:bg-secondary/70 hover:text-foreground transition-colors group/phone w-full min-w-0"
+                        className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md sm:rounded-lg bg-secondary/50 border border-border/50 text-[10px] sm:text-xs text-muted-foreground cursor-pointer hover:bg-secondary/70 hover:text-foreground transition-colors group/phone w-full min-w-0"
                         onClick={() => handleCopyPhone(patient.phone)}
                         title="Нажмите, чтобы скопировать номер"
                       >
-                        <Phone className="w-3 h-3 shrink-0" />
+                        <Phone className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" />
                         <span className="truncate">{patient.phone}</span>
-                        <Copy className="w-3 h-3 shrink-0 opacity-0 group-hover/phone:opacity-100 transition-opacity ml-auto hidden sm:block" />
+                        <Copy className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0 opacity-0 group-hover/phone:opacity-100 transition-opacity ml-auto hidden sm:block" />
                       </span>
                     )}
                     {patientData?.birthDate && (() => {
@@ -734,8 +734,8 @@ export default function PatientProfile() {
                         const date = new Date(dateStr + 'T00:00:00');
                         if (!isNaN(date.getTime())) {
                           return (
-                            <span className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-secondary/50 border border-border/50 text-[10px] sm:text-xs text-muted-foreground w-full min-w-0">
-                              <img src="/birthday.png" alt="" className="w-3 h-3 shrink-0 object-contain" />
+                            <span className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md sm:rounded-lg bg-secondary/50 border border-border/50 text-[10px] sm:text-xs text-muted-foreground w-full min-w-0">
+                              <img src="/birthday.png" alt="" className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0 object-contain" />
                               <span className="truncate whitespace-nowrap">{format(date, 'd MMM yyyy', { locale: ru })}</span>
                             </span>
                           );
@@ -745,29 +745,29 @@ export default function PatientProfile() {
                       }
                       return null;
                     })()}
-                    <span className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-secondary/50 border border-border/50 text-[10px] sm:text-xs text-muted-foreground w-full min-w-0">
-                      <Calendar className="w-3 h-3 shrink-0" />
+                    <span className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md sm:rounded-lg bg-secondary/50 border border-border/50 text-[10px] sm:text-xs text-muted-foreground w-full min-w-0">
+                      <Calendar className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" />
                       <span className="hidden xs:inline">С </span>
                       <span className="truncate whitespace-nowrap">{format(new Date(patient.lastVisit), 'MMM yyyy', { locale: ru })}</span>
                     </span>
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h1 className="text-xl sm:text-2xl md:text-3xl font-display font-bold tracking-tight mb-2 truncate">{patient.firstName} {patient.lastName}</h1>
+                  <h1 className="text-base sm:text-xl md:text-2xl lg:text-3xl font-display font-bold tracking-tight mb-1.5 sm:mb-2 truncate">{patient.firstName} {patient.lastName}</h1>
 
                   {/* О пациенте — поле под ФИО */}
-                  <div className="mt-3 pt-3 border-t border-border/40 w-full">
-                    <div className="flex items-center justify-between gap-2 mb-1.5">
-                      <h2 className="text-sm font-display font-semibold text-muted-foreground">О пациенте</h2>
+                  <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-border/40 w-full">
+                    <div className="flex items-center justify-between gap-1.5 sm:gap-2 mb-1 sm:mb-1.5">
+                      <h2 className="text-xs sm:text-sm font-display font-semibold text-muted-foreground">О пациенте</h2>
                       {isSaving && (
-                        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs text-muted-foreground">
+                          <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-spin" />
                           Сохранение...
                         </span>
                       )}
                       {isSaved && !isSaving && (
-                        <span className="flex items-center gap-1.5 text-xs text-green-600">
-                          <Check className="w-3.5 h-3.5" />
+                        <span className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs text-green-600">
+                          <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                           Сохранено
                         </span>
                       )}
@@ -776,7 +776,7 @@ export default function PatientProfile() {
                       ref={textareaRef}
                       placeholder="Добавить личные заметки о пациенте..."
                       className={cn(
-                        "min-h-[72px] w-full border border-border/50 rounded-lg bg-background/50 resize-none focus-visible:ring-1 focus-visible:ring-ring p-2.5 sm:p-3 text-sm leading-relaxed break-words transition-colors",
+                        "min-h-[56px] sm:min-h-[72px] w-full border border-border/50 rounded-lg bg-background/50 resize-none focus-visible:ring-1 focus-visible:ring-ring p-2 sm:p-3 text-xs sm:text-sm leading-relaxed break-words transition-colors overflow-visible",
                         isSaving && "opacity-70"
                       )}
                       value={comment}
@@ -797,15 +797,15 @@ export default function PatientProfile() {
                 </div>
               </div>
               {/* Кнопки: сверху Редактировать, под ней Новая консультация */}
-              <div className="flex flex-col gap-2 w-full sm:w-auto shrink-0 md:pt-1">
+              <div className="flex flex-col gap-1.5 sm:gap-2 w-full sm:w-auto shrink-0 md:pt-1">
                 <Link href={`/patient/${patient.id}/edit`} className="w-full sm:w-auto">
-                  <Button variant="outline" className="w-full sm:min-w-[180px] rounded-xl h-10 sm:h-11 border-border/50 text-xs sm:text-sm px-3 sm:px-4">
+                  <Button variant="outline" className="w-full sm:min-w-[180px] rounded-lg sm:rounded-xl h-9 sm:h-11 border-border/50 text-xs sm:text-sm px-3 sm:px-4">
                     Редактировать
                   </Button>
                 </Link>
                 <Link href={`/record?patientId=${patient.id}`} className="w-full sm:w-auto">
-                  <Button className="w-full sm:min-w-[180px] rounded-xl h-10 sm:h-11 gap-1.5 sm:gap-2 shadow-lg shadow-primary/20 text-xs sm:text-sm px-3 sm:px-4">
-                    <Mic className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                  <Button className="w-full sm:min-w-[180px] rounded-lg sm:rounded-xl h-9 sm:h-11 gap-1.5 sm:gap-2 shadow-lg shadow-primary/20 text-xs sm:text-sm px-3 sm:px-4">
+                    <Mic className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
                     <span className="hidden sm:inline truncate">Новая консультация</span>
                     <span className="sm:hidden truncate">Консультация</span>
                   </Button>
