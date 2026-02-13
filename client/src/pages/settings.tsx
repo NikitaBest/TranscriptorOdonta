@@ -270,7 +270,7 @@ export default function SettingsPage() {
           <CardHeader className="p-4 md:p-6">
             <CardTitle className="text-base md:text-lg lg:text-xl xl:text-2xl font-display flex items-center gap-2">
               <User className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
-              <span>Профиль врача</span>
+              <span>Профиль </span>
             </CardTitle>
             <CardDescription className="text-xs md:text-sm">
               Редактирование личных данных вашего аккаунта
