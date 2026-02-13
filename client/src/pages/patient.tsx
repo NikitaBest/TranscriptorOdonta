@@ -1066,24 +1066,25 @@ export default function PatientProfile() {
         </Tabs>
           </div>
 
-          {/* Заметки: на мобильных первыми на всю ширину экрана; на десктопе справа с ограничением высоты */}
+          {/* Заметки: на мобильных первыми на всю ширину экрана, компактный вид; на десктопе справа */}
           <div className="flex flex-col w-[calc(100%+2rem)] max-w-[100vw] md:w-full lg:w-[340px] xl:w-[400px] shrink-0 min-w-0 order-1 lg:order-none -mx-4 md:mx-0">
-            <div className="flex items-center justify-between mb-2 md:mb-3 px-3 md:px-0">
-              <h2 className="text-base md:text-lg font-display font-bold">Заметки</h2>
+            <div className="flex items-center justify-between mb-1.5 sm:mb-2 md:mb-3 px-2 sm:px-3 md:px-0 gap-2">
+              <h2 className="text-sm sm:text-base md:text-lg font-display font-bold">Заметки</h2>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                className="rounded-lg gap-1.5 h-8 md:h-9 text-xs md:text-sm"
+                className="rounded-lg gap-1 sm:gap-1.5 h-7 sm:h-8 md:h-9 text-[10px] sm:text-xs md:text-sm shrink-0"
                 onClick={addPatientNote}
               >
-                <Plus className="w-3.5 h-3.5 md:w-4 md:h-4" />
-                Создать заметку
+                <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4" />
+                <span className="sm:hidden">Добавить</span>
+                <span className="hidden sm:inline">Создать заметку</span>
               </Button>
             </div>
-            <div className="space-y-3 flex-1 min-h-0 overflow-visible lg:overflow-auto max-h-none lg:max-h-[480px] border border-border/50 rounded-xl bg-background/30 p-2.5 px-3 md:p-3 lg:pr-2">
+            <div className="space-y-1.5 sm:space-y-2 md:space-y-3 flex-1 min-h-0 overflow-visible lg:overflow-auto max-h-none lg:max-h-[480px] border border-border/50 rounded-lg sm:rounded-xl bg-background/30 p-2 sm:p-2.5 sm:px-3 md:p-3 lg:pr-2">
               {patientNotes.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4">Нет заметок. Нажмите «Создать заметку».</p>
+                <p className="text-xs sm:text-sm text-muted-foreground py-3 sm:py-4">Нет заметок. Нажмите «Создать заметку».</p>
               ) : (
                 patientNotes.map((note) => {
                   const displayDate = (() => {
@@ -1099,7 +1100,7 @@ export default function PatientProfile() {
                     <div
                       key={note.id}
                       className={cn(
-                        "flex items-center gap-2 py-1.5 min-h-[40px] border-b border-border/30 last:border-b-0",
+                        "flex items-center gap-1.5 sm:gap-2 py-1 sm:py-1.5 min-h-[36px] sm:min-h-[40px] border-b border-border/30 last:border-b-0",
                         note.completed && "opacity-85"
                       )}
                     >
@@ -1107,21 +1108,21 @@ export default function PatientProfile() {
                         type="button"
                         onClick={() => togglePatientNoteCompleted(note.id)}
                         className={cn(
-                          "h-5 w-5 shrink-0 rounded border flex items-center justify-center transition-colors",
+                          "h-4 w-4 sm:h-5 sm:w-5 shrink-0 rounded border flex items-center justify-center transition-colors",
                           note.completed
                             ? "bg-primary border-primary text-primary-foreground"
                             : "border-input bg-background hover:border-primary/50"
                         )}
                         title={note.completed ? 'Снять отметку' : 'Отметить выполненным'}
                       >
-                        {note.completed && <Check className="w-3 h-3" />}
+                        {note.completed && <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3" />}
                       </button>
-                      <span className="text-xs text-muted-foreground shrink-0 tabular-nums">{displayDate}</span>
+                      <span className="text-[10px] sm:text-xs text-muted-foreground shrink-0 tabular-nums">{displayDate}</span>
                       {isEditing ? (
                         <>
                           <Textarea
                             placeholder="Текст заметки..."
-                            className="flex-1 min-w-0 min-h-[24px] py-1 px-2 text-sm resize-none overflow-hidden border-input rounded-md"
+                            className="flex-1 min-w-0 min-h-[20px] sm:min-h-[24px] py-0.5 sm:py-1 px-1.5 sm:px-2 text-xs sm:text-sm resize-none overflow-hidden border-input rounded-md"
                             value={editingNoteDraft}
                             ref={(el) => {
                               if (el) {
@@ -1144,7 +1145,7 @@ export default function PatientProfile() {
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7 shrink-0 rounded-md text-muted-foreground"
+                            className="h-6 w-6 sm:h-7 sm:w-7 shrink-0 rounded-md text-muted-foreground"
                             title="Отмена"
                             onClick={() => {
                               if ((editingNoteDraft || '').trim() === '') {
@@ -1153,36 +1154,36 @@ export default function PatientProfile() {
                               setEditingNoteId(null);
                             }}
                           >
-                            <X className="w-4 h-4" />
+                            <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                           </Button>
                           <Button
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7 shrink-0 rounded-md text-primary"
+                            className="h-6 w-6 sm:h-7 sm:w-7 shrink-0 rounded-md text-primary"
                             title="Сохранить"
                             onClick={() => {
                               updatePatientNoteText(note.id, editingNoteDraft);
                               setEditingNoteId(null);
                             }}
                           >
-                            <Check className="w-4 h-4" />
+                            <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                           </Button>
                           <Button
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7 shrink-0 rounded-md text-muted-foreground hover:text-destructive"
+                            className="h-6 w-6 sm:h-7 sm:w-7 shrink-0 rounded-md text-muted-foreground hover:text-destructive"
                             title="Удалить"
                             onClick={() => deletePatientNote(note.id)}
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                           </Button>
                         </>
                       ) : (
                         <>
                           <div className={cn(
-                            "flex-1 min-w-0 text-sm break-words whitespace-pre-wrap",
+                            "flex-1 min-w-0 text-xs sm:text-sm break-words whitespace-pre-wrap",
                             note.completed && "line-through text-muted-foreground"
                           )}>
                             {note.text || '\u00A0'}
@@ -1191,21 +1192,21 @@ export default function PatientProfile() {
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7 shrink-0 rounded-md text-muted-foreground hover:text-foreground"
+                            className="h-6 w-6 sm:h-7 sm:w-7 shrink-0 rounded-md text-muted-foreground hover:text-foreground"
                             title="Редактировать"
                             onClick={() => { setEditingNoteDraft(note.text); setEditingNoteId(note.id); }}
                           >
-                            <Pencil className="w-4 h-4" />
+                            <Pencil className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                           </Button>
                           <Button
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7 shrink-0 rounded-md text-muted-foreground hover:text-destructive"
+                            className="h-6 w-6 sm:h-7 sm:w-7 shrink-0 rounded-md text-muted-foreground hover:text-destructive"
                             title="Удалить"
                             onClick={() => deletePatientNote(note.id)}
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                           </Button>
                         </>
                       )}
