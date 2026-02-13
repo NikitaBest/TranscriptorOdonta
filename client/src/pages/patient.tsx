@@ -1031,9 +1031,9 @@ export default function PatientProfile() {
         </Tabs>
           </div>
 
-          {/* Заметки: на мобильных первыми, блок без скролла; на десктопе справа с ограничением высоты */}
-          <div className="flex flex-col w-full lg:w-[340px] xl:w-[400px] shrink-0 min-w-0 order-1 lg:order-none">
-            <div className="flex items-center justify-between mb-2 md:mb-3">
+          {/* Заметки: на мобильных первыми на всю ширину экрана; на десктопе справа с ограничением высоты */}
+          <div className="flex flex-col w-[calc(100%+2rem)] max-w-[100vw] md:w-full lg:w-[340px] xl:w-[400px] shrink-0 min-w-0 order-1 lg:order-none -mx-4 md:mx-0">
+            <div className="flex items-center justify-between mb-2 md:mb-3 px-3 md:px-0">
               <h2 className="text-base md:text-lg font-display font-bold">Заметки</h2>
               <Button
                 type="button"
@@ -1046,7 +1046,7 @@ export default function PatientProfile() {
                 Создать заметку
               </Button>
             </div>
-            <div className="space-y-3 flex-1 min-h-0 overflow-visible lg:overflow-auto max-h-none lg:max-h-[480px] pr-1 border border-border/50 rounded-xl bg-background/30 p-3">
+            <div className="space-y-3 flex-1 min-h-0 overflow-visible lg:overflow-auto max-h-none lg:max-h-[480px] border border-border/50 rounded-xl bg-background/30 p-2.5 px-3 md:p-3 lg:pr-2">
               {patientNotes.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-4">Нет заметок. Нажмите «Создать заметку».</p>
               ) : (
@@ -1081,7 +1081,7 @@ export default function PatientProfile() {
                       >
                         {note.completed && <Check className="w-3 h-3" />}
                       </button>
-                      <span className="text-xs text-muted-foreground shrink-0 w-[72px] sm:w-[80px]">{displayDate}</span>
+                      <span className="text-xs text-muted-foreground shrink-0 tabular-nums">{displayDate}</span>
                       {isEditing ? (
                         <>
                           <Textarea
