@@ -636,72 +636,91 @@ export default function RecordPage() {
 
   // Отправка сохраненной записи на бэкенд
   const handleSend = async () => {
-    if (!recordingIdRef.current || !selectedPatientId) {
-        toast({
+    if (!recordingIdRef.current || !selectedPatientId || !consultationType) {
+      toast({
         title: "Ошибка",
-        description: "Нет записи для отправки",
-          variant: "destructive"
-        });
+        description: "Нет записи или типа консультации для отправки",
+        variant: "destructive"
+      });
       return;
     }
 
-    // Сначала сохраняем запись локально (чанки уже есть в IndexedDB, здесь сохраняем метаданные)
+    const recordingId = recordingIdRef.current;
+    const patientId = selectedPatientId;
+    const type = consultationType;
+
     try {
-      const audioBlob = await buildAudioBlob(recordingIdRef.current);
-      
+      const audioBlob = await buildAudioBlob(recordingId);
       if (!audioBlob || audioBlob.size === 0) {
         throw new Error('Не удалось собрать аудиофайл');
       }
 
-      // Сохраняем метаданные
+      // Сохраняем метаданные локально (если отправка упадёт, фоновый процесс подхватит)
       const metadata: RecordingMetadata = {
-        id: recordingIdRef.current,
-        patientId: selectedPatientId,
+        id: recordingId,
+        patientId,
         patientName: patient ? `${patient.firstName} ${patient.lastName}` : undefined,
         timestamp: Date.now(),
-        duration: duration,
+        duration,
         size: audioBlob.size,
         mimeType: audioBlob.type,
-        consultationType: consultationType || undefined,
+        consultationType: type,
       };
-      
       await saveRecordingMetadata(metadata);
-      setSavedRecording(metadata);
-    } catch (error) {
-      console.error('Error saving recording locally:', error);
-      toast({
-        title: "Ошибка",
-        description: "Не удалось сохранить запись локально",
-        variant: "destructive"
+
+      setIsUploading(true);
+      setStatus('uploading');
+
+      // Сразу отправляем на сервер
+      const response = await consultationsApi.uploadConsultation(patientId, audioBlob, type);
+      const consultationId = String(response.id);
+
+      // Удаляем локальную запись, чтобы фоновый процесс не отправлял её повторно
+      await deleteChunks(recordingId);
+      await deleteRecordingMetadata(recordingId);
+
+      queryClient.setQueryData(['consultation', consultationId], {
+        id: consultationId,
+        clientId: String(response.clientId),
+        processingStatus: response.status ?? ConsultationProcessingStatus.None,
+        status: response.status ?? ConsultationProcessingStatus.None,
+        createdAt: response.createdAt || new Date().toISOString(),
       });
+      queryClient.invalidateQueries({ queryKey: ['consultations'] });
+      queryClient.invalidateQueries({ queryKey: ['patient-consultations'] });
+
+      toast({
+        title: "Запись отправлена",
+        description: "Консультация создана. Идёт обработка.",
+      });
+
+      setStatus('idle');
+      setDuration(0);
+      setConsultationType(null);
+      recordingIdRef.current = null;
+      setSavedRecording(null);
+      setIsUploading(false);
+
+      setLocation(`/consultation/${consultationId}`);
+    } catch (error) {
+      console.error('Error uploading recording:', error);
+      setIsUploading(false);
       setStatus('stopped');
-      return;
+
+      toast({
+        title: "Запись сохранена локально",
+        description: "Не удалось отправить сейчас. Отправка начнётся автоматически при появлении интернета.",
+      });
+
+      setStatus('idle');
+      setDuration(0);
+      setConsultationType(null);
+      recordingIdRef.current = null;
+      setSavedRecording(null);
+
+      queryClient.invalidateQueries({ queryKey: ['consultations'] });
+      setTimeout(() => setLocation('/history'), 500);
     }
-
-    // На этом этапе запись и метаданные уже сохранены локально в IndexedDB.
-    // Дальше отправкой займется фоновый процесс (useBackgroundUpload).
-
-    // Очищаем локальное состояние текущей записи, чтобы можно было сразу начать новую
-    setIsUploading(false);
-    setStatus('idle');
-    setDuration(0);
-    setConsultationType(null);
-    recordingIdRef.current = null;
-    setSavedRecording(null);
-
-    toast({
-      title: "Запись сохранена",
-      description: "Аудиофайл сохранен локально. Отправка начнется автоматически при появлении интернета.",
-    });
-
-    // Даем время IndexedDB завершить транзакцию перед переходом на историю
-    // Также инвалидируем кэш, чтобы страница истории обновилась
-    queryClient.invalidateQueries({ queryKey: ['consultations'] });
-    
-    // Переходим на страницу истории, где запись будет отображена со статусом "Обработка"
-    setTimeout(() => {
-      setLocation('/history');
-    }, 500);
   };
 
   const handleCancelConfirm = async () => {
