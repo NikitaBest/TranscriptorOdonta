@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Mic, ArrowLeft, Phone, Calendar, FileText, Play, Loader2, Check, AlertCircle, Copy } from 'lucide-react';
+import { Mic, ArrowLeft, Phone, Calendar, FileText, Play, Loader2, Check, AlertCircle, Copy, Plus, Trash2, Pencil, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { Textarea } from '@/components/ui/textarea';
@@ -107,6 +107,65 @@ export default function PatientProfile() {
   // Timeouts для скрытия индикатора "Сохранено"
   const savingStatusTimeouts = useRef<Record<string, NodeJS.Timeout | null>>({});
 
+  // Заметки по пациенту (пока только фронт; позже — API)
+  type PatientNote = { id: string; date: string; text: string; completed: boolean };
+  const NOTES_STORAGE_KEY = (patientId: string) => `patient-notes-${patientId}`;
+
+  const [patientNotes, setPatientNotes] = useState<PatientNote[]>([]);
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editingNoteDraft, setEditingNoteDraft] = useState('');
+
+  useEffect(() => {
+    if (!id) {
+      setPatientNotes([]);
+      return;
+    }
+    try {
+      const raw = localStorage.getItem(NOTES_STORAGE_KEY(id));
+      if (!raw) {
+        setPatientNotes([]);
+        return;
+      }
+      const parsed = JSON.parse(raw) as PatientNote[];
+      setPatientNotes(Array.isArray(parsed) ? parsed : []);
+    } catch {
+      setPatientNotes([]);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    try {
+      localStorage.setItem(NOTES_STORAGE_KEY(id), JSON.stringify(patientNotes));
+    } catch {
+      // ignore
+    }
+  }, [id, patientNotes]);
+
+  const addPatientNote = () => {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const newId = `note-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    setPatientNotes((prev) => [
+      { id: newId, date: today, text: '', completed: false },
+      ...prev,
+    ]);
+    setEditingNoteDraft('');
+    setEditingNoteId(newId);
+  };
+
+  const updatePatientNoteText = (noteId: string, text: string) => {
+    setPatientNotes((prev) => prev.map((n) => (n.id === noteId ? { ...n, text } : n)));
+  };
+
+  const togglePatientNoteCompleted = (noteId: string) => {
+    setPatientNotes((prev) => prev.map((n) => (n.id === noteId ? { ...n, completed: !n.completed } : n)));
+  };
+
+  const deletePatientNote = (noteId: string) => {
+    setPatientNotes((prev) => prev.filter((n) => n.id !== noteId));
+    toast({ title: 'Заметка удалена' });
+  };
+
   // Определяем активную вкладку из query-параметра ?tab=...
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -160,23 +219,23 @@ export default function PatientProfile() {
     }
   }, [patientData?.medicalRecord]);
 
-  // Автоматическое изменение высоты textarea при изменении содержимого (с буфером чтобы низ не обрезался)
+  // Автоматическое изменение высоты textarea «О пациенте» при изменении содержимого
   useEffect(() => {
     if (textareaRef.current) {
       const ta = textareaRef.current;
       ta.style.height = 'auto';
-      ta.style.height = `${ta.scrollHeight + 8}px`;
+      ta.style.height = `${Math.max(72, ta.scrollHeight + 8)}px`;
     }
   }, [comment]);
 
-  // При переключении на вкладку с заметками пересчитываем высоту (после скрытия вкладки scrollHeight был 0)
+  // При переключении на вкладку пересчитываем высоту поля «О пациенте»
   useEffect(() => {
     if (activeTab !== 'consultations') return;
     const runResize = () => {
       if (textareaRef.current) {
         const ta = textareaRef.current;
         ta.style.height = 'auto';
-        ta.style.height = `${ta.scrollHeight + 8}px`;
+        ta.style.height = `${Math.max(72, ta.scrollHeight + 8)}px`;
       }
     };
     const t = setTimeout(runResize, 50);
@@ -613,66 +672,118 @@ export default function PatientProfile() {
           </Link>
           {/* На мобильных блок почти на всю ширину с небольшим отступом и скруглением */}
           <div className="-mx-6 sm:mx-0">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6 bg-card p-4 sm:p-4 md:p-6 lg:p-8 rounded-2xl md:rounded-[2rem] border border-border/50 shadow-sm">
-            <div className="flex items-center gap-3 sm:gap-4 md:gap-6 w-full md:w-auto min-w-0">
-              <Avatar className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-2xl md:rounded-[1.5rem] text-lg sm:text-xl md:text-2xl font-bold bg-secondary shrink-0">
-                <AvatarFallback className="rounded-2xl md:rounded-[1.5rem]">{patient.avatar}</AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-display font-bold tracking-tight mb-2 truncate">{patient.firstName} {patient.lastName}</h1>
-                <div className="flex flex-nowrap sm:flex-wrap items-center gap-1 sm:gap-1.5 sm:gap-2 md:gap-4 text-[10px] sm:text-xs md:text-sm text-muted-foreground min-w-0 overflow-hidden">
-                  {patient.phone?.trim() && (
-                    <span 
-                      className="flex items-center gap-0.5 sm:gap-1.5 px-1 sm:px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-full bg-secondary/50 border border-border/50 shrink min-w-0 cursor-pointer hover:bg-secondary/70 hover:text-foreground transition-colors group/phone"
-                      onClick={() => handleCopyPhone(patient.phone)}
-                      title="Нажмите, чтобы скопировать номер"
-                    >
-                      <Phone className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" /> 
-                      <span className="truncate max-w-[72px] sm:max-w-[120px] md:max-w-none">{patient.phone}</span>
-                      <Copy className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0 opacity-0 group-hover/phone:opacity-100 transition-opacity hidden sm:block" />
-                    </span>
-                  )}
-                  {patientData?.birthDate && (() => {
-                    try {
-                      const dateStr = patientData.birthDate.split('T')[0];
-                      const date = new Date(dateStr + 'T00:00:00');
-                      if (!isNaN(date.getTime())) {
-                        return (
-                          <span className="flex items-center gap-0.5 sm:gap-1.5 px-1 sm:px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-full bg-secondary/50 border border-border/50 shrink min-w-0">
-                            <Calendar className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" />
-                            <span className="truncate whitespace-nowrap">{format(date, 'd MMM yyyy', { locale: ru })}</span>
-                          </span>
-                        );
+          <div className="flex flex-col bg-card p-4 sm:p-4 md:p-6 lg:p-8 rounded-2xl md:rounded-[2rem] border border-border/50 shadow-sm">
+            {/* Верх блока: аватар + столбик (телефон, дата рождения, дата создания), ФИО и «О пациенте», кнопки справа */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-start gap-4 md:gap-6">
+              <div className="flex gap-3 sm:gap-4 md:gap-6 w-full md:flex-1 min-w-0">
+                {/* Аватар и под ним столбиком: телефон, дата рождения, дата создания */}
+                <div className="flex flex-col items-start gap-2 shrink-0">
+                  <Avatar className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-2xl md:rounded-[1.5rem] text-lg sm:text-xl md:text-2xl font-bold bg-secondary">
+                    <AvatarFallback className="rounded-2xl md:rounded-[1.5rem]">{patient.avatar}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col gap-1.5 w-full min-w-0">
+                    {patient.phone?.trim() && (
+                      <span
+                        className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-secondary/50 border border-border/50 text-[10px] sm:text-xs text-muted-foreground cursor-pointer hover:bg-secondary/70 hover:text-foreground transition-colors group/phone w-full min-w-0"
+                        onClick={() => handleCopyPhone(patient.phone)}
+                        title="Нажмите, чтобы скопировать номер"
+                      >
+                        <Phone className="w-3 h-3 shrink-0" />
+                        <span className="truncate">{patient.phone}</span>
+                        <Copy className="w-3 h-3 shrink-0 opacity-0 group-hover/phone:opacity-100 transition-opacity ml-auto hidden sm:block" />
+                      </span>
+                    )}
+                    {patientData?.birthDate && (() => {
+                      try {
+                        const dateStr = patientData.birthDate.split('T')[0];
+                        const date = new Date(dateStr + 'T00:00:00');
+                        if (!isNaN(date.getTime())) {
+                          return (
+                            <span className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-secondary/50 border border-border/50 text-[10px] sm:text-xs text-muted-foreground w-full min-w-0">
+                              <img src="/birthday.png" alt="" className="w-3 h-3 shrink-0 object-contain" />
+                              <span className="truncate whitespace-nowrap">{format(date, 'd MMM yyyy', { locale: ru })}</span>
+                            </span>
+                          );
+                        }
+                      } catch (e) {
+                        console.error('Error formatting date of birth:', e);
                       }
-                    } catch (e) {
-                      console.error('Error formatting date of birth:', e);
-                    }
-                    return null;
-                  })()}
-                  <span className="flex items-center gap-0.5 sm:gap-1.5 px-1 sm:px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-full bg-secondary/50 border border-border/50 shrink min-w-0">
-                    <Calendar className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" /> <span className="hidden xs:inline">С </span><span className="truncate whitespace-nowrap">{format(new Date(patient.lastVisit), 'MMM yyyy', { locale: ru })}</span>
-                  </span>
+                      return null;
+                    })()}
+                    <span className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-secondary/50 border border-border/50 text-[10px] sm:text-xs text-muted-foreground w-full min-w-0">
+                      <Calendar className="w-3 h-3 shrink-0" />
+                      <span className="hidden xs:inline">С </span>
+                      <span className="truncate whitespace-nowrap">{format(new Date(patient.lastVisit), 'MMM yyyy', { locale: ru })}</span>
+                    </span>
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-xl sm:text-2xl md:text-3xl font-display font-bold tracking-tight mb-2 truncate">{patient.firstName} {patient.lastName}</h1>
+
+                  {/* О пациенте — поле под ФИО */}
+                  <div className="mt-3 pt-3 border-t border-border/40 w-full">
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <h2 className="text-sm font-display font-semibold text-muted-foreground">О пациенте</h2>
+                      {isSaving && (
+                        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          Сохранение...
+                        </span>
+                      )}
+                      {isSaved && !isSaving && (
+                        <span className="flex items-center gap-1.5 text-xs text-green-600">
+                          <Check className="w-3.5 h-3.5" />
+                          Сохранено
+                        </span>
+                      )}
+                    </div>
+                    <Textarea
+                      ref={textareaRef}
+                      placeholder="Добавить личные заметки о пациенте..."
+                      className={cn(
+                        "min-h-[72px] w-full border border-border/50 rounded-lg bg-background/50 resize-none focus-visible:ring-1 focus-visible:ring-ring p-2.5 sm:p-3 text-sm leading-relaxed break-words transition-colors",
+                        isSaving && "opacity-70"
+                      )}
+                      value={comment}
+                      onChange={(e) => {
+                        setComment(e.target.value);
+                        const ta = textareaRef.current;
+                        if (ta) {
+                          requestAnimationFrame(() => {
+                            ta.style.height = 'auto';
+                            ta.style.height = `${Math.max(72, ta.scrollHeight + 8)}px`;
+                          });
+                        }
+                      }}
+                      disabled={isLoadingPatient || !patientData}
+                      rows={1}
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="flex gap-1.5 sm:gap-2 md:gap-3 w-full md:w-auto shrink-0">
-              <Link href={`/patient/${patient.id}/edit`} className="flex-1 md:flex-none min-w-0">
-                <Button variant="outline" className="w-full md:w-auto rounded-xl h-10 sm:h-11 md:h-12 border-border/50 text-xs sm:text-sm md:text-base px-3 sm:px-4">
-                Редактировать
-              </Button>
-              </Link>
-              <Link href={`/record?patientId=${patient.id}`} className="flex-1 md:flex-none min-w-0">
-                <Button className="w-full md:w-auto rounded-xl h-10 sm:h-11 md:h-12 gap-1.5 sm:gap-2 shadow-lg shadow-primary/20 text-xs sm:text-sm md:text-base px-3 sm:px-4">
-                  <Mic className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-                  <span className="hidden sm:inline truncate">Новая консультация</span>
-                  <span className="sm:hidden truncate">Консультация</span>
-                </Button>
-              </Link>
+              {/* Кнопки: сверху Редактировать, под ней Новая консультация */}
+              <div className="flex flex-col gap-2 w-full sm:w-auto shrink-0 md:pt-1">
+                <Link href={`/patient/${patient.id}/edit`} className="w-full sm:w-auto">
+                  <Button variant="outline" className="w-full sm:min-w-[180px] rounded-xl h-10 sm:h-11 border-border/50 text-xs sm:text-sm px-3 sm:px-4">
+                    Редактировать
+                  </Button>
+                </Link>
+                <Link href={`/record?patientId=${patient.id}`} className="w-full sm:w-auto">
+                  <Button className="w-full sm:min-w-[180px] rounded-xl h-10 sm:h-11 gap-1.5 sm:gap-2 shadow-lg shadow-primary/20 text-xs sm:text-sm px-3 sm:px-4">
+                    <Mic className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                    <span className="hidden sm:inline truncate">Новая консультация</span>
+                    <span className="sm:hidden truncate">Консультация</span>
+                  </Button>
+                </Link>
+              </div>
             </div>
           </div>
           </div>
         </div>
 
+        {/* Две колонки: слева — история консультаций и карта пациента, справа — заметки */}
+        <div className="flex flex-col lg:flex-row gap-6 mt-6 w-full min-h-0">
+          <div className="min-w-0 flex-1">
         <Tabs
           value={activeTab}
           onValueChange={(val) => setActiveTab(val as 'consultations' | 'medical-record')}
@@ -697,58 +808,11 @@ export default function PatientProfile() {
           </div>
 
           <TabsContent value="consultations" className="space-y-6 mt-0">
-            <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6 md:gap-8">
-          {/* Sidebar - Notes (первым на мобильных, вторым на десктопе) */}
-          <div className="order-1 lg:order-2 space-y-4 md:space-y-6 lg:sticky lg:top-6 lg:self-start">
-            <div className="-mx-6 sm:mx-0 space-y-4 md:space-y-6">
-            <div className="flex items-center justify-between px-6 sm:px-0">
-            <h2 className="text-lg md:text-xl font-display font-bold">Заметки врача</h2>
-              {isSaving && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Сохранение...</span>
-                </div>
-              )}
-              {isSaved && !isSaving && (
-                <div className="flex items-center gap-2 text-sm text-green-600">
-                  <Check className="w-4 h-4" />
-                  <span>Сохранено</span>
-                </div>
-              )}
-            </div>
-            <Card className="border-border/50 rounded-2xl sm:rounded-3xl shadow-sm border border-border/50 overflow-hidden">
-              <Textarea 
-                ref={textareaRef}
-                placeholder="Добавить личные заметки о пациенте..." 
-                className={cn(
-                  "min-h-[100px] sm:min-h-[200px] w-full border-none resize-none focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none bg-transparent p-4 text-sm leading-relaxed break-words transition-colors overflow-hidden rounded-2xl sm:rounded-3xl shadow-none",
-                  isSaving && "opacity-70"
-                )}
-                value={comment}
-                onChange={(e) => {
-                  setComment(e.target.value);
-                  // Автоматически изменяем высоту при вводе (после отрисовки, с буфером чтобы низ не обрезался)
-                  const ta = textareaRef.current;
-                  if (ta) {
-                    requestAnimationFrame(() => {
-                      ta.style.height = 'auto';
-                      ta.style.height = `${ta.scrollHeight + 8}px`;
-                    });
-                  }
-                }}
-                disabled={isLoadingPatient || !patientData}
-                rows={1}
-              />
-            </Card>
-            </div>
-          </div>
-
-          {/* Main Content - History (вторым на мобильных, первым на десктопе) */}
-          <div className="order-2 lg:order-1 lg:col-span-2 space-y-4 md:space-y-6">
-            <div className="-mx-6 sm:mx-0 space-y-4 md:space-y-6">
-            <h2 className="text-lg md:text-xl font-display font-bold px-6 sm:px-0">История консультаций</h2>
-            <div className="space-y-6 md:space-y-8">
-              {isLoadingConsultations ? (
+            <div className="space-y-4 md:space-y-6">
+              <div className="-mx-6 sm:mx-0 space-y-4 md:space-y-6">
+                <h2 className="text-lg md:text-xl font-display font-bold px-6 sm:px-0">История консультаций</h2>
+                <div className="space-y-6 md:space-y-8">
+                  {isLoadingConsultations ? (
                 <div className="text-center py-12">
                   <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
                   <p className="text-sm text-muted-foreground">Загрузка консультаций...</p>
@@ -872,11 +936,10 @@ export default function PatientProfile() {
                 </div>
                   )}
                 </>
-              )}
+                  )}
+                </div>
+              </div>
             </div>
-            </div>
-          </div>
-        </div>
           </TabsContent>
 
           <TabsContent value="medical-record" className="space-y-6 mt-0">
@@ -966,6 +1029,158 @@ export default function PatientProfile() {
             </div>
           </TabsContent>
         </Tabs>
+          </div>
+
+          {/* Правая колонка: Заметки */}
+          <div className="flex flex-col w-full lg:w-[340px] xl:w-[400px] shrink-0 min-w-0">
+            <div className="flex items-center justify-between mb-2 md:mb-3">
+              <h2 className="text-base md:text-lg font-display font-bold">Заметки</h2>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="rounded-lg gap-1.5 h-8 md:h-9 text-xs md:text-sm"
+                onClick={addPatientNote}
+              >
+                <Plus className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                Создать заметку
+              </Button>
+            </div>
+            <div className="space-y-3 flex-1 min-h-0 overflow-auto max-h-[320px] lg:max-h-[480px] pr-1 border border-border/50 rounded-xl bg-background/30 p-3">
+              {patientNotes.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4">Нет заметок. Нажмите «Создать заметку».</p>
+              ) : (
+                patientNotes.map((note) => {
+                  const displayDate = (() => {
+                    try {
+                      const d = new Date(note.date + 'T00:00:00');
+                      return isNaN(d.getTime()) ? note.date : format(d, 'd MMM yyyy', { locale: ru });
+                    } catch {
+                      return note.date;
+                    }
+                  })();
+                  const isEditing = editingNoteId === note.id;
+                  return (
+                    <div
+                      key={note.id}
+                      className={cn(
+                        "flex items-center gap-2 py-1.5 min-h-[40px] border-b border-border/30 last:border-b-0",
+                        note.completed && "opacity-85"
+                      )}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => togglePatientNoteCompleted(note.id)}
+                        className={cn(
+                          "h-5 w-5 shrink-0 rounded border flex items-center justify-center transition-colors",
+                          note.completed
+                            ? "bg-primary border-primary text-primary-foreground"
+                            : "border-input bg-background hover:border-primary/50"
+                        )}
+                        title={note.completed ? 'Снять отметку' : 'Отметить выполненным'}
+                      >
+                        {note.completed && <Check className="w-3 h-3" />}
+                      </button>
+                      <span className="text-xs text-muted-foreground shrink-0 w-[72px] sm:w-[80px]">{displayDate}</span>
+                      {isEditing ? (
+                        <>
+                          <Textarea
+                            placeholder="Текст заметки..."
+                            className="flex-1 min-w-0 min-h-[24px] py-1 px-2 text-sm resize-none overflow-hidden border-input rounded-md"
+                            value={editingNoteDraft}
+                            ref={(el) => {
+                              if (el) {
+                                el.style.height = 'auto';
+                                el.style.height = `${Math.max(24, el.scrollHeight)}px`;
+                              }
+                            }}
+                            onChange={(e) => {
+                              setEditingNoteDraft(e.target.value);
+                              const ta = e.target;
+                              requestAnimationFrame(() => {
+                                ta.style.height = 'auto';
+                                ta.style.height = `${Math.max(24, ta.scrollHeight)}px`;
+                              });
+                            }}
+                            rows={1}
+                            autoFocus
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 shrink-0 rounded-md text-muted-foreground"
+                            title="Отмена"
+                            onClick={() => {
+                              if ((editingNoteDraft || '').trim() === '') {
+                                deletePatientNote(note.id);
+                              }
+                              setEditingNoteId(null);
+                            }}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 shrink-0 rounded-md text-primary"
+                            title="Сохранить"
+                            onClick={() => {
+                              updatePatientNoteText(note.id, editingNoteDraft);
+                              setEditingNoteId(null);
+                            }}
+                          >
+                            <Check className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 shrink-0 rounded-md text-muted-foreground hover:text-destructive"
+                            title="Удалить"
+                            onClick={() => deletePatientNote(note.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <div className={cn(
+                            "flex-1 min-w-0 text-sm break-words whitespace-pre-wrap",
+                            note.completed && "line-through text-muted-foreground"
+                          )}>
+                            {note.text || '\u00A0'}
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 shrink-0 rounded-md text-muted-foreground hover:text-foreground"
+                            title="Редактировать"
+                            onClick={() => { setEditingNoteDraft(note.text); setEditingNoteId(note.id); }}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 shrink-0 rounded-md text-muted-foreground hover:text-destructive"
+                            title="Удалить"
+                            onClick={() => deletePatientNote(note.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </Layout>
   );
@@ -986,7 +1201,7 @@ function MedicalRecordSection({
   onChange: (value: string) => void;
   placeholder?: string;
   savingStatus?: { isSaving: boolean; isSaved: boolean };
-  textareaRef: React.RefObject<HTMLTextAreaElement>;
+  textareaRef: React.RefObject<HTMLTextAreaElement | null>;
   disabled?: boolean;
   className?: string;
 }) {
