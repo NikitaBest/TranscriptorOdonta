@@ -45,6 +45,12 @@ export default function RegisterPage() {
     const firstName = formData.get("firstName")?.toString().trim();
     const lastName = formData.get("lastName")?.toString().trim();
     const middleName = formData.get("middleName")?.toString().trim();
+    const clinicRole = formData.get("clinicRole")?.toString().trim();
+    const specializationRaw = formData.get("specialization")?.toString().trim();
+    const specialization =
+      specializationRaw && specializationRaw.length > 0
+        ? specializationRaw.slice(0, 50)
+        : undefined;
 
     if (!email || !password || !confirm || !firstName || !lastName) {
       setError("Заполните все обязательные поля");
@@ -76,6 +82,8 @@ export default function RegisterPage() {
         firstName,
         lastName,
         middleName: middleName || undefined, // Отчество опциональное
+        clinicRole: clinicRole || undefined,
+        specialization,
       });
 
       // Сохраняем email для показа в диалоге
@@ -184,6 +192,38 @@ export default function RegisterPage() {
                   placeholder="Иванович"
                   className="h-12 rounded-xl bg-secondary/30 border-transparent focus:border-primary focus:bg-background transition-all"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="clinicRole">Роль в клинике</Label>
+                <select
+                  id="clinicRole"
+                  name="clinicRole"
+                  defaultValue=""
+                  className="h-12 w-full rounded-xl bg-secondary/30 border border-transparent px-3 text-sm focus:border-primary focus:bg-background focus:outline-none transition-all"
+                >
+                  <option value="">Не выбрана</option>
+                  <option value="doctor">Врач</option>
+                  <option value="coordinator">Координатор</option>
+                </select>
+                <p className="text-xs text-muted-foreground">
+                  Необязательное поле. Можно выбрать «Врач» или «Координатор».
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="specialization">Специализация</Label>
+                <Input
+                  id="specialization"
+                  name="specialization"
+                  type="text"
+                  placeholder="Например, ортодонт"
+                  maxLength={50}
+                  className="h-12 rounded-xl bg-secondary/30 border-transparent focus:border-primary focus:bg-background transition-all"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Необязательное поле, до 50 символов.
+                </p>
               </div>
 
               <div className="space-y-2">

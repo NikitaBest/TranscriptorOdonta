@@ -47,6 +47,8 @@ export default function SettingsPage() {
     birthDate: string;
     gender: number | null;
     hiddenDescription: string;
+    clinicRole: string;
+    specialization: string;
   }>({
     firstName: '',
     lastName: '',
@@ -55,6 +57,8 @@ export default function SettingsPage() {
     birthDate: '',
     gender: null,
     hiddenDescription: '',
+    clinicRole: '',
+    specialization: '',
   });
 
 
@@ -74,6 +78,8 @@ export default function SettingsPage() {
         birthDate: birthDateDisplay, // Храним в формате DD.MM.YYYY для отображения
         gender: userProfile.gender ?? null,
         hiddenDescription: userProfile.hiddenDescription || '',
+        clinicRole: userProfile.clinicRole || '',
+        specialization: userProfile.specialization || '',
       });
     }
   }, [userProfile]);
@@ -208,6 +214,10 @@ export default function SettingsPage() {
         additional: {
           rootElement: userProfile.additional?.rootElement?.trim() || null,
         },
+        clinicRole: formData.clinicRole || null,
+        specialization: formData.specialization
+          ? formData.specialization.trim().slice(0, 50)
+          : null,
       };
 
       await userApi.updateProfile(updateData);
@@ -353,6 +363,54 @@ export default function SettingsPage() {
                     Неверный формат. Используйте ДД.ММ.ГГГГ (например, 15.01.1990)
                   </p>
                 )}
+              </div>
+
+              {/* Роль в клинике */}
+              <div className="space-y-2">
+                <Label htmlFor="clinicRole" className="text-sm font-medium">
+                  Роль в клинике
+                </Label>
+                <Select
+                  value={formData.clinicRole || '__none__'}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, clinicRole: value === '__none__' ? '' : value })
+                  }
+                >
+                  <SelectTrigger id="clinicRole" className="h-11 md:h-12 text-sm md:text-base">
+                    <SelectValue placeholder="Не выбрана" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Не выбрана</SelectItem>
+                    <SelectItem value="doctor">Врач</SelectItem>
+                    <SelectItem value="coordinator">Координатор</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Необязательное поле. Используется для аналитики и интерфейса.
+                </p>
+              </div>
+
+              {/* Специализация */}
+              <div className="space-y-2">
+                <Label htmlFor="specialization" className="text-sm font-medium">
+                  Специализация
+                </Label>
+                <Input
+                  id="specialization"
+                  value={formData.specialization}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      specialization: e.target.value.slice(0, 50),
+                    })
+                  }
+                  placeholder="Например, ортодонт"
+                  maxLength={50}
+                  className="h-11 md:h-12 text-sm md:text-base"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Необязательное поле, до 50 символов.
+                </p>
               </div>
 
               {/* Пол - скрыто */}

@@ -11,6 +11,8 @@ export interface RegisterRequest {
   firstName: string; // Имя (обязательное)
   lastName: string; // Фамилия (обязательное)
   middleName?: string; // Отчество (опциональное)
+  clinicRole?: string; // Роль в клинике (врач, координатор и т.п.)
+  specialization?: string; // Специализация врача (до 50 символов)
 }
 
 /**
@@ -50,6 +52,8 @@ export interface UserProfile {
   phoneNumber?: string | null;
   birthDate?: string | null; // Дата в формате ISO (YYYY-MM-DD)
   gender?: number | null; // 0 - не указан, 1 - мужской, 2 - женский и т.д.
+   clinicRole?: string | null; // Роль в клинике (врач, координатор и т.п.)
+   specialization?: string | null; // Специализация врача
   additional?: {
     rootElement?: string | null;
   } | null;
@@ -73,6 +77,8 @@ export interface UpdateUserProfileRequest {
   additional: {
     rootElement: string | null;
   };
+  clinicRole: string | null;
+  specialization: string | null;
 }
 
 /**
