@@ -15,7 +15,7 @@ import { consultationsApi } from '@/lib/api/consultations';
 import { ConsultationProcessingStatus, ConsultationType } from '@/lib/api/types';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import type { PatientResponse, ConsultationResponse, ConsultationProperty } from '@/lib/api/types';
+import type { PatientResponse, ConsultationResponse, ConsultationProperty, ClientTask } from '@/lib/api/types';
 
 // Функция для получения названия типа консультации
 function getConsultationTypeName(type: number | undefined): string {
@@ -107,64 +107,12 @@ export default function PatientProfile() {
   // Timeouts для скрытия индикатора "Сохранено"
   const savingStatusTimeouts = useRef<Record<string, NodeJS.Timeout | null>>({});
 
-  // Заметки по пациенту (пока только фронт; позже — API)
-  type PatientNote = { id: string; date: string; text: string; completed: boolean };
-  const NOTES_STORAGE_KEY = (patientId: string) => `patient-notes-${patientId}`;
-
+  // Заметки по пациенту (синхронизация с бэкендом через PUT /client/update, поле tasks)
+  type PatientNote = { id: string; date: string; text: string; completed: boolean; _backendId?: number };
   const [patientNotes, setPatientNotes] = useState<PatientNote[]>([]);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editingNoteDraft, setEditingNoteDraft] = useState('');
-
-  useEffect(() => {
-    if (!id) {
-      setPatientNotes([]);
-      return;
-    }
-    try {
-      const raw = localStorage.getItem(NOTES_STORAGE_KEY(id));
-      if (!raw) {
-        setPatientNotes([]);
-        return;
-      }
-      const parsed = JSON.parse(raw) as PatientNote[];
-      setPatientNotes(Array.isArray(parsed) ? parsed : []);
-    } catch {
-      setPatientNotes([]);
-    }
-  }, [id]);
-
-  useEffect(() => {
-    if (!id) return;
-    try {
-      localStorage.setItem(NOTES_STORAGE_KEY(id), JSON.stringify(patientNotes));
-    } catch {
-      // ignore
-    }
-  }, [id, patientNotes]);
-
-  const addPatientNote = () => {
-    const today = format(new Date(), 'yyyy-MM-dd');
-    const newId = `note-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    setPatientNotes((prev) => [
-      { id: newId, date: today, text: '', completed: false },
-      ...prev,
-    ]);
-    setEditingNoteDraft('');
-    setEditingNoteId(newId);
-  };
-
-  const updatePatientNoteText = (noteId: string, text: string) => {
-    setPatientNotes((prev) => prev.map((n) => (n.id === noteId ? { ...n, text } : n)));
-  };
-
-  const togglePatientNoteCompleted = (noteId: string) => {
-    setPatientNotes((prev) => prev.map((n) => (n.id === noteId ? { ...n, completed: !n.completed } : n)));
-  };
-
-  const deletePatientNote = (noteId: string) => {
-    setPatientNotes((prev) => prev.filter((n) => n.id !== noteId));
-    toast({ title: 'Заметка удалена' });
-  };
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
 
   // Определяем активную вкладку из query-параметра ?tab=...
   useEffect(() => {
@@ -192,6 +140,93 @@ export default function PatientProfile() {
       setComment(patientData.comment || '');
     }
   }, [patientData?.comment]);
+
+  const tasksToRequest = (notes: PatientNote[]): ClientTask[] =>
+    notes.map((n) => ({
+      id: n.id.startsWith('temp-') ? 0 : (n._backendId ?? Number(String(n.id).split('-')[0])),
+      createdAt: n.date + 'T00:00:00.000Z',
+      text: n.text,
+      isDone: n.completed,
+    }));
+
+  const saveNotesToBackend = async (notes: PatientNote[]) => {
+    if (!patientData || !id) return;
+    setIsSavingNotes(true);
+    try {
+      const tasks = tasksToRequest(notes);
+      await patientsApi.update({
+        id: patientData.id,
+        firstName: patientData.firstName,
+        lastName: patientData.lastName,
+        phone: patientData.phone ?? null,
+        comment: patientData.comment ?? '',
+        birthDate: patientData.birthDate ?? undefined,
+        tasks,
+      });
+      await queryClient.invalidateQueries({ queryKey: ['patient', id] });
+    } catch (e) {
+      console.error('Save notes error:', e);
+      toast({
+        title: 'Ошибка сохранения заметок',
+        description: (e as { message?: string })?.message ?? 'Попробуйте ещё раз',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSavingNotes(false);
+    }
+  };
+
+  // Синхронизация заметок с данными пациента с бэкенда
+  useEffect(() => {
+    if (!id || !patientData) return;
+    const tasks = patientData.tasks;
+    if (!Array.isArray(tasks)) {
+      setPatientNotes([]);
+      return;
+    }
+    const notes: PatientNote[] = [...tasks]
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .map((t, index) => ({
+        id: `${t.id}-${index}-${t.createdAt}`,
+        date: t.createdAt.slice(0, 10),
+        text: t.text ?? '',
+        completed: t.isDone ?? false,
+        _backendId: t.id,
+      }));
+    setPatientNotes(notes);
+  }, [id, patientData?.tasks]);
+
+  const addPatientNote = () => {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const newId = `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    setPatientNotes((prev) => [
+      { id: newId, date: today, text: '', completed: false },
+      ...prev,
+    ]);
+    setEditingNoteDraft('');
+    setEditingNoteId(newId);
+  };
+
+  const updatePatientNoteText = (noteId: string, text: string) => {
+    const next = patientNotes.map((n) => (n.id === noteId ? { ...n, text } : n));
+    setPatientNotes(next);
+    saveNotesToBackend(next);
+  };
+
+  const togglePatientNoteCompleted = (noteId: string) => {
+    const next = patientNotes.map((n) =>
+      n.id === noteId ? { ...n, completed: !n.completed } : n
+    );
+    setPatientNotes(next);
+    saveNotesToBackend(next);
+  };
+
+  const deletePatientNote = (noteId: string) => {
+    const next = patientNotes.filter((n) => n.id !== noteId);
+    setPatientNotes(next);
+    saveNotesToBackend(next);
+    toast({ title: 'Заметка удалена' });
+  };
 
   // Синхронизируем поля медицинской карты с данными из API
   useEffect(() => {

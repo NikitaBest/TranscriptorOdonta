@@ -115,6 +115,16 @@ export interface CreatePatientResponse {
 }
 
 /**
+ * Задача/заметка пациента (PUT /client/update)
+ */
+export interface ClientTask {
+  id: number;
+  createdAt: string; // ISO
+  text: string;
+  isDone: boolean;
+}
+
+/**
  * Запрос на обновление пациента
  * PUT /client/update
  */
@@ -125,6 +135,7 @@ export interface UpdatePatientRequest {
   phone?: string | null; // необязательно; при отсутствии — null
   comment?: string;
   birthDate?: string; // Дата рождения в формате ISO (YYYY-MM-DD)
+  tasks?: ClientTask[];
 }
 
 /**
@@ -139,6 +150,7 @@ export interface UpdatePatientResponse {
   birthDate?: string;
   createdAt?: string;
   updatedAt?: string;
+  tasks?: ClientTask[];
 }
 
 /**
@@ -211,6 +223,7 @@ export interface PatientResponse {
   comment?: string;
   birthDate?: string; // Дата рождения в формате ISO (YYYY-MM-DD)
   medicalRecord?: MedicalRecord | null; // Медицинская карта пациента
+  tasks?: ClientTask[]; // Заметки/задачи пациента
   createdAt?: string;
   updatedAt?: string;
 }
