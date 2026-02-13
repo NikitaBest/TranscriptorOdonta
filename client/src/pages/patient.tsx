@@ -781,9 +781,9 @@ export default function PatientProfile() {
           </div>
         </div>
 
-        {/* Две колонки: слева — история консультаций и карта пациента, справа — заметки */}
+        {/* Две колонки: на мобильных сначала заметки, потом история; на десктопе слева история/карта, справа заметки */}
         <div className="flex flex-col lg:flex-row gap-6 mt-6 w-full min-h-0">
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 order-2 lg:order-none">
         <Tabs
           value={activeTab}
           onValueChange={(val) => setActiveTab(val as 'consultations' | 'medical-record')}
@@ -1031,8 +1031,8 @@ export default function PatientProfile() {
         </Tabs>
           </div>
 
-          {/* Правая колонка: Заметки */}
-          <div className="flex flex-col w-full lg:w-[340px] xl:w-[400px] shrink-0 min-w-0">
+          {/* Заметки: на мобильных первыми, блок без скролла; на десктопе справа с ограничением высоты */}
+          <div className="flex flex-col w-full lg:w-[340px] xl:w-[400px] shrink-0 min-w-0 order-1 lg:order-none">
             <div className="flex items-center justify-between mb-2 md:mb-3">
               <h2 className="text-base md:text-lg font-display font-bold">Заметки</h2>
               <Button
@@ -1046,7 +1046,7 @@ export default function PatientProfile() {
                 Создать заметку
               </Button>
             </div>
-            <div className="space-y-3 flex-1 min-h-0 overflow-auto max-h-[320px] lg:max-h-[480px] pr-1 border border-border/50 rounded-xl bg-background/30 p-3">
+            <div className="space-y-3 flex-1 min-h-0 overflow-visible lg:overflow-auto max-h-none lg:max-h-[480px] pr-1 border border-border/50 rounded-xl bg-background/30 p-3">
               {patientNotes.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-4">Нет заметок. Нажмите «Создать заметку».</p>
               ) : (
