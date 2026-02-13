@@ -977,12 +977,12 @@ export default function PatientProfile() {
             </div>
           </TabsContent>
 
-          <TabsContent value="medical-record" className="space-y-6 mt-0">
-            <div className="space-y-6">
-              <div className="-mx-6 sm:mx-0 space-y-6">
-              <h2 className="text-lg md:text-xl font-display font-bold px-6 sm:px-0">Карта пациента</h2>
+          <TabsContent value="medical-record" className="space-y-4 sm:space-y-6 mt-0">
+            <div className="space-y-4 sm:space-y-6">
+              <div className="-mx-4 sm:-mx-6 sm:mx-0 space-y-4 sm:space-y-6">
+              <h2 className="text-base sm:text-lg md:text-xl font-display font-bold px-4 sm:px-0">Карта пациента</h2>
               
-              <div className="grid grid-cols-1 gap-6">
+              <div className="grid grid-cols-1 gap-4 sm:gap-6">
                 {/* Аллергия */}
                 <MedicalRecordSection
                   title="Аллергия"
@@ -1332,35 +1332,35 @@ function MedicalRecordSection({
   };
 
   return (
-    <Card className={cn("rounded-2xl sm:rounded-3xl border-border/50 transition-all hover:border-primary/20 overflow-hidden", className)}>
-      <div className="p-4 pb-2 border-b border-border/50">
-        <div className="flex justify-between items-start gap-2">
+    <Card className={cn("rounded-xl sm:rounded-2xl md:rounded-3xl border-border/50 transition-all hover:border-primary/20 overflow-hidden", className)}>
+      <div className="p-3 sm:p-4 pb-1.5 sm:pb-2 border-b border-border/50">
+        <div className="flex justify-between items-start gap-1.5 sm:gap-2">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <h3 className="text-lg font-bold">{title}</h3>
+            <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1 flex-wrap">
+              <h3 className="text-sm sm:text-base md:text-lg font-bold">{title}</h3>
               {savingStatus?.isSaving && (
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground animate-in fade-in slide-in-from-right-2 duration-200">
-                  <Loader2 className="w-3 h-3 animate-spin" />
+                <div className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs text-muted-foreground animate-in fade-in slide-in-from-right-2 duration-200">
+                  <Loader2 className="w-2.5 h-2.5 sm:w-3 sm:h-3 animate-spin" />
                   <span>Сохранение...</span>
                 </div>
               )}
               {savingStatus?.isSaved && !savingStatus?.isSaving && (
-                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/20 text-xs font-medium text-green-600 animate-in fade-in slide-in-from-right-2 duration-200">
-                  <Check className="w-3.5 h-3.5" />
+                <div className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/20 text-[10px] sm:text-xs font-medium text-green-600 animate-in fade-in slide-in-from-right-2 duration-200">
+                  <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                   <span>Сохранено</span>
                 </div>
               )}
             </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 w-7 p-0 hover:bg-secondary transition-all active:scale-95 active:opacity-70"
+              className="h-6 w-6 sm:h-7 sm:w-7 p-0 hover:bg-secondary transition-all active:scale-95 active:opacity-70"
               onClick={handleCopy}
               title="Копировать текст"
             >
-              <Copy className="w-3.5 h-3.5 text-muted-foreground" />
+              <Copy className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-muted-foreground" />
             </Button>
           </div>
         </div>
@@ -1369,7 +1369,7 @@ function MedicalRecordSection({
         <Textarea 
           ref={textareaRef}
           className={cn(
-            "min-h-[120px] w-full border-none resize-none focus-visible:ring-1 focus-visible:ring-ring bg-transparent pt-4 pl-4 pr-4 pb-4 text-base leading-relaxed break-words overflow-hidden transition-colors",
+            "min-h-[80px] sm:min-h-[100px] md:min-h-[120px] w-full border-none resize-none focus-visible:ring-1 focus-visible:ring-ring bg-transparent pt-3 pl-3 pr-3 pb-3 sm:pt-4 sm:pl-4 sm:pr-4 sm:pb-4 text-xs sm:text-sm md:text-base leading-relaxed break-words overflow-hidden transition-colors",
             "text-foreground focus:text-foreground",
             savingStatus?.isSaving && "opacity-70"
           )}
