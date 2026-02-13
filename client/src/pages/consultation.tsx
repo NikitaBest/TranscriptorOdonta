@@ -26,7 +26,7 @@ import { ArrowLeft, Download, Share2, Copy, RefreshCw, Check, Loader2, AlertCirc
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { useAutoSaveConsultation } from '@/hooks/use-auto-save-consultation';
-import { cn } from '@/lib/utils';
+import { cn, getConsultationRoleLabel } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { generateConsultationPDF } from '@/lib/utils/pdf-generator';
@@ -781,7 +781,7 @@ export default function ConsultationPage() {
               {enrichedConsultation.doctorName && (
                 <>
                   <span>•</span>
-                  <span>Врач: {enrichedConsultation.doctorName}</span>
+                  <span>{getConsultationRoleLabel(enrichedConsultation.roleAlias, enrichedConsultation.clinicRole)}: {enrichedConsultation.doctorName}</span>
                 </>
               )}
             </p>

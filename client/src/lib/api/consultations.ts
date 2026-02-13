@@ -449,7 +449,14 @@ export const consultationsApi = {
       // Fallback на alias, если фамилия/имя отсутствуют
       doctorName = consultation.createdByUser.alias;
     }
-    
+
+    // Роль с бэкенда (подпись «Врач», «Координатор» и т.д.) — с консультации или из createdByUser
+    const roleAlias =
+      consultation.roleAlias ?? consultation.createdByUser?.roleAlias ?? null;
+    // Роль в клинике (doctor, coordinator) — с консультации или из createdByUser
+    const clinicRole =
+      consultation.clinicRole ?? consultation.createdByUser?.clinicRole ?? null;
+
     // ВАЖНО: Сохраняем ВСЕ исходные поля из consultation, чтобы не потерять данные
     return {
       ...consultation, // Сохраняем все исходные поля (включая audioNotes, properties, client, clientId)
@@ -458,6 +465,8 @@ export const consultationsApi = {
       patientId: consultation.clientId ? String(consultation.clientId) : undefined,
       patientName: consultation.client ? `${consultation.client.firstName} ${consultation.client.lastName}` : undefined,
       doctorName,
+      roleAlias,
+      clinicRole,
       createdAt: isValidCreatedAt ? originalCreatedAt : (consultation.createdAt || consultation.date),
       date: isValidCreatedAt ? originalCreatedAt : (consultation.createdAt || consultation.date || new Date().toISOString()),
       // Данные из properties (дополняем, не заменяем)

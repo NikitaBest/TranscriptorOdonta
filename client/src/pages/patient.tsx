@@ -14,7 +14,7 @@ import { patientsApi } from '@/lib/api/patients';
 import { consultationsApi } from '@/lib/api/consultations';
 import { ConsultationProcessingStatus, ConsultationType } from '@/lib/api/types';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
+import { cn, getConsultationRoleLabel } from '@/lib/utils';
 import type { PatientResponse, ConsultationResponse, ConsultationProperty, ClientTask } from '@/lib/api/types';
 
 // Функция для получения названия типа консультации
@@ -885,7 +885,7 @@ export default function PatientProfile() {
                               {consultation.doctorName && (
                                 <>
                                   <span className="hidden md:inline">•</span>
-                                  <span>Врач: {consultation.doctorName}</span>
+                                  <span>{getConsultationRoleLabel(consultation.roleAlias, consultation.clinicRole)}: {consultation.doctorName}</span>
                                 </>
                               )}
                             </div>

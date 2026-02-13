@@ -11,7 +11,7 @@ export interface RegisterRequest {
   firstName: string; // Имя (обязательное)
   lastName: string; // Фамилия (обязательное)
   middleName?: string; // Отчество (опциональное)
-  clinicRole?: string; // Роль в клинике (врач, координатор и т.п.)
+  clinicRole?: string | null; // Роль в клинике: "doctor", "coordinator" или null
   specialization?: string; // Специализация врача (до 50 символов)
 }
 
@@ -310,7 +310,11 @@ export interface ConsultationResponse {
     middleName?: string | null;
     photoUrl?: string | null;
     alias?: string | null;
+    roleAlias?: string | null; // Отображаемое название роли с бэкенда (например, «Врач», «Координатор»)
+    clinicRole?: string | null; // Роль в клинике: doctor, coordinator и т.д.
   };
+  roleAlias?: string | null; // Роль консультанта с бэкенда (на уровне консультации)
+  clinicRole?: string | null; // Роль в клинике (на уровне консультации)
   client?: {
     id: string | number;
     firstName: string;

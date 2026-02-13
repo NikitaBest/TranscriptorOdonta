@@ -13,7 +13,7 @@ import type { ConsultationResponse, ConsultationProperty } from '@/lib/api/types
 import { Search, Filter, ArrowUpRight, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
+import { cn, getConsultationRoleLabel } from '@/lib/utils';
 import { getAllSavedRecordings, type RecordingMetadata } from '@/lib/utils/audio-storage';
 
 // Функция для получения названия типа консультации
@@ -531,7 +531,7 @@ export default function HistoryPage() {
                       {/* Doctor */}
                       {consultation.doctorName && (
                         <p className="text-xs text-muted-foreground">
-                          Врач: {consultation.doctorName}
+                          {getConsultationRoleLabel(consultation.roleAlias, consultation.clinicRole)}: {consultation.doctorName}
                         </p>
                       )}
 
@@ -617,7 +617,7 @@ export default function HistoryPage() {
                           <span>Длительность: {consultation.duration}</span>
                         )}
                         {consultation.doctorName && (
-                          <span>Врач: {consultation.doctorName}</span>
+                          <span>{getConsultationRoleLabel(consultation.roleAlias, consultation.clinicRole)}: {consultation.doctorName}</span>
                         )}
                       </div>
                     </div>

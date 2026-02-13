@@ -82,7 +82,7 @@ export default function RegisterPage() {
         firstName,
         lastName,
         middleName: middleName || undefined, // Отчество опциональное
-        clinicRole: clinicRole || undefined,
+        clinicRole: clinicRole || null,
         specialization,
       });
 

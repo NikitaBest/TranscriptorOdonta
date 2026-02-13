@@ -287,6 +287,22 @@ export default function SettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="p-4 md:p-6 space-y-4 md:space-y-6">
+            {/* Краткое отображение роли и специализации (роль перед специализацией) */}
+            {(formData.clinicRole || formData.specialization) && (
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground pb-2 border-b border-border/50">
+                {formData.clinicRole && (
+                  <span>
+                    <span className="font-medium text-foreground">Роль:</span>{' '}
+                    {formData.clinicRole === 'doctor' ? 'Врач' : formData.clinicRole === 'coordinator' ? 'Координатор' : formData.clinicRole}
+                  </span>
+                )}
+                {formData.specialization && (
+                  <span>
+                    <span className="font-medium text-foreground">Специализация:</span> {formData.specialization}
+                  </span>
+                )}
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
               {/* Имя */}
               <div className="space-y-2">
