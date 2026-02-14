@@ -696,7 +696,7 @@ export default function PatientProfile() {
 
   return (
     <Layout>
-      <div className="max-w-6xl mx-auto flex flex-col gap-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-6xl mx-auto flex flex-col gap-4 md:gap-8 px-4 sm:px-6 lg:px-8">
         {/* Navigation & Header */}
         <div>
           <Link href={backHref}>
@@ -817,7 +817,7 @@ export default function PatientProfile() {
         </div>
 
         {/* Две колонки: на мобильных сначала заметки, потом история; с md (768px) слева история/карта, справа заметки */}
-        <div className="flex flex-col md:flex-row gap-6 mt-6 w-full min-h-0">
+        <div className="flex flex-col md:flex-row gap-6 mt-3 md:mt-6 w-full min-h-0">
           <div className="min-w-0 flex-1 order-2 md:order-none">
         <Tabs
           value={activeTab}
