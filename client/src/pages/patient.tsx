@@ -816,9 +816,9 @@ export default function PatientProfile() {
           </div>
         </div>
 
-        {/* Две колонки: на мобильных сначала заметки, потом история; на десктопе слева история/карта, справа заметки */}
-        <div className="flex flex-col lg:flex-row gap-6 mt-6 w-full min-h-0">
-          <div className="min-w-0 flex-1 order-2 lg:order-none">
+        {/* Две колонки: на мобильных сначала заметки, потом история; с md (768px) слева история/карта, справа заметки */}
+        <div className="flex flex-col md:flex-row gap-6 mt-6 w-full min-h-0">
+          <div className="min-w-0 flex-1 order-2 md:order-none">
         <Tabs
           value={activeTab}
           onValueChange={(val) => setActiveTab(val as 'consultations' | 'medical-record')}
@@ -1066,8 +1066,8 @@ export default function PatientProfile() {
         </Tabs>
           </div>
 
-          {/* Заметки: на мобильных первыми на всю ширину экрана, компактный вид; на десктопе справа */}
-          <div className="flex flex-col w-[calc(100%+2rem)] max-w-[100vw] md:w-full lg:w-[340px] xl:w-[400px] shrink-0 min-w-0 order-1 lg:order-none -mx-4 md:mx-0">
+          {/* Заметки: на мобильных первыми на всю ширину экрана, компактный вид; с md справа от истории */}
+          <div className="flex flex-col w-[calc(100%+2rem)] max-w-[100vw] md:w-[340px] lg:w-[340px] xl:w-[400px] shrink-0 min-w-0 order-1 md:order-none -mx-4 md:mx-0">
             <div className="flex items-center justify-between mb-1.5 sm:mb-2 md:mb-3 px-2 sm:px-3 md:px-0 gap-2">
               <h2 className="text-sm sm:text-base md:text-lg font-display font-bold">Заметки</h2>
               <Button
@@ -1082,7 +1082,7 @@ export default function PatientProfile() {
                 <span className="hidden sm:inline">Создать заметку</span>
               </Button>
             </div>
-            <div className="space-y-1.5 sm:space-y-2 md:space-y-3 flex-1 min-h-0 overflow-visible lg:overflow-auto max-h-none lg:max-h-[480px] border border-border/50 rounded-lg sm:rounded-xl bg-background/30 p-2 sm:p-2.5 sm:px-3 md:p-3 lg:pr-2">
+            <div className="space-y-1.5 sm:space-y-2 md:space-y-3 flex-1 min-h-0 overflow-visible md:overflow-auto max-h-none md:max-h-[480px] border border-border/50 rounded-lg sm:rounded-xl bg-background/30 p-2 sm:p-2.5 sm:px-3 md:p-3 md:pr-2">
               {patientNotes.length === 0 ? (
                 <p className="text-xs sm:text-sm text-muted-foreground py-3 sm:py-4">Нет заметок. Нажмите «Создать заметку».</p>
               ) : (
