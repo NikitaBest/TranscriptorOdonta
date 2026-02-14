@@ -214,10 +214,8 @@ export default function SettingsPage() {
         additional: {
           rootElement: userProfile.additional?.rootElement?.trim() || null,
         },
-        clinicRole: formData.clinicRole || null,
-        specialization: formData.specialization
-          ? formData.specialization.trim().slice(0, 50)
-          : null,
+        clinicRole: formData.clinicRole?.trim() ?? '',
+        specialization: (formData.specialization?.trim() ?? '').slice(0, 50),
       };
 
       await userApi.updateProfile(updateData);
