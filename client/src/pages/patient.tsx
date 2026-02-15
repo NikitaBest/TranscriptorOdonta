@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Mic, ArrowLeft, Phone, Calendar, FileText, Play, Loader2, Check, AlertCircle, Copy, Plus, Trash2, Pencil, X } from 'lucide-react';
+import { Mic, ArrowLeft, Phone, Calendar, FileText, Play, Loader2, Check, AlertCircle, Copy, Plus, Trash2, Pencil, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { Textarea } from '@/components/ui/textarea';
@@ -14,6 +14,7 @@ import { patientsApi } from '@/lib/api/patients';
 import { consultationsApi } from '@/lib/api/consultations';
 import { ConsultationProcessingStatus, ConsultationType } from '@/lib/api/types';
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { cn, getConsultationRoleLabel } from '@/lib/utils';
 import type { PatientResponse, ConsultationResponse, ConsultationProperty, ClientTask } from '@/lib/api/types';
 
@@ -113,6 +114,8 @@ export default function PatientProfile() {
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editingNoteDraft, setEditingNoteDraft] = useState('');
   const [isSavingNotes, setIsSavingNotes] = useState(false);
+  const [notesExpandedMobile, setNotesExpandedMobile] = useState(false);
+  const isMobile = useIsMobile();
 
   // Определяем активную вкладку из query-параметра ?tab=...
   useEffect(() => {
@@ -1086,7 +1089,14 @@ export default function PatientProfile() {
               {patientNotes.length === 0 ? (
                 <p className="text-xs sm:text-sm text-muted-foreground py-3 sm:py-4">Нет заметок. Нажмите «Создать заметку».</p>
               ) : (
-                patientNotes.map((note) => {
+                (() => {
+                  const sortedNotes = [...patientNotes].sort((a, b) => Number(a.completed) - Number(b.completed));
+                  const showCollapsedOnMobile = isMobile && !notesExpandedMobile;
+                  const notesToShow = showCollapsedOnMobile ? sortedNotes.slice(0, 3) : sortedNotes;
+                  const hasMoreOnMobile = isMobile && patientNotes.length > 3;
+                  return (
+                    <>
+                {notesToShow.map((note) => {
                   const displayDate = (() => {
                     try {
                       const d = new Date(note.date + 'T00:00:00');
@@ -1212,7 +1222,29 @@ export default function PatientProfile() {
                       )}
                     </div>
                   );
-                })
+                })}
+                {hasMoreOnMobile && (
+                  <button
+                    type="button"
+                    onClick={() => setNotesExpandedMobile((v) => !v)}
+                    className="flex items-center justify-center gap-1.5 w-full py-2 mt-1 text-xs text-muted-foreground hover:text-foreground border-t border-border/30 md:hidden"
+                  >
+                    {notesExpandedMobile ? (
+                      <>
+                        <ChevronUp className="w-3.5 h-3.5" />
+                        Свернуть
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="w-3.5 h-3.5" />
+                        Показать ещё ({patientNotes.length - 3})
+                      </>
+                    )}
+                  </button>
+                )}
+                    </>
+                  );
+                })()
               )}
             </div>
           </div>
