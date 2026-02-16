@@ -890,14 +890,16 @@ export default function ConsultationPage() {
           </div>
         </div>
 
-        {/* Audio Player */}
+        {/* Audio Player — скрыт на мобильных */}
         {id && (
-          <ConsultationAudioPlayer
-            consultationId={id}
-            audioDuration={enrichedConsultation.audioDuration ?? undefined}
-            processingStatus={processingStatus}
-            duration={enrichedConsultation.duration}
-          />
+          <div className="hidden md:block">
+            <ConsultationAudioPlayer
+              consultationId={id}
+              audioDuration={enrichedConsultation.audioDuration ?? undefined}
+              processingStatus={processingStatus}
+              duration={enrichedConsultation.duration}
+            />
+          </div>
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
