@@ -332,25 +332,26 @@ export default function PatientProfile() {
       // Добавляем только измененное поле
       switch (fieldKey) {
         case 'allergy':
-          updateData.allergy = trimmedValue || null;
+          // Пустое значение отправляем как пустую строку, а не null
+          updateData.allergy = trimmedValue;
           break;
         case 'comorbidities':
-          updateData.comorbidities = trimmedValue || null;
+          updateData.comorbidities = trimmedValue;
           break;
         case 'anamnesis':
-          updateData.anamnesis = trimmedValue || null;
+          updateData.anamnesis = trimmedValue;
           break;
         case 'complaints':
-          updateData.complaints = trimmedValue || null;
+          updateData.complaints = trimmedValue;
           break;
         case 'diagnosis':
-          updateData.diagnosis = trimmedValue || null;
+          updateData.diagnosis = trimmedValue;
           break;
         case 'treatment':
-          updateData.treatment = trimmedValue || null;
+          updateData.treatment = trimmedValue;
           break;
         case 'otherInfo':
-          updateData.otherInfo = trimmedValue || null;
+          updateData.otherInfo = trimmedValue;
           break;
       }
 
@@ -362,7 +363,8 @@ export default function PatientProfile() {
         medicalRecord: {
           ...(patientData.medicalRecord || {}),
           clientId: patientData.medicalRecord?.clientId || id,
-          [fieldKey]: trimmedValue || null,
+          // В кэше тоже храним пустую строку вместо null
+          [fieldKey]: trimmedValue,
         },
       });
 
@@ -460,12 +462,15 @@ export default function PatientProfile() {
       setIsSaved(false);
       
       try {
+        const trimmedComment = currentComment.trim();
+
         const payload: Parameters<typeof patientsApi.update>[0] = {
           id,
           firstName: patientData.firstName,
           lastName: patientData.lastName,
           birthDate: patientData.birthDate || undefined,
-          comment: currentComment.trim() || undefined,
+          // Если поле очищено, отправляем пустую строку, а не null
+          comment: trimmedComment,
         };
 
         // Поле телефона при автосохранении заметок не отправляем —
@@ -475,7 +480,8 @@ export default function PatientProfile() {
         // Обновляем кэш с новыми данными
         queryClient.setQueryData(['patient', id], {
           ...patientData,
-          comment: currentComment.trim() || null,
+          // В кэше тоже храним пустую строку вместо null
+          comment: trimmedComment,
           updatedAt: updatedPatient.updatedAt || patientData.updatedAt,
         });
 
