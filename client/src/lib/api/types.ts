@@ -140,7 +140,7 @@ export interface UpdatePatientRequest {
   lastName: string;
   phone?: string | null; // необязательно; при отсутствии — null
   comment?: string;
-  birthDate?: string; // Дата рождения в формате ISO (YYYY-MM-DD)
+  birthDate?: string | null; // Дата рождения в формате ISO (YYYY-MM-DD) или null если пусто
   tasks?: ClientTask[];
 }
 

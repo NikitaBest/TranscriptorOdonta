@@ -161,7 +161,8 @@ export default function PatientProfile() {
         id: patientData.id,
         firstName: patientData.firstName,
         lastName: patientData.lastName,
-        phone: patientData.phone ?? null,
+        // Если телефон пустой или состоит из пробелов — отправляем null
+        phone: patientData.phone && patientData.phone.trim() !== '' ? patientData.phone : null,
         comment: patientData.comment ?? '',
         birthDate: patientData.birthDate ?? undefined,
         tasks,

@@ -112,16 +112,18 @@ export default function PatientEditPage() {
     setIsSaving(true);
 
     try {
+      const trimmedBirthDate = (dateOfBirth || '').trim();
+      const trimmedPhone = (phone || '').trim();
+
       const payload: Parameters<typeof patientsApi.update>[0] = {
         id,
         firstName: firstName.trim(),
         lastName: lastName.trim(),
-        birthDate: dateOfBirth ? normalizeDate(dateOfBirth) : undefined,
+        birthDate: trimmedBirthDate ? normalizeDate(trimmedBirthDate) : null,
+        phone: trimmedPhone ? normalizePhone(trimmedPhone) : null,
         comment: comment.trim() || undefined,
       };
-      if (phone?.trim()) {
-        payload.phone = normalizePhone(phone);
-      }
+
       const updatedPatient = await patientsApi.update(payload);
 
       // Обновляем кэш напрямую с новыми данными
