@@ -589,17 +589,22 @@ export default function PatientProfile() {
 
   // Получаем текстовое превью консультации для карточки истории пациента
   const getConsultationPreview = (consultation: ConsultationResponse): string => {
-    // 1. Предпочитаем выжимку
+    // 1. Предпочитаем объективный статус (если заполнен)
+    if (consultation.objective && consultation.objective.trim() !== '') {
+      return consultation.objective;
+    }
+
+    // 2. Затем выжимку
     if (consultation.summary && consultation.summary.trim() !== '') {
       return consultation.summary;
     }
 
-    // 2. Затем транскрипцию
+    // 3. Затем транскрипцию
     if (consultation.transcript && consultation.transcript.trim() !== '') {
       return consultation.transcript;
     }
 
-    // 3. Если есть properties — ищем первую непустую секцию от бэкенда
+    // 4. Если есть properties — ищем первую непустую секцию от бэкенда
     if (consultation.properties && consultation.properties.length > 0) {
       const priorityKeys = [
         'summary',
