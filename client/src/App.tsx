@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
+import { usePageTitle } from "@/hooks/use-page-title";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -37,6 +38,9 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
   const [isChecking, setIsChecking] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // Эталонный заголовок вкладки по маршруту + защита от подмены (расширения, кэш)
+  usePageTitle(location);
 
   useEffect(() => {
     const checkAuth = async () => {
