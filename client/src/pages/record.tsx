@@ -127,6 +127,8 @@ export default function RecordPage() {
   const mediaRecorderOptionsRef = useRef<MediaRecorderOptions | null>(null);
   const recordingIdRef = useRef<string | null>(null); // ID записи для IndexedDB
   const chunkIndexRef = useRef<number>(0); // Счетчик chunks для IndexedDB
+  /** Финальный blob, собранный из памяти при остановке (полный файл; избегаем гонки с IndexedDB и битый MP4) */
+  const finalBlobRef = useRef<Blob | null>(null);
 
   // Анализ звука в реальном времени
   useEffect(() => {
@@ -201,7 +203,8 @@ export default function RecordPage() {
     setSavedRecording(null);
     chunkIndexRef.current = 0;
     audioChunksRef.current = [];
-    
+    finalBlobRef.current = null;
+
     // Останавливаем медиа-потоки, если они были открыты
     if (mediaStreamRef.current) {
       mediaStreamRef.current.getTracks().forEach(track => track.stop());
@@ -275,7 +278,8 @@ export default function RecordPage() {
         
         // Используем тот же recordingId и продолжаем с того же chunkIndex
         // audioChunksRef.current уже содержит предыдущие chunks
-        
+        finalBlobRef.current = null; // следующий «финальный» blob будет после следующей остановки
+
         mediaRecorder.ondataavailable = async (event) => {
           if (event.data.size > 0) {
             // Сохраняем в память
@@ -397,38 +401,32 @@ export default function RecordPage() {
       // Определяем поддерживаемый MIME тип с приоритетом по совместимости и качеству
       // 
       // Приоритет форматов для записи:
-      // 1. audio/mp4 (AAC) - ПРИОРИТЕТ: лучшая совместимость для воспроизведения (Safari, iOS, все браузеры)
-      // 2. audio/webm;codecs=opus - отличное качество, хорошая поддержка (Chrome, Firefox, Edge)
+      // 1. audio/mp4 (AAC) - лучшая совместимость (Safari, iOS, многие браузеры)
+      // 2. audio/webm;codecs=opus - отличное качество (Chrome, Firefox, Edge)
       // 3. audio/ogg;codecs=opus - хорошее качество (Firefox)
-      // 4. audio/webm - базовый WebM формат (fallback)
-      // 5. audio/wav - универсальный, но большой размер (последний fallback)
+      // 4. audio/mp3 - хорошая совместимость; в браузерах поддержка редко (лицензии)
+      // 5. audio/webm - базовый WebM (fallback)
+      // 6. audio/wav - последний fallback, большой размер
       
       let mimeType = 'audio/webm'; // fallback по умолчанию
       let preferredFormat = 'webm';
       
-      // Проверяем поддержку форматов в порядке приоритета
-      // ПРИОРИТЕТ 1: MP4 (AAC) - лучшая совместимость для воспроизведения
       if (MediaRecorder.isTypeSupported('audio/mp4')) {
-        // MP4 (AAC) - поддерживается в Safari, iOS, и большинстве браузеров
-        // Идеален для воспроизведения на всех устройствах
         mimeType = 'audio/mp4';
         preferredFormat = 'mp4';
       } else if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
-        // WebM с Opus codec - отличное качество при хорошем сжатии
-        // Поддерживается в Chrome, Firefox, Edge, Opera
         mimeType = 'audio/webm;codecs=opus';
         preferredFormat = 'webm';
       } else if (MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) {
-        // OGG с Opus - хорошее качество
-        // Поддерживается в Firefox
         mimeType = 'audio/ogg;codecs=opus';
         preferredFormat = 'ogg';
+      } else if (MediaRecorder.isTypeSupported('audio/mp3')) {
+        mimeType = 'audio/mp3';
+        preferredFormat = 'mp3';
       } else if (MediaRecorder.isTypeSupported('audio/webm')) {
-        // Базовый WebM формат (fallback)
         mimeType = 'audio/webm';
         preferredFormat = 'webm';
       } else if (MediaRecorder.isTypeSupported('audio/wav')) {
-        // WAV - универсальный формат, но большой размер (последний fallback)
         mimeType = 'audio/wav';
         preferredFormat = 'wav';
       }
@@ -560,35 +558,33 @@ export default function RecordPage() {
     mediaRecorderRef.current.stop();
 
     try {
-      // Ждем окончания записи
+      // Ждем окончания записи (onstop вызывается после последнего ondataavailable)
       await stopPromise;
 
-      // Пытаемся собрать Blob из IndexedDB (более надежно)
-      // Если не получилось, используем chunks из памяти
-      let audioBlob: Blob | null = null;
-      
-      if (recordingIdRef.current) {
-        audioBlob = await buildAudioBlob(recordingIdRef.current);
+      // Собираем финальный Blob из памяти — на этом моменте все чанки уже есть в audioChunksRef.
+      // Не полагаемся на IndexedDB здесь: последний чанк мог ещё не успеть записаться,
+      // из‑за чего получался обрезанный/битый MP4 и ошибка ffmpeg (trex, tfhd, invalid header).
+      const mimeType = mediaRecorderRef.current?.mimeType || 'audio/webm';
+      const blobFromMemory = new Blob(audioChunksRef.current, { type: mimeType });
+
+      if (blobFromMemory.size === 0) {
+        // Fallback: если в памяти пусто (редкий кейс), пробуем IndexedDB
+        const blobFromIdb = recordingIdRef.current ? await buildAudioBlob(recordingIdRef.current) : null;
+        if (!blobFromIdb || blobFromIdb.size === 0) {
+          throw new Error('Запись пуста');
+        }
+        finalBlobRef.current = blobFromIdb;
+      } else {
+        finalBlobRef.current = blobFromMemory;
       }
-      
-      // Fallback на chunks из памяти, если IndexedDB не сработал
-      if (!audioBlob || audioBlob.size === 0) {
-        audioBlob = new Blob(audioChunksRef.current, { 
-        type: mediaRecorderRef.current?.mimeType || 'audio/webm' 
-      });
-      }
-      
-      // НЕ очищаем chunks - они нужны для продолжения записи
+
+      const audioBlob = finalBlobRef.current;
       const chunksSize = audioChunksRef.current.length;
-      
-      if (audioBlob.size === 0) {
-        throw new Error('Запись пуста');
-      }
 
       // Логируем информацию о файле для отладки
       const sizeMB = (audioBlob.size / (1024 * 1024)).toFixed(2);
       const durationMinutes = (duration / 60).toFixed(1);
-      
+
       console.log('Recording paused:', {
         size: `${sizeMB} MB`,
         duration: `${duration} seconds (${durationMinutes} minutes)`,
@@ -650,7 +646,13 @@ export default function RecordPage() {
     const type = consultationType;
 
     try {
-      const audioBlob = await buildAudioBlob(recordingId);
+      // Используем blob, собранный при остановке из памяти (полный файл), чтобы избежать битого MP4.
+      // Fallback на IndexedDB — для фоновой отправки после перезагрузки страницы.
+      let audioBlob: Blob | null =
+        finalBlobRef.current && recordingIdRef.current === recordingId
+          ? finalBlobRef.current
+          : await buildAudioBlob(recordingId);
+
       if (!audioBlob || audioBlob.size === 0) {
         throw new Error('Не удалось собрать аудиофайл');
       }
@@ -673,6 +675,8 @@ export default function RecordPage() {
 
       // Сразу отправляем на сервер
       const response = await consultationsApi.uploadConsultation(patientId, audioBlob, type);
+
+      finalBlobRef.current = null;
       const consultationId = String(response.id);
 
       // Удаляем локальную запись, чтобы фоновый процесс не отправлял её повторно
@@ -717,6 +721,7 @@ export default function RecordPage() {
       setConsultationType(null);
       recordingIdRef.current = null;
       setSavedRecording(null);
+      finalBlobRef.current = null;
 
       queryClient.invalidateQueries({ queryKey: ['consultations'] });
       setTimeout(() => setLocation('/history'), 500);
@@ -749,7 +754,8 @@ export default function RecordPage() {
       }
       recordingIdRef.current = null;
     }
-    
+
+    finalBlobRef.current = null;
     audioChunksRef.current = [];
     chunkIndexRef.current = 0;
     setIsRecording(false);
