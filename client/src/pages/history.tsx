@@ -1,6 +1,6 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Link } from 'wouter';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useOnline } from '@/hooks/use-online';
 import { Layout } from '@/components/layout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { consultationsApi } from '@/lib/api/consultations';
 import { patientsApi } from '@/lib/api/patients';
 import { ConsultationProcessingStatus, ConsultationType } from '@/lib/api/types';
-import type { ConsultationResponse, ConsultationProperty } from '@/lib/api/types';
+import type { ConsultationResponse, ConsultationProperty, PatientResponse } from '@/lib/api/types';
 import { Search, Filter, ArrowUpRight, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -37,6 +37,7 @@ export default function HistoryPage() {
   const [localRecordings, setLocalRecordings] = useState<RecordingMetadata[]>([]);
   const queryClient = useQueryClient();
   const { isOffline } = useOnline();
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
   // Загрузка локальных записей из IndexedDB
   useEffect(() => {
@@ -67,94 +68,82 @@ export default function HistoryPage() {
     return () => clearInterval(interval);
   }, [queryClient]);
 
-  // Загрузка списка консультаций с автоматической проверкой статуса
-  const { data: consultations = [], isLoading, error } = useQuery({
-    queryKey: ['consultations', 'all'],
-    queryFn: () => consultationsApi.get({
-      pageNumber: 1,
-      pageSize: 100, // Загружаем достаточно много для истории
-      order: '-createdAt', // Сначала новые (по дате создания в убывающем порядке)
-      // Не отправляем clientIds, чтобы получить все консультации
-    }),
-    // Сохраняем createdAt из предыдущего состояния при обновлении
-    select: (data) => {
-      const previousData = queryClient.getQueryData<ConsultationResponse[]>(['consultations', 'all']);
-      const previousMap = new Map<string | number, ConsultationResponse>();
-      
-      if (previousData) {
-        previousData.forEach(c => {
-          if (c.id && c.createdAt) {
-            previousMap.set(c.id, c);
-          }
-        });
-      }
-      
-      return data.map(c => {
-        const previous = previousMap.get(c.id);
-        const newCreatedAt = c.createdAt;
-        const isValidNewCreatedAt = newCreatedAt && !isNaN(new Date(newCreatedAt).getTime());
-        
-        if (isValidNewCreatedAt) {
-          return c;
-        }
-        
-        if (previous?.createdAt) {
-          const previousCreatedAt = previous.createdAt;
-          const isValidPreviousCreatedAt = previousCreatedAt && !isNaN(new Date(previousCreatedAt).getTime());
-          
-          if (isValidPreviousCreatedAt) {
-            return {
-              ...c,
-              createdAt: previousCreatedAt,
-            };
-          }
-        }
-        
-        return c;
-      });
-    },
-    // В оффлайн режиме не пытаемся загружать данные с сервера
-    enabled: !isOffline, // Отключаем запрос, если нет интернета
-    // Не показываем ошибку как критичную, если есть локальные записи
-    retry: (failureCount, error) => {
-      // Не повторяем запрос, если нет интернета
-      if (isOffline) return false;
-      // Пробуем повторить один раз только если есть интернет
-      return failureCount < 1;
-    },
-    retryDelay: 2000, // Через 2 секунды
-    // Автоматически обновляем список, если есть консультации в обработке
+  const CONSULTATIONS_PAGE_SIZE = 10;
+
+  // Постраничная загрузка консультаций (подгрузка при прокрутке)
+  const {
+    data: consultationsData,
+    isLoading,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: ['consultations', 'infinite'],
+    queryFn: ({ pageParam }) =>
+      consultationsApi.getConsultationsPage({
+        pageNumber: pageParam,
+        pageSize: CONSULTATIONS_PAGE_SIZE,
+        order: '-createdAt',
+      }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, allPages) =>
+      lastPage.hasNext ? allPages.length + 1 : undefined,
+    enabled: !isOffline,
+    retry: (failureCount) => !isOffline && failureCount < 1,
+    retryDelay: 2000,
     refetchInterval: (query) => {
-      const data = query.state.data as ConsultationResponse[] | undefined;
-      if (data && data.length > 0) {
-        // Проверяем, есть ли консультации в статусе обработки
-        const hasProcessingConsultations = data.some(c => {
-          const status = c.processingStatus ?? 
-                        (c.status as ConsultationProcessingStatus) ?? 
-                        ConsultationProcessingStatus.None;
-          return status === ConsultationProcessingStatus.InProgress || 
-                 status === ConsultationProcessingStatus.None;
-        });
-        
-        // Если есть консультации в обработке, проверяем каждые 5 секунд
-        if (hasProcessingConsultations) {
-          return 5000; // 5 секунд
-        }
-      }
-      
-      // Также проверяем, если есть локальные записи, ожидающие отправки
-      if (localRecordings.length > 0) {
-        return 5000; // 5 секунд
-      }
-      
-      return false; // Если все консультации готовы, не проверяем
+      const data = query.state.data;
+      const pages = data?.pages ?? [];
+      const allConsultations = pages.flatMap(p => p.data);
+      const hasProcessing = allConsultations.some(c => {
+        const status = c.processingStatus ?? (c.status as ConsultationProcessingStatus) ?? ConsultationProcessingStatus.None;
+        return status === ConsultationProcessingStatus.InProgress || status === ConsultationProcessingStatus.None;
+      });
+      if (hasProcessing && pages.length <= 3) return 5000;
+      if (localRecordings.length > 0) return 5000;
+      return false;
     },
-    refetchOnWindowFocus: true, // Обновляем при возврате на вкладку
-    // В оффлайн режиме не пытаемся обновлять данные
-    refetchOnReconnect: true, // Обновляем при восстановлении соединения
-    // Не показываем ошибку как критичную - позволяем работать в оффлайн режиме
-    throwOnError: false, // Не выбрасываем ошибку, позволяем работать с локальными данными
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    throwOnError: false,
   });
+
+  // Собираем консультации из всех страниц и сохраняем createdAt из предыдущего кэша
+  const consultations = useMemo(() => {
+    const raw = consultationsData?.pages.flatMap(p => p.data) ?? [];
+    const previousData = queryClient.getQueryData<{ pages: { data: ConsultationResponse[] }[] }>(['consultations', 'infinite']);
+    const previousMap = new Map<string | number, ConsultationResponse>();
+    if (previousData?.pages) {
+      previousData.pages.flatMap(p => p.data).forEach(c => {
+        if (c.id && c.createdAt) previousMap.set(c.id, c);
+      });
+    }
+    return raw.map(c => {
+      const previous = previousMap.get(c.id);
+      const newCreatedAt = c.createdAt;
+      if (newCreatedAt && !isNaN(new Date(newCreatedAt).getTime())) return c;
+      if (previous?.createdAt && !isNaN(new Date(previous.createdAt).getTime())) {
+        return { ...c, createdAt: previous.createdAt };
+      }
+      return c;
+    });
+  }, [consultationsData, queryClient]);
+
+  // Подгрузка следующей страницы при прокрутке до конца списка
+  useEffect(() => {
+    if (!hasNextPage || isFetchingNextPage || isOffline) return;
+    const el = loadMoreRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) fetchNextPage();
+      },
+      { rootMargin: '200px', threshold: 0.1 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage, isOffline]);
 
   // Собираем уникальные clientId из консультаций, у которых нет patientName
   const clientIdsToLoad = useMemo(() => {
@@ -185,7 +174,7 @@ export default function HistoryPage() {
   // Создаем мапу пациентов по ID
   const patientsMap = useMemo(() => {
     const map = new Map<string | number, { firstName: string; lastName: string }>();
-    patientsData.forEach(patient => {
+    (patientsData as (PatientResponse | null)[]).forEach((patient: PatientResponse | null) => {
       if (patient) {
         map.set(patient.id, {
           firstName: patient.firstName,
@@ -650,6 +639,17 @@ export default function HistoryPage() {
               </Link>
             );
           })}
+
+          {/* Сторожевой элемент для подгрузки следующей страницы при прокрутке */}
+          {hasNextPage && !isLoading && (
+            <div ref={loadMoreRef} className="flex justify-center py-6">
+              {isFetchingNextPage ? (
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              ) : (
+                <span className="text-sm text-muted-foreground" />
+              )}
+            </div>
+          )}
 
           {!isLoading && !error && filteredConsultations.length === 0 && (
             <div className="text-center py-20">

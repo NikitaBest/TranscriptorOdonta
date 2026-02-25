@@ -237,6 +237,45 @@ export const consultationsApi = {
   },
 
   /**
+   * Получение одной страницы консультаций (для постраничной подгрузки).
+   * @returns { data, hasNext } — данные страницы и флаг «есть ли ещё страницы»
+   */
+  async getConsultationsPage(params: {
+    pageNumber: number;
+    pageSize: number;
+    order?: string;
+    clientIds?: (string | number)[];
+  }): Promise<{ data: ConsultationResponse[]; hasNext: boolean }> {
+    const pageSize = params.pageSize ?? 20;
+    const queryParams = new URLSearchParams();
+    queryParams.append('pageNumber', String(params.pageNumber));
+    queryParams.append('pageSize', String(pageSize));
+    if (params.order) queryParams.append('order', params.order);
+    if (params.clientIds?.length) params.clientIds.forEach(id => queryParams.append('clientIds', String(id)));
+
+    const response = await ApiClient.get<ApiResponse<GetConsultationsResponse | ConsultationResponse[]>>(
+      `consultation/get?${queryParams.toString()}`,
+      { requireAuth: true }
+    );
+
+    let data: ConsultationResponse[] = [];
+    let hasNext = false;
+
+    if (response.isSuccess && response.value) {
+      if (Array.isArray(response.value)) {
+        data = response.value.map(c => this.normalizeConsultation(c));
+        hasNext = data.length === pageSize;
+      } else if ('data' in response.value && Array.isArray(response.value.data)) {
+        data = response.value.data.map(c => this.normalizeConsultation(c));
+        const raw = response.value as GetConsultationsResponse;
+        hasNext = raw.hasNext ?? data.length === pageSize;
+      }
+    }
+
+    return { data, hasNext };
+  },
+
+  /**
    * Обновление свойства консультации
    * PATCH /consultation/property
    */
