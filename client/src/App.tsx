@@ -7,10 +7,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuthRefresh } from "@/hooks/use-auth-refresh";
 import { useOnline } from "@/hooks/use-online";
-import type { ApiError } from "@/lib/api/types";
 import { useBackgroundUpload } from "@/hooks/use-background-upload";
 import { ApiClient } from "@/lib/api/client";
-import { authApi } from "@/lib/api/auth";
 import { Loader2, WifiOff } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import NotFound from "@/pages/not-found";
@@ -33,6 +31,22 @@ import SettingsPage from "@/pages/settings";
 
 // Публичные маршруты, которые не требуют авторизации
 const PUBLIC_ROUTES = ['/auth', '/register', '/share', '/confirm-email', '/forgot-password', '/reset-password'];
+
+// Вспомогательная функция для извлечения exp (в мс) из JWT токена
+function getTokenExpMs(token: string | null): number | null {
+  if (!token) return null;
+  try {
+    const parts = token.split('.');
+    if (parts.length < 2) return null;
+    const payload = JSON.parse(
+      atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'))
+    );
+    if (!payload || typeof payload.exp !== 'number') return null;
+    return payload.exp * 1000;
+  } catch {
+    return null;
+  }
+}
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
@@ -66,59 +80,28 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // Проверяем валидность токена через API (используем refresh-token, так как /auth/me может не существовать)
-      try {
-        // Пробуем обновить токен - если токен валиден, это сработает
-        await authApi.refreshToken();
-        // Токен валиден
-        setIsAuthenticated(true);
-        
-        // Если пользователь на странице авторизации/регистрации или на главной, перенаправляем на дашборд
-        if (location === '/' || location === '/auth' || location === '/register') {
-          setLocation('/dashboard');
-        }
-      } catch (error) {
-        // Проверяем тип ошибки
-        const apiError = error as ApiError;
-        
-        // Если это сетевая ошибка (нет интернета) - разрешаем работу в оффлайн режиме
-        // Пользователь остается авторизованным, если есть токен
-        if (apiError.status === 0 || 
-            (error instanceof Error && (
-              error.message.includes('Failed to fetch') || 
-              error.message.includes('network') ||
-              error.message.includes('ERR_INTERNET_DISCONNECTED')
-            ))) {
-          console.warn('Token validation failed due to network error. Allowing offline mode:', error);
-          // Разрешаем работу в оффлайн режиме - токен остается, пользователь остается авторизованным
-          setIsAuthenticated(true);
-          
-          // Если пользователь на странице авторизации/регистрации, перенаправляем на дашборд
-          if (location === '/' || location === '/auth' || location === '/register') {
-            setLocation('/dashboard');
-          }
-        } else if (apiError.status === 401) {
-          // Токен невалиден или истек (401 Unauthorized)
-          console.error('Token validation failed: Unauthorized (401)', error);
-          ApiClient.removeAuthToken();
-          setIsAuthenticated(false);
-          
-          // Перенаправляем на авторизацию, если не на публичной странице
-          if (location !== '/auth' && location !== '/register') {
-            setLocation('/auth');
-          }
-        } else {
-          // Другие ошибки (500, 503 и т.д.) - разрешаем работу, возможно временная проблема сервера
-          console.warn('Token validation failed with non-auth error. Allowing access:', error);
-          setIsAuthenticated(true);
-          
-          // Если пользователь на странице авторизации/регистрации, перенаправляем на дашборд
-          if (location === '/' || location === '/auth' || location === '/register') {
-            setLocation('/dashboard');
-          }
-        }
-      } finally {
+      // Локально проверяем срок жизни токена по exp
+      const expMs = getTokenExpMs(token);
+      const now = Date.now();
+
+      if (expMs && now >= expMs) {
+        // Токен уже истёк — удаляем и уводим на авторизацию
+        ApiClient.removeAuthToken();
+        setIsAuthenticated(false);
         setIsChecking(false);
+        if (location !== '/auth' && location !== '/register') {
+          setLocation('/auth');
+        }
+        return;
+      }
+
+      // Токен есть и по exp ещё жив — считаем пользователя авторизованным без запроса на бэкенд
+      setIsAuthenticated(true);
+      setIsChecking(false);
+
+      // Если пользователь на странице авторизации/регистрации или на главной, перенаправляем на дашборд
+      if (location === '/' || location === '/auth' || location === '/register') {
+        setLocation('/dashboard');
       }
     };
 

@@ -3,11 +3,33 @@ import { authApi } from '@/lib/api/auth';
 import { ApiClient } from '@/lib/api/client';
 
 /**
- * Интервал обновления токена (в миллисекундах)
- * Обновляем токен каждые 14 минут (840000 мс)
- * Обычно JWT токены живут 15 минут, обновляем чуть раньше
+ * Интервал проверки необходимости обновить токен (в миллисекундах).
+ * Это не «жёсткий» интервал refresh, а интервал, с которым мы смотрим,
+ * не подошёл ли токен к окончанию срока действия.
  */
-const REFRESH_INTERVAL = 14 * 60 * 1000; // 14 минут
+const REFRESH_CHECK_INTERVAL = 10 * 60 * 1000; // каждые 10 минут
+
+/**
+ * За сколько времени до истечения токена начинать его обновлять.
+ * Например, за 1 час до exp.
+ */
+const REFRESH_MARGIN_MS = 60 * 60 * 1000; // 1 час
+
+/**
+ * Извлекает exp (Unix timestamp в секундах) из JWT токена.
+ */
+function getTokenExpMs(token: string | null): number | null {
+  if (!token) return null;
+  try {
+    const parts = token.split('.');
+    if (parts.length < 2) return null;
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+    if (!payload || typeof payload.exp !== 'number') return null;
+    return payload.exp * 1000;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Хук для автоматического обновления JWT токена
@@ -26,10 +48,19 @@ export function useAuthRefresh() {
       return;
     }
 
-    // Функция для обновления токена
-    const refreshToken = async () => {
+    // Функция, которая по exp токена решает, нужно ли его сейчас обновлять
+    const maybeRefreshToken = async () => {
       // Предотвращаем параллельные запросы
       if (isRefreshingRef.current) {
+        return;
+      }
+
+      const currentToken = ApiClient.getAuthToken();
+      const expMs = getTokenExpMs(currentToken);
+      const now = Date.now();
+
+      if (expMs && now < expMs - REFRESH_MARGIN_MS) {
+        // До истечения ещё больше часа — не дергаем refresh
         return;
       }
 
@@ -51,29 +82,21 @@ export function useAuthRefresh() {
       }
     };
 
-    // НЕ обновляем токен сразу при монтировании - он еще свежий после авторизации
-    // Ждем минимум 5 минут перед первым обновлением, затем обновляем каждые 14 минут
-    const FIRST_REFRESH_DELAY = 5 * 60 * 1000; // 5 минут
-    
-    const firstRefreshTimeout = setTimeout(() => {
-      refreshToken();
-      // После первого обновления устанавливаем интервал
-      intervalRef.current = setInterval(refreshToken, REFRESH_INTERVAL);
-    }, FIRST_REFRESH_DELAY);
+    // НЕ обновляем токен сразу при монтировании — он свежий после логина.
+    // Через 5 минут начинаем периодически проверять, не подошёл ли он к exp.
+    const FIRST_CHECK_DELAY = 5 * 60 * 1000; // 5 минут
+
+    const firstCheckTimeout = setTimeout(() => {
+      maybeRefreshToken();
+      // После первой проверки запускаем периодические проверки
+      intervalRef.current = setInterval(maybeRefreshToken, REFRESH_CHECK_INTERVAL);
+    }, FIRST_CHECK_DELAY);
 
     // Очистка при размонтировании
     return () => {
-      if (firstRefreshTimeout) {
-        clearTimeout(firstRefreshTimeout);
+      if (firstCheckTimeout) {
+        clearTimeout(firstCheckTimeout);
       }
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    };
-
-    // Очистка при размонтировании
-    return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
@@ -81,46 +104,6 @@ export function useAuthRefresh() {
     };
   }, []); // Запускаем только при монтировании
 
-  // Также обновляем токен при возврате фокуса на вкладку (но не сразу, а через небольшую задержку)
-  useEffect(() => {
-    let visibilityTimeout: NodeJS.Timeout | null = null;
-    
-    const handleVisibilityChange = async () => {
-      if (document.visibilityState === 'visible') {
-        const token = ApiClient.getAuthToken();
-        if (token && !isRefreshingRef.current) {
-          // Не обновляем сразу, ждем немного (чтобы не было слишком частых запросов)
-          if (visibilityTimeout) {
-            clearTimeout(visibilityTimeout);
-          }
-          
-          visibilityTimeout = setTimeout(async () => {
-            try {
-              isRefreshingRef.current = true;
-              await authApi.refreshToken();
-              console.log('[Auth] Token refreshed on visibility change');
-            } catch (error) {
-              console.error('[Auth] Failed to refresh token on visibility change:', error);
-              // Не удаляем токен при ошибке - может быть временная проблема
-              const apiError = error as { status?: number };
-              if (apiError.status === 401) {
-                ApiClient.removeAuthToken();
-              }
-            } finally {
-              isRefreshingRef.current = false;
-            }
-          }, 2000); // Ждем 2 секунды после возврата фокуса
-        }
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      if (visibilityTimeout) {
-        clearTimeout(visibilityTimeout);
-      }
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, []);
+  // При переходе по вкладкам refresh не вызываем — достаточно проверки по интервалу (раз в 10 мин, только если до exp < 1 ч)
 }
 
