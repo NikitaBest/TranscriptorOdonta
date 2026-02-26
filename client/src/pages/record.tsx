@@ -252,7 +252,7 @@ export default function RecordPage() {
       });
       return;
     }
-
+    
     if (!consultationType) {
       toast({
         title: "Выберите тип консультации",
@@ -260,6 +260,43 @@ export default function RecordPage() {
         variant: "destructive"
       });
       return;
+    }
+
+    // Проверяем поддержку и текущее состояние доступа к микрофону
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      toast({
+        title: "Микрофон не поддерживается",
+        description: "Ваш браузер не поддерживает запись звука. Попробуйте другой браузер или устройство.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Если есть Permissions API — подскажем пользователю, что нужно выдать доступ
+    try {
+      const anyNavigator = navigator as any;
+      if (anyNavigator.permissions?.query) {
+        const result = await anyNavigator.permissions.query({ name: 'microphone' });
+
+        if (result.state === 'denied') {
+          toast({
+            title: "Нет доступа к микрофону",
+            description: "Доступ к микрофону запрещён в настройках браузера. Разрешите доступ и попробуйте снова.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        if (result.state === 'prompt') {
+          toast({
+            title: "Разрешите доступ к микрофону",
+            description: "Сейчас браузер покажет системное окно. Пожалуйста, нажмите «Разрешить».",
+            variant: "default",
+          });
+        }
+      }
+    } catch (e) {
+      console.warn("Не удалось проверить разрешение на микрофон через Permissions API", e);
     }
 
     // Если продолжаем запись (status === 'stopped' и есть recordingId)
