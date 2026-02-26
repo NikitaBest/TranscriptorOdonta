@@ -11,6 +11,8 @@ import { ru } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
+const AI_REPORT_KEY = 'calgary_сambridge_report'; // AI‑оценка (Калгари–Кембридж) — не показываем в PDF и на публичной странице
+
 export default function ShareConsultationPage() {
   const { id, token } = useParams();
 
@@ -121,7 +123,7 @@ export default function ShareConsultationPage() {
         return section;
       };
 
-      // Добавляем секции на основе properties, если они есть
+      // Добавляем секции на основе properties (без AI‑оценки Калгари–Кембридж)
       if (consultation.properties && consultation.properties.length > 0) {
         const baseKeys = new Set(['complaints', 'objective', 'treatment_plan', 'summary', 'comment']);
 
@@ -134,6 +136,7 @@ export default function ShareConsultationPage() {
         };
 
         consultation.properties
+          .filter((p) => p.parent?.key !== AI_REPORT_KEY)
           .slice()
           .sort((a, b) => {
             const orderA = typeof a.parent?.order === 'number' ? a.parent!.order : 0;
@@ -342,10 +345,11 @@ export default function ShareConsultationPage() {
           </div>
         </div>
 
-        {/* Report Content */}
+        {/* Report Content (без AI‑оценки Калгари–Кембридж) */}
         <div className="space-y-6">
           {consultation.properties && consultation.properties.length > 0 ? (
             consultation.properties
+              .filter((p) => p.parent?.key !== AI_REPORT_KEY)
               .slice()
               .sort((a, b) => {
                 const orderA = typeof a.parent?.order === 'number' ? a.parent!.order : 0;

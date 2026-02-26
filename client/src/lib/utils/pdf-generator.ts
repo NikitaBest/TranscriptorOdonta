@@ -4,6 +4,8 @@ import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import type { ConsultationResponse } from '@/lib/api/types';
 
+const AI_REPORT_KEY = 'calgary_сambridge_report'; // AI‑оценка (Калгари–Кембридж) — не показываем в PDF и на публичной странице
+
 interface ConsultationFields {
   complaints: string;
   objective: string;
@@ -92,6 +94,11 @@ export async function generateConsultationPDF(
     if (consultation.properties && consultation.properties.length > 0) {
       const baseKeys = new Set(['complaints', 'objective', 'treatment_plan', 'summary', 'comment']);
 
+      // Исключаем AI‑оценку (Калгари–Кембридж) из PDF
+      const propertiesForPdf = consultation.properties.filter(
+        (p) => p.parent?.key !== AI_REPORT_KEY
+      );
+
       // Подготовим карту базовых значений с учетом локальных правок
       const baseValues: Record<string, string> = {
         complaints: fields.complaints || consultation.complaints || '',
@@ -101,7 +108,7 @@ export async function generateConsultationPDF(
         comment: fields.comment || consultation.comments || consultation.comment || '',
       };
 
-      consultation.properties
+      propertiesForPdf
         .slice()
         .sort((a, b) => {
           const orderA = typeof a.parent?.order === 'number' ? a.parent!.order : 0;
