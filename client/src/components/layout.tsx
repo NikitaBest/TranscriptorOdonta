@@ -7,6 +7,7 @@ import {
   LogOut,
   MessageCircle,
   Settings,
+  Wallet,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { authApi } from '@/lib/api/auth';
@@ -26,6 +27,7 @@ export function Layout({ children, hideNavigation = false }: LayoutProps) {
     { href: '/dashboard', icon: Users, label: 'Пациенты' },
     { href: '/history', icon: History, label: 'История' },
     { href: '/record', icon: Mic, label: 'Запись' },
+    { href: '/wallet', icon: Wallet, label: 'Кошелёк' },
   ];
 
   const handleLogout = async (e: React.MouseEvent) => {

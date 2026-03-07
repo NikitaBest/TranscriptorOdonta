@@ -4,8 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="защита на подмену заголовок и вкладок">
-      <change beforePath="$PROJECT_DIR$/client/src/pages/record.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/record.tsx" afterDir="false" />
+    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="логика по разрешению микрофона">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/App.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/App.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/components/layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/components/layout.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -88,38 +90,8 @@
       <workItem from="1765479286600" duration="1715000" />
       <workItem from="1767823165119" duration="782000" />
       <workItem from="1767913654752" duration="2491000" />
-    </task>
-    <task id="LOCAL-00069" summary="корректировка пдф и публичной страницы">
-      <option name="closed" value="true" />
-      <created>1770753914131</created>
-      <option name="number" value="00069" />
-      <option name="presentableId" value="LOCAL-00069" />
-      <option name="project" value="LOCAL" />
-      <updated>1770753914131</updated>
-    </task>
-    <task id="LOCAL-00070" summary="отображение инфы в карточке в истории">
-      <option name="closed" value="true" />
-      <created>1770754811549</created>
-      <option name="number" value="00070" />
-      <option name="presentableId" value="LOCAL-00070" />
-      <option name="project" value="LOCAL" />
-      <updated>1770754811549</updated>
-    </task>
-    <task id="LOCAL-00071" summary="фио правильно">
-      <option name="closed" value="true" />
-      <created>1770764424938</created>
-      <option name="number" value="00071" />
-      <option name="presentableId" value="LOCAL-00071" />
-      <option name="project" value="LOCAL" />
-      <updated>1770764424938</updated>
-    </task>
-    <task id="LOCAL-00072" summary="замена и редактиирование иконок в карточки консультации">
-      <option name="closed" value="true" />
-      <created>1770766756399</created>
-      <option name="number" value="00072" />
-      <option name="presentableId" value="LOCAL-00072" />
-      <option name="project" value="LOCAL" />
-      <updated>1770766756399</updated>
+      <workItem from="1772153316556" duration="2000" />
+      <workItem from="1772785492615" duration="3038000" />
     </task>
     <task id="LOCAL-00073" summary="добавление аи рекомендации">
       <option name="closed" value="true" />
@@ -481,17 +453,45 @@
       <option name="project" value="LOCAL" />
       <updated>1771784103277</updated>
     </task>
-    <option name="localTasksCounter" value="118" />
+    <task id="LOCAL-00118" summary="подстраничная загрузка">
+      <option name="closed" value="true" />
+      <created>1771990121587</created>
+      <option name="number" value="00118" />
+      <option name="presentableId" value="LOCAL-00118" />
+      <option name="project" value="LOCAL" />
+      <updated>1771990121587</updated>
+    </task>
+    <task id="LOCAL-00119" summary="смена проверки токена , убран лишние запросы рефреш токен">
+      <option name="closed" value="true" />
+      <created>1772068170629</created>
+      <option name="number" value="00119" />
+      <option name="presentableId" value="LOCAL-00119" />
+      <option name="project" value="LOCAL" />
+      <updated>1772068170629</updated>
+    </task>
+    <task id="LOCAL-00120" summary="не отображать аи реко в публичной странице и скчивании">
+      <option name="closed" value="true" />
+      <created>1772083603293</created>
+      <option name="number" value="00120" />
+      <option name="presentableId" value="LOCAL-00120" />
+      <option name="project" value="LOCAL" />
+      <updated>1772083603293</updated>
+    </task>
+    <task id="LOCAL-00121" summary="логика по разрешению микрофона">
+      <option name="closed" value="true" />
+      <created>1772084736134</created>
+      <option name="number" value="00121" />
+      <option name="presentableId" value="LOCAL-00121" />
+      <option name="project" value="LOCAL" />
+      <updated>1772084736134</updated>
+    </task>
+    <option name="localTasksCounter" value="122" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="блок истории консультации на странице пациента для мобильных экранов" />
-    <MESSAGE value="работа с вкладками для мобилки" />
-    <MESSAGE value="адаптация кнопок на странице настроеек" />
-    <MESSAGE value="изменение блоков на странице пациенты мобилка" />
     <MESSAGE value="работа страница истории переработка карточек под мобилку" />
     <MESSAGE value="работа с аудио на мобилке" />
     <MESSAGE value="после записи переходит на отчет" />
@@ -513,6 +513,10 @@
     <MESSAGE value="отправка заметок правка" />
     <MESSAGE value="обновление версии pwa и вторичная консультация" />
     <MESSAGE value="защита на подмену заголовок и вкладок" />
-    <option name="LAST_COMMIT_MESSAGE" value="защита на подмену заголовок и вкладок" />
+    <MESSAGE value="подстраничная загрузка" />
+    <MESSAGE value="смена проверки токена , убран лишние запросы рефреш токен" />
+    <MESSAGE value="не отображать аи реко в публичной странице и скчивании" />
+    <MESSAGE value="логика по разрешению микрофона" />
+    <option name="LAST_COMMIT_MESSAGE" value="логика по разрешению микрофона" />
   </component>
 </project>
