@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { walletApi } from '@/lib/api/wallet';
-import { Loader2, ChevronLeft, ChevronRight, Receipt, Clock } from 'lucide-react';
+import { Loader2, ChevronLeft, ChevronRight, Receipt, Clock, List } from 'lucide-react';
 
 /** Секунды всегда двумя цифрами (05, 09) */
 function pad2(n: number): string {
@@ -186,6 +186,40 @@ export default function WalletPage() {
             ) : null}
           </CardContent>
         </Card>
+
+        {/* Тарифы */}
+        {tariff.length > 0 && (
+          <Card className="border-border/60 bg-card/70 backdrop-blur-sm rounded-3xl">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg md:text-xl flex items-center gap-2">
+                <List className="w-5 h-5" />
+                Тарифы
+              </CardTitle>
+              <CardDescription>
+                Стоимость минуты зависит от объёма покупки. Чем больше минут — тем выгоднее.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2">
+                {[...tariff]
+                  .sort((a, b) => a.minMinutes - b.minMinutes)
+                  .map((tier) => (
+                    <li
+                      key={tier.minMinutes}
+                      className="flex items-center justify-between gap-4 py-2 px-3 rounded-xl bg-secondary/40"
+                    >
+                      <span className="text-sm md:text-base text-muted-foreground">
+                        от {tier.minMinutes.toLocaleString('ru-RU')} мин
+                      </span>
+                      <span className="text-sm md:text-base font-semibold">
+                        {tier.pricePerMinuteDisplay} ₽/мин
+                      </span>
+                    </li>
+                  ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Калькулятор покупки минут */}
         <Card className="border-border/60 bg-card/70 backdrop-blur-sm rounded-3xl">
