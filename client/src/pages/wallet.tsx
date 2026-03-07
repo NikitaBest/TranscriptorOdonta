@@ -5,11 +5,12 @@ import { ru } from 'date-fns/locale';
 import { Link } from 'wouter';
 import { Layout } from '@/components/layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { walletApi } from '@/lib/api/wallet';
-import { Loader2, ChevronLeft, ChevronRight, Receipt, Clock, List } from 'lucide-react';
+import { Loader2, ChevronLeft, ChevronRight, List } from 'lucide-react';
 
 /** Секунды всегда двумя цифрами (05, 09) */
 function pad2(n: number): string {
@@ -152,6 +153,20 @@ export default function WalletPage() {
           </div>
         </div>
 
+        <Tabs defaultValue="balance" className="w-full">
+          <TabsList className="w-full grid grid-cols-3 h-11 rounded-2xl bg-muted/80 p-1">
+            <TabsTrigger value="balance" className="rounded-xl text-sm font-medium data-[state=active]:shadow">
+              Баланс и оплата
+            </TabsTrigger>
+            <TabsTrigger value="credits" className="rounded-xl text-sm font-medium data-[state=active]:shadow">
+              История пополнений
+            </TabsTrigger>
+            <TabsTrigger value="debits" className="rounded-xl text-sm font-medium data-[state=active]:shadow">
+              История списаний
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="balance" className="mt-6 space-y-6">
         {/* Текущий баланс */}
         <Card className="border-border/60 bg-card/70 backdrop-blur-sm rounded-3xl">
           <CardHeader className="pb-3">
@@ -296,19 +311,16 @@ export default function WalletPage() {
             </p>
           </CardContent>
         </Card>
+          </TabsContent>
 
-        {/* История пополнений */}
-        <Card className="border-border/60 bg-card/70 backdrop-blur-sm rounded-3xl">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg md:text-xl flex items-center gap-2">
-              <Receipt className="w-5 h-5" />
-              История пополнений
-            </CardTitle>
-            <CardDescription>
-              Платежи по пополнению баланса минут.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+          <TabsContent value="credits" className="mt-6">
+        {/* История пополнений — только список */}
+        <div className="rounded-3xl border border-border/60 bg-card/70 backdrop-blur-sm overflow-hidden">
+          <div className="px-4 py-3 border-b border-border/50">
+            <h2 className="text-lg font-display font-bold">История пополнений</h2>
+            <p className="text-sm text-muted-foreground">Платежи по пополнению баланса минут.</p>
+          </div>
+          <div className="p-4">
             {isLoadingPaymentHistory ? (
               <div className="flex items-center gap-2 text-muted-foreground py-6">
                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -369,21 +381,18 @@ export default function WalletPage() {
                 Пока нет платежей. Пополнения появятся здесь после оплаты.
               </p>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
+          </TabsContent>
 
-        {/* История списаний */}
-        <Card className="border-border/60 bg-card/70 backdrop-blur-sm rounded-3xl">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg md:text-xl flex items-center gap-2">
-              <Clock className="w-5 h-5" />
-              История списаний
-            </CardTitle>
-            <CardDescription>
-              Списание минут за расшифровку и обработку консультаций.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+          <TabsContent value="debits" className="mt-6">
+        {/* История списаний — только список */}
+        <div className="rounded-3xl border border-border/60 bg-card/70 backdrop-blur-sm overflow-hidden">
+          <div className="px-4 py-3 border-b border-border/50">
+            <h2 className="text-lg font-display font-bold">История списаний</h2>
+            <p className="text-sm text-muted-foreground">Списание минут за расшифровку и обработку консультаций.</p>
+          </div>
+          <div className="p-4">
             {isLoadingUsageHistory ? (
               <div className="flex items-center gap-2 text-muted-foreground py-6">
                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -456,8 +465,10 @@ export default function WalletPage() {
                 Пока нет списаний. Минуты списываются при обработке консультаций.
               </p>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </Layout>
   );
