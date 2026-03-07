@@ -502,3 +502,130 @@ export interface ApiError {
   errors?: Record<string, string[]>;
 }
 
+// ——— Кошелёк / оплаты (wallet, payments) ———
+
+/**
+ * Баланс тенанта (ответ GET /tenant/balance)
+ */
+export interface WalletBalanceResponse {
+  /** Доступное количество секунд для обработки консультаций */
+  availableSeconds: number;
+  /** Доступное количество минут */
+  availableMinutes: number;
+}
+
+/**
+ * Запрос на инициацию платежа (покупка минут). Тело POST /tenant/balance/payment/initiate
+ */
+export interface CreatePaymentRequest {
+  /** Количество минут к покупке (на бэкенд уходит как minutesToPurchase) */
+  minutes: number;
+}
+
+/**
+ * Ответ инициации платежа. Значение value в ответе POST /tenant/balance/payment/initiate
+ */
+export interface InitiatePaymentResponse {
+  success: boolean;
+  errorCode?: string;
+  message?: string;
+  paymentId: string;
+  id: string;
+  amount: number;
+  paymentURL: string;
+}
+
+/**
+ * Элемент истории пополнений/списаний
+ */
+export interface WalletTransactionItem {
+  id: string;
+  type: 'credit' | 'debit'; // пополнение / списание
+  minutes: number;
+  amountRub?: number;
+  description?: string;
+  createdAt: string; // ISO
+}
+
+/**
+ * История операций по кошельку
+ */
+export interface WalletHistoryResponse {
+  items: WalletTransactionItem[];
+  total?: number;
+}
+
+/** Элемент истории платежей (пополнения баланса). Ответ GET /tenant/balance/payment-history */
+export interface PaymentHistoryItem {
+  id: string;
+  createdAt: string; // ISO
+  tenantId: string;
+  amount: number; // сумма в рублях
+  secondsPurchased: number;
+  pricePerSecond: number;
+  externalProvider?: string;
+  externalPaymentId?: string;
+  status: number;
+  externalStatus?: string;
+  paidAt?: string; // ISO, когда оплачено
+}
+
+/** Пагинированный ответ истории платежей (value в обёртке isSuccess/error/value) */
+export interface PaymentHistoryResponse {
+  currentPage: number;
+  totalPages: number;
+  pageSize: number;
+  totalCount: number;
+  hasPrevious: boolean;
+  hasNext: boolean;
+  data: PaymentHistoryItem[];
+}
+
+/** Элемент истории списания баланса за консультацию. GET /tenant/balance/usage-history */
+export interface UsageHistoryItem {
+  id: string;
+  createdAt: string; // ISO
+  tenantId: string;
+  consultationId: string;
+  secondsUsed: number;
+  balanceBefore: number;
+  balanceAfter: number;
+  consultation?: {
+    id: string;
+    clientId?: string;
+    client?: { firstName?: string; lastName?: string };
+  };
+}
+
+/** Пагинированный ответ истории списаний (value в обёртке isSuccess/error/value) */
+export interface UsageHistoryResponse {
+  currentPage: number;
+  totalPages: number;
+  pageSize: number;
+  totalCount: number;
+  hasPrevious: boolean;
+  hasNext: boolean;
+  data: UsageHistoryItem[];
+}
+
+/** Уровень тарифа. Элемент ответа GET /tenant/balance/tariff */
+export interface TariffItem {
+  minSeconds: number;
+  minMinutes: number;
+  pricePerSecond: number;
+  pricePerMinuteDisplay: number;
+}
+
+/** Статус платежа. Ответ GET /tenant/balance/payment/{id}/status (поле value) */
+export interface PaymentStatusResponse {
+  id: string;
+  externalPaymentId?: string;
+  status: string;
+  amount: number;
+  success: boolean;
+  errorCode?: string;
+  message?: string;
+  localStatus?: string;
+  externalPaymentStatus?: string;
+}
+

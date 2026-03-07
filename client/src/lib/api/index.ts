@@ -9,4 +9,5 @@ export { authApi } from './auth';
 export { patientsApi } from './patients';
 export { consultationsApi } from './consultations';
 export { userApi } from './user';
+export { walletApi } from './wallet';
 

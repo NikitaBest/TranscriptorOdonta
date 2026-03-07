@@ -1,25 +1,88 @@
 import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { format } from 'date-fns';
+import { ru } from 'date-fns/locale';
+import { Link } from 'wouter';
 import { Layout } from '@/components/layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { walletApi } from '@/lib/api/wallet';
+import { Loader2, ChevronLeft, ChevronRight, Receipt, Clock } from 'lucide-react';
+
+/** Секунды всегда двумя цифрами (05, 09) */
+function pad2(n: number): string {
+  return String(Math.floor(n)).padStart(2, '0');
+}
+
+/** Форматирует доступное время: часы, минуты, секунды (секунды — всегда два знака) */
+function formatBalanceTime(availableSeconds: number): string {
+  const total = Math.max(0, Math.floor(availableSeconds));
+  if (total === 0) return '0 ч 00 мин 00 сек';
+
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+
+  if (h > 0) {
+    return `${h} ч ${pad2(m)} мин ${pad2(s)} сек`;
+  }
+  if (m > 0) {
+    return `${m} мин ${pad2(s)} сек`;
+  }
+  return `${pad2(s)} сек`;
+}
 
 export default function WalletPage() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  // Временный фейковый баланс до подключения бэкенда
-  const [balanceMinutes] = useState<number>(120);
+  const { data: balance, isLoading: isLoadingBalance, error: balanceError } = useQuery({
+    queryKey: ['wallet', 'balance'],
+    queryFn: () => walletApi.getBalance(),
+  });
 
-  // Калькулятор покупки минут
+  const [paymentHistoryPage, setPaymentHistoryPage] = useState(1);
+  const [usageHistoryPage, setUsageHistoryPage] = useState(1);
+  const PAYMENT_HISTORY_PAGE_SIZE = 10;
+  const USAGE_HISTORY_PAGE_SIZE = 10;
+  const { data: paymentHistory, isLoading: isLoadingPaymentHistory } = useQuery({
+    queryKey: ['wallet', 'payment-history', paymentHistoryPage],
+    queryFn: () =>
+      walletApi.getPaymentHistory({
+        pageNumber: paymentHistoryPage,
+        pageSize: PAYMENT_HISTORY_PAGE_SIZE,
+      }),
+  });
+
+  const { data: tariff = [] } = useQuery({
+    queryKey: ['wallet', 'tariff'],
+    queryFn: () => walletApi.getTariff(),
+  });
+
+  const { data: usageHistory, isLoading: isLoadingUsageHistory } = useQuery({
+    queryKey: ['wallet', 'usage-history', usageHistoryPage],
+    queryFn: () =>
+      walletApi.getUsageHistory({
+        pageNumber: usageHistoryPage,
+        pageSize: USAGE_HISTORY_PAGE_SIZE,
+      }),
+  });
+
+  // Калькулятор покупки минут: цена из тарифа (первый уровень или подходящий по minMinutes)
   const [minutesToBuy, setMinutesToBuy] = useState<string>('30');
-
-  // Временная фиксированная цена за минуту
-  const PRICE_PER_MINUTE = 10; // ₽ за минуту (пока захардкожено)
-
   const parsedMinutes = Number(minutesToBuy.replace(',', '.'));
-  const isValidMinutes = !isNaN(parsedMinutes) && parsedMinutes > 0;
-  const totalPrice = isValidMinutes ? parsedMinutes * PRICE_PER_MINUTE : 0;
+  const applicableTier =
+    tariff.length > 0
+      ? [...tariff]
+          .filter((t) => t.minMinutes <= parsedMinutes)
+          .sort((a, b) => b.minMinutes - a.minMinutes)[0] ?? tariff[0]
+      : null;
+  const pricePerMinute = applicableTier?.pricePerMinuteDisplay ?? 10;
+  const minMinutesFromTariff = tariff.length > 0 ? Math.min(...tariff.map((t) => t.minMinutes)) : 0;
+  const isValidMinutes = !isNaN(parsedMinutes) && parsedMinutes > 0 && parsedMinutes >= minMinutesFromTariff;
+  const totalPrice = isValidMinutes ? parsedMinutes * pricePerMinute : 0;
 
   const handleChangeMinutes = (value: string) => {
     // Разрешаем только цифры, точку и запятую
@@ -27,7 +90,9 @@ export default function WalletPage() {
     setMinutesToBuy(cleaned);
   };
 
-  const handlePay = () => {
+  const [isInitiating, setIsInitiating] = useState(false);
+
+  const handlePay = async () => {
     if (!isValidMinutes) {
       toast({
         title: 'Некорректное количество минут',
@@ -37,11 +102,34 @@ export default function WalletPage() {
       return;
     }
 
-    // Здесь позже будет реальный вызов бэкенда/платёжного провайдера
-    toast({
-      title: 'Оплата в разработке',
-      description: `Оплата на ${parsedMinutes} мин. (~${totalPrice.toFixed(0)} ₽) пока недоступна. Скоро здесь появится реальная оплата.`,
-    });
+    setIsInitiating(true);
+    try {
+      const result = await walletApi.createPayment({ minutes: Math.round(parsedMinutes) });
+      if (result.paymentURL) {
+        toast({
+          title: 'Переход к оплате',
+          description: `Сумма ${result.amount} ₽. Вы будете перенаправлены на страницу оплаты.`,
+        });
+        window.location.href = result.paymentURL;
+        return;
+      }
+      if (result.success) {
+        queryClient.invalidateQueries({ queryKey: ['wallet', 'balance'] });
+        queryClient.invalidateQueries({ queryKey: ['wallet', 'payment-history'] });
+        toast({ title: 'Платёж создан', description: result.message || 'Оплата инициирована.' });
+      } else {
+        toast({
+          title: 'Ошибка оплаты',
+          description: result.message || result.errorCode || 'Не удалось инициировать платёж.',
+          variant: 'destructive',
+        });
+      }
+    } catch (err) {
+      const message = (err as { message?: string })?.message || 'Не удалось инициировать платёж.';
+      toast({ title: 'Ошибка', description: message, variant: 'destructive' });
+    } finally {
+      setIsInitiating(false);
+    }
   };
 
   return (
@@ -69,21 +157,33 @@ export default function WalletPage() {
           <CardHeader className="pb-3">
             <CardTitle className="text-lg md:text-xl">Текущий баланс</CardTitle>
             <CardDescription>
-              Это примерный баланс до подключения реального бэкенда.
+              Доступное время для расшифровки и обработки консультаций.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl md:text-4xl font-display font-bold">
-                {balanceMinutes}
-              </span>
-              <span className="text-sm md:text-base text-muted-foreground">
-                минут
-              </span>
-            </div>
-            <p className="mt-2 text-xs md:text-sm text-muted-foreground">
-              В будущем здесь будет реальный баланс, который синхронизируется с сервером.
-            </p>
+            {isLoadingBalance ? (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span className="text-sm">Загрузка баланса...</span>
+              </div>
+            ) : balanceError ? (
+              <p className="text-sm text-destructive">
+                {(balanceError as { message?: string })?.message || 'Не удалось загрузить баланс.'}
+              </p>
+            ) : balance != null ? (
+              <div className="flex flex-col gap-0.5">
+                <div className="flex items-baseline gap-2 flex-wrap">
+                  <span className="text-3xl md:text-4xl font-display font-bold">
+                    {formatBalanceTime(
+                      balance.availableSeconds ?? Math.round((balance.availableMinutes ?? 0) * 60)
+                    )}
+                  </span>
+                </div>
+                <p className="text-xs md:text-sm text-muted-foreground">
+                  Осталось для расшифровки и обработки консультаций
+                </p>
+              </div>
+            ) : null}
           </CardContent>
         </Card>
 
@@ -115,7 +215,9 @@ export default function WalletPage() {
               </div>
               {!isValidMinutes && minutesToBuy.trim() !== '' && (
                 <p className="text-xs text-destructive">
-                  Введите корректное число минут больше нуля.
+                  {minMinutesFromTariff > 0
+                    ? `Минимальное количество минут: ${minMinutesFromTariff}`
+                    : 'Введите корректное число минут больше нуля.'}
                 </p>
               )}
             </div>
@@ -123,7 +225,7 @@ export default function WalletPage() {
             <div className="rounded-2xl bg-secondary/50 border border-border/50 p-3 md:p-4 flex flex-col gap-1.5">
               <div className="flex justify-between text-sm md:text-base">
                 <span className="text-muted-foreground">Цена за 1 минуту</span>
-                <span className="font-medium">{PRICE_PER_MINUTE} ₽</span>
+                <span className="font-medium">{pricePerMinute} ₽</span>
               </div>
               <div className="flex justify-between text-sm md:text-base">
                 <span className="text-muted-foreground">Вы выбрали</span>
@@ -143,14 +245,183 @@ export default function WalletPage() {
               className="w-full h-11 md:h-12 rounded-2xl text-base font-medium"
               size="lg"
               onClick={handlePay}
-              disabled={!isValidMinutes}
+              disabled={!isValidMinutes || isInitiating}
             >
-              Оплатить
+              {isInitiating ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Подготовка оплаты...
+                </>
+              ) : (
+                'Оплатить'
+              )}
             </Button>
 
             <p className="text-xs md:text-sm text-muted-foreground">
-              В ближайшем обновлении здесь появится выбор способа оплаты и история пополнений.
+              В ближайшем обновлении здесь появится выбор способа оплаты.
             </p>
+          </CardContent>
+        </Card>
+
+        {/* История пополнений */}
+        <Card className="border-border/60 bg-card/70 backdrop-blur-sm rounded-3xl">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg md:text-xl flex items-center gap-2">
+              <Receipt className="w-5 h-5" />
+              История пополнений
+            </CardTitle>
+            <CardDescription>
+              Платежи по пополнению баланса минут.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoadingPaymentHistory ? (
+              <div className="flex items-center gap-2 text-muted-foreground py-6">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span className="text-sm">Загрузка истории...</span>
+              </div>
+            ) : paymentHistory && paymentHistory.data.length > 0 ? (
+              <>
+                <ul className="space-y-3">
+                  {paymentHistory.data.map((item) => (
+                    <li
+                      key={item.id}
+                      className="flex flex-wrap items-center justify-between gap-2 py-2 border-b border-border/50 last:border-0"
+                    >
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-sm text-muted-foreground">
+                          {format(new Date(item.createdAt), 'd MMM yyyy, HH:mm', { locale: ru })}
+                        </span>
+                        <span className="text-sm font-medium">
+                          +{Math.round(item.secondsPurchased / 60)} мин · {item.amount} ₽
+                        </span>
+                      </div>
+                      {item.paidAt && (
+                        <span className="text-xs text-muted-foreground">
+                          Оплачено {format(new Date(item.paidAt), 'd MMM yyyy', { locale: ru })}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+                <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/50">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-xl"
+                    disabled={!paymentHistory.hasPrevious}
+                    onClick={() => setPaymentHistoryPage((p) => Math.max(1, p - 1))}
+                  >
+                    <ChevronLeft className="w-4 h-4 mr-1" />
+                    Назад
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    {paymentHistoryPage} из {paymentHistory.totalPages || 1}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-xl"
+                    disabled={!paymentHistory.hasNext}
+                    onClick={() => setPaymentHistoryPage((p) => p + 1)}
+                  >
+                    Далее
+                    <ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground py-6 text-center">
+                Пока нет платежей. Пополнения появятся здесь после оплаты.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* История списаний */}
+        <Card className="border-border/60 bg-card/70 backdrop-blur-sm rounded-3xl">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg md:text-xl flex items-center gap-2">
+              <Clock className="w-5 h-5" />
+              История списаний
+            </CardTitle>
+            <CardDescription>
+              Списание минут за расшифровку и обработку консультаций.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoadingUsageHistory ? (
+              <div className="flex items-center gap-2 text-muted-foreground py-6">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span className="text-sm">Загрузка истории...</span>
+              </div>
+            ) : usageHistory && usageHistory.data.length > 0 ? (
+              <>
+                <ul className="space-y-3">
+                  {usageHistory.data.map((item) => {
+                    const patientName =
+                      item.consultation?.client?.firstName || item.consultation?.client?.lastName
+                        ? [item.consultation.client.firstName, item.consultation.client.lastName].filter(Boolean).join(' ')
+                        : null;
+                    return (
+                      <li
+                        key={item.id}
+                        className="flex flex-wrap items-center justify-between gap-2 py-2 border-b border-border/50 last:border-0"
+                      >
+                        <div className="flex flex-col gap-0.5 min-w-0">
+                          <span className="text-sm text-muted-foreground">
+                            {format(new Date(item.createdAt), 'd MMM yyyy, HH:mm', { locale: ru })}
+                          </span>
+                          <span className="text-sm font-medium">
+                            −{Math.round(item.secondsUsed / 60)} мин
+                            {patientName && (
+                              <span className="text-muted-foreground font-normal"> · {patientName}</span>
+                            )}
+                          </span>
+                        </div>
+                        {item.consultationId ? (
+                          <Link
+                            href={`/consultation/${item.consultationId}`}
+                            className="text-xs text-primary hover:underline shrink-0"
+                          >
+                            К консультации →
+                          </Link>
+                        ) : null}
+                      </li>
+                    );
+                  })}
+                </ul>
+                <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/50">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-xl"
+                    disabled={!usageHistory.hasPrevious}
+                    onClick={() => setUsageHistoryPage((p) => Math.max(1, p - 1))}
+                  >
+                    <ChevronLeft className="w-4 h-4 mr-1" />
+                    Назад
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    {usageHistoryPage} из {usageHistory.totalPages || 1}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-xl"
+                    disabled={!usageHistory.hasNext}
+                    onClick={() => setUsageHistoryPage((p) => p + 1)}
+                  >
+                    Далее
+                    <ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground py-6 text-center">
+                Пока нет списаний. Минуты списываются при обработке консультаций.
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>

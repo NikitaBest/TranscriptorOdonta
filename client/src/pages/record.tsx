@@ -23,6 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { patientsApi } from '@/lib/api/patients';
 import { consultationsApi } from '@/lib/api/consultations';
+import { walletApi } from '@/lib/api/wallet';
 import type { PatientResponse } from '@/lib/api/types';
 import { ConsultationProcessingStatus, ConsultationType } from '@/lib/api/types';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -259,6 +260,28 @@ export default function RecordPage() {
         description: "Перед началом записи необходимо выбрать тип консультации.",
         variant: "destructive"
       });
+      return;
+    }
+
+    // Проверяем баланс минут: при нулевом балансе запись недоступна
+    try {
+      const balance = await walletApi.getBalance();
+      if (balance.availableMinutes <= 0 && balance.availableSeconds <= 0) {
+        toast({
+          title: "Недостаточно минут",
+          description: "Баланс минут равен нулю. Пополните баланс, чтобы начать консультацию.",
+          variant: "destructive",
+        });
+        setLocation("/wallet");
+        return;
+      }
+    } catch (e) {
+      toast({
+        title: "Ошибка проверки баланса",
+        description: "Не удалось проверить баланс. Попробуйте позже или перейдите в кошелёк.",
+        variant: "destructive",
+      });
+      setLocation("/wallet");
       return;
     }
 
