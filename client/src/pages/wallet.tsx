@@ -339,6 +339,36 @@ export default function WalletPage() {
             </p>
           </CardContent>
         </Card>
+
+        {/* Инструкция по балансу */}
+        <Card className="border-dashed border-border/70 bg-card/60 rounded-2xl sm:rounded-3xl">
+          <CardContent className="p-3 sm:p-4 text-xs sm:text-sm text-muted-foreground space-y-1.5">
+            <p>
+              Минуты списываются при{" "}
+              <span className="font-semibold text-foreground">успешной обработке консультации</span>{" "}
+              и при{" "}
+              <span className="font-semibold text-foreground">пересоздании отчёта</span>.
+            </p>
+            <p>
+              Если предыдущая попытка обработки закончилась{" "}
+              <span className="font-semibold text-foreground">ошибкой</span>, повторная отправка{" "}
+              <span className="font-semibold text-foreground">не спишет дополнительные минуты</span>.
+            </p>
+            <p>
+              Баланс может стать{" "}
+              <span className="font-semibold text-foreground">отрицательным</span>. Например, если
+              у вас осталось 20 секунд на балансе, но вы записали консультацию на 5 минут, система
+              спишет полное время записи, и баланс уйдёт в минус.
+            </p>
+            <p>
+              При отрицательном балансе{" "}
+              <span className="font-semibold text-foreground">
+                начать новую запись консультации нельзя
+              </span>
+              — сначала нужно пополнить минуты в разделе «Баланс».
+            </p>
+          </CardContent>
+        </Card>
           </TabsContent>
 
           <TabsContent value="credits" className="mt-4 sm:mt-6">

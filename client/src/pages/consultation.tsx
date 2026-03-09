@@ -1166,6 +1166,13 @@ export default function ConsultationPage() {
                             Все внесенные правки будут удалены и заменены результатами новой обработки.
                           </strong>
                         </p>
+                        <p className="text-xs sm:text-sm text-muted-foreground">
+                          При повторной обработке{" "}
+                          <span className="font-semibold text-foreground">
+                            минуты с баланса списываются так же, как при первой отправке.
+                          </span>{" "}
+                          Если предыдущая попытка завершилась ошибкой обработки, повторная отправка не спишет дополнительные минуты.
+                        </p>
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
