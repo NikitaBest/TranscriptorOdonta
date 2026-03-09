@@ -137,6 +137,17 @@ export function Layout({ children, hideNavigation = false }: LayoutProps) {
             <span className="font-display font-bold text-lg">Odonta AI</span>
           </div>
           <div className="flex items-center gap-2">
+            <Link href="/wallet">
+              <div
+                className={cn(
+                  "flex items-center justify-center w-9 h-9 rounded-full border border-border/70 text-muted-foreground hover:text-foreground hover:border-primary/60 transition-colors",
+                  location === '/wallet' && "border-primary/60"
+                )}
+                aria-label="Баланс"
+              >
+                <Wallet className="w-4 h-4" />
+              </div>
+            </Link>
             <a
               href="https://t.me/odonta_ai_support"
               target="_blank"
@@ -189,21 +200,6 @@ export function Layout({ children, hideNavigation = false }: LayoutProps) {
               </div>
             </Link>
           ))}
-          <Link href="/wallet" className="flex-1">
-            <div 
-              className={cn(
-                "flex flex-col items-center justify-center gap-1 pt-1.5 pb-2 rounded-xl transition-all duration-200",
-                location === '/wallet'
-                  ? "text-primary" 
-                  : "text-muted-foreground"
-              )}
-            >
-              <Wallet className={cn("w-5 h-5", location === '/wallet' && "text-primary")} />
-              <span className={cn("text-[10px] font-medium", location === '/wallet' && "text-primary")}>
-                Баланс
-              </span>
-            </div>
-          </Link>
           <Link href="/settings" className="flex-1">
             <div 
               className={cn(
