@@ -17,22 +17,25 @@ function pad2(n: number): string {
   return String(Math.floor(n)).padStart(2, '0');
 }
 
-/** Форматирует доступное время: часы, минуты, секунды (секунды — всегда два знака) */
+/** Форматирует доступное время: часы, минуты, секунды (секунды — всегда два знака). Поддерживает отрицательный баланс. */
 function formatBalanceTime(availableSeconds: number): string {
-  const total = Math.max(0, Math.floor(availableSeconds));
+  const total = Math.floor(availableSeconds || 0);
   if (total === 0) return '0 ч 00 мин 00 сек';
 
-  const h = Math.floor(total / 3600);
-  const m = Math.floor((total % 3600) / 60);
-  const s = total % 60;
+  const sign = total < 0 ? '−' : '';
+  const abs = Math.abs(total);
+
+  const h = Math.floor(abs / 3600);
+  const m = Math.floor((abs % 3600) / 60);
+  const s = abs % 60;
 
   if (h > 0) {
-    return `${h} ч ${pad2(m)} мин ${pad2(s)} сек`;
+    return `${sign}${h} ч ${pad2(m)} мин ${pad2(s)} сек`;
   }
   if (m > 0) {
-    return `${m} мин ${pad2(s)} сек`;
+    return `${sign}${m} мин ${pad2(s)} сек`;
   }
-  return `${pad2(s)} сек`;
+  return `${sign}${pad2(s)} сек`;
 }
 
 function formatRub(amount: number): string {
