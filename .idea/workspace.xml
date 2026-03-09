@@ -4,11 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="логика по разрешению микрофона">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/App.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/App.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/components/layout.tsx" afterDir="false" />
-    </list>
+    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="адаптация под мобильные экраны кошелька" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -92,46 +88,7 @@
       <workItem from="1767913654752" duration="2491000" />
       <workItem from="1772153316556" duration="2000" />
       <workItem from="1772785492615" duration="3038000" />
-    </task>
-    <task id="LOCAL-00073" summary="добавление аи рекомендации">
-      <option name="closed" value="true" />
-      <created>1770768060477</created>
-      <option name="number" value="00073" />
-      <option name="presentableId" value="LOCAL-00073" />
-      <option name="project" value="LOCAL" />
-      <updated>1770768060477</updated>
-    </task>
-    <task id="LOCAL-00074" summary="добавление если не активна кнопка аи">
-      <option name="closed" value="true" />
-      <created>1770768757783</created>
-      <option name="number" value="00074" />
-      <option name="presentableId" value="LOCAL-00074" />
-      <option name="project" value="LOCAL" />
-      <updated>1770768757783</updated>
-    </task>
-    <task id="LOCAL-00075" summary="если нету телефона у пациента , то не показывать пустое поле">
-      <option name="closed" value="true" />
-      <created>1770782074195</created>
-      <option name="number" value="00075" />
-      <option name="presentableId" value="LOCAL-00075" />
-      <option name="project" value="LOCAL" />
-      <updated>1770782074195</updated>
-    </task>
-    <task id="LOCAL-00076" summary="при редактирование телефон не обязательный , отправлять просто null">
-      <option name="closed" value="true" />
-      <created>1770782599298</created>
-      <option name="number" value="00076" />
-      <option name="presentableId" value="LOCAL-00076" />
-      <option name="project" value="LOCAL" />
-      <updated>1770782599298</updated>
-    </task>
-    <task id="LOCAL-00077" summary=" растягивать поле комментарий при редактировании пациента">
-      <option name="closed" value="true" />
-      <created>1770782915687</created>
-      <option name="number" value="00077" />
-      <option name="presentableId" value="LOCAL-00077" />
-      <option name="project" value="LOCAL" />
-      <updated>1770782915687</updated>
+      <workItem from="1772911644077" duration="5927000" />
     </task>
     <task id="LOCAL-00078" summary="убрать иконку врача">
       <option name="closed" value="true" />
@@ -485,18 +442,53 @@
       <option name="project" value="LOCAL" />
       <updated>1772084736134</updated>
     </task>
-    <option name="localTasksCounter" value="122" />
+    <task id="LOCAL-00122" summary="создание страницы баланса">
+      <option name="closed" value="true" />
+      <created>1772911785031</created>
+      <option name="number" value="00122" />
+      <option name="presentableId" value="LOCAL-00122" />
+      <option name="project" value="LOCAL" />
+      <updated>1772911785031</updated>
+    </task>
+    <task id="LOCAL-00123" summary="связка с бекендом по эндпоинтам">
+      <option name="closed" value="true" />
+      <created>1772915422776</created>
+      <option name="number" value="00123" />
+      <option name="presentableId" value="LOCAL-00123" />
+      <option name="project" value="LOCAL" />
+      <updated>1772915422776</updated>
+    </task>
+    <task id="LOCAL-00124" summary="показ тарифов пользователю">
+      <option name="closed" value="true" />
+      <created>1772917086634</created>
+      <option name="number" value="00124" />
+      <option name="presentableId" value="LOCAL-00124" />
+      <option name="project" value="LOCAL" />
+      <updated>1772917086634</updated>
+    </task>
+    <task id="LOCAL-00125" summary="добавлены вкладки историй в кошелек">
+      <option name="closed" value="true" />
+      <created>1772920440730</created>
+      <option name="number" value="00125" />
+      <option name="presentableId" value="LOCAL-00125" />
+      <option name="project" value="LOCAL" />
+      <updated>1772920440730</updated>
+    </task>
+    <task id="LOCAL-00126" summary="адаптация под мобильные экраны кошелька">
+      <option name="closed" value="true" />
+      <created>1772920745236</created>
+      <option name="number" value="00126" />
+      <option name="presentableId" value="LOCAL-00126" />
+      <option name="project" value="LOCAL" />
+      <updated>1772920745237</updated>
+    </task>
+    <option name="localTasksCounter" value="127" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="работа страница истории переработка карточек под мобилку" />
-    <MESSAGE value="работа с аудио на мобилке" />
-    <MESSAGE value="после записи переходит на отчет" />
-    <MESSAGE value="работа по туду листу" />
-    <MESSAGE value="заметки выше истории" />
     <MESSAGE value="заметки под мобилку" />
     <MESSAGE value="заметки связь с беком" />
     <MESSAGE value="блок о пациенте адаптация мобилка" />
@@ -517,6 +509,11 @@
     <MESSAGE value="смена проверки токена , убран лишние запросы рефреш токен" />
     <MESSAGE value="не отображать аи реко в публичной странице и скчивании" />
     <MESSAGE value="логика по разрешению микрофона" />
-    <option name="LAST_COMMIT_MESSAGE" value="логика по разрешению микрофона" />
+    <MESSAGE value="создание страницы баланса" />
+    <MESSAGE value="связка с бекендом по эндпоинтам" />
+    <MESSAGE value="показ тарифов пользователю" />
+    <MESSAGE value="добавлены вкладки историй в кошелек" />
+    <MESSAGE value="адаптация под мобильные экраны кошелька" />
+    <option name="LAST_COMMIT_MESSAGE" value="адаптация под мобильные экраны кошелька" />
   </component>
 </project>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { Link } from 'wouter';
@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { walletApi } from '@/lib/api/wallet';
-import { Loader2, ChevronLeft, ChevronRight, List } from 'lucide-react';
+import { Loader2, List } from 'lucide-react';
 
 /** Секунды всегда двумя цифрами (05, 09) */
 function pad2(n: number): string {
@@ -35,6 +35,11 @@ function formatBalanceTime(availableSeconds: number): string {
   return `${pad2(s)} сек`;
 }
 
+function formatRub(amount: number): string {
+  const rounded = Math.round(Number(amount) || 0);
+  return new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(rounded);
+}
+
 export default function WalletPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -44,17 +49,18 @@ export default function WalletPage() {
     queryFn: () => walletApi.getBalance(),
   });
 
-  const [paymentHistoryPage, setPaymentHistoryPage] = useState(1);
-  const [usageHistoryPage, setUsageHistoryPage] = useState(1);
   const PAYMENT_HISTORY_PAGE_SIZE = 10;
   const USAGE_HISTORY_PAGE_SIZE = 10;
-  const { data: paymentHistory, isLoading: isLoadingPaymentHistory } = useQuery({
-    queryKey: ['wallet', 'payment-history', paymentHistoryPage],
-    queryFn: () =>
+
+  const paymentHistoryQuery = useInfiniteQuery({
+    queryKey: ['wallet', 'payment-history'],
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) =>
       walletApi.getPaymentHistory({
-        pageNumber: paymentHistoryPage,
+        pageNumber: pageParam,
         pageSize: PAYMENT_HISTORY_PAGE_SIZE,
       }),
+    getNextPageParam: (lastPage, allPages) => (lastPage.hasNext ? allPages.length + 1 : undefined),
   });
 
   const { data: tariff = [] } = useQuery({
@@ -62,13 +68,15 @@ export default function WalletPage() {
     queryFn: () => walletApi.getTariff(),
   });
 
-  const { data: usageHistory, isLoading: isLoadingUsageHistory } = useQuery({
-    queryKey: ['wallet', 'usage-history', usageHistoryPage],
-    queryFn: () =>
+  const usageHistoryQuery = useInfiniteQuery({
+    queryKey: ['wallet', 'usage-history'],
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) =>
       walletApi.getUsageHistory({
-        pageNumber: usageHistoryPage,
+        pageNumber: pageParam,
         pageSize: USAGE_HISTORY_PAGE_SIZE,
       }),
+    getNextPageParam: (lastPage, allPages) => (lastPage.hasNext ? allPages.length + 1 : undefined),
   });
 
   // Калькулятор покупки минут: цена из тарифа (первый уровень или подходящий по minMinutes)
@@ -117,6 +125,7 @@ export default function WalletPage() {
       if (result.success) {
         queryClient.invalidateQueries({ queryKey: ['wallet', 'balance'] });
         queryClient.invalidateQueries({ queryKey: ['wallet', 'payment-history'] });
+        queryClient.invalidateQueries({ queryKey: ['wallet', 'usage-history'] });
         toast({ title: 'Платёж создан', description: result.message || 'Оплата инициирована.' });
       } else {
         toast({
@@ -331,15 +340,15 @@ export default function WalletPage() {
             <p className="text-xs sm:text-sm text-muted-foreground">Платежи по пополнению баланса минут.</p>
           </div>
           <div className="p-3 sm:p-4">
-            {isLoadingPaymentHistory ? (
+            {paymentHistoryQuery.isLoading ? (
               <div className="flex items-center gap-2 text-muted-foreground py-8">
                 <Loader2 className="w-5 h-5 animate-spin shrink-0" />
                 <span className="text-sm">Загрузка истории...</span>
               </div>
-            ) : paymentHistory && paymentHistory.data.length > 0 ? (
+            ) : paymentHistoryQuery.data && paymentHistoryQuery.data.pages.flatMap((p) => p.data).length > 0 ? (
               <>
                 <ul className="space-y-0">
-                  {paymentHistory.data.map((item) => (
+                  {paymentHistoryQuery.data.pages.flatMap((p) => p.data).map((item) => (
                     <li
                       key={item.id}
                       className="flex flex-wrap items-center justify-between gap-2 py-3 sm:py-2.5 border-b border-border/50 last:border-0 min-h-[52px] sm:min-h-0"
@@ -349,7 +358,7 @@ export default function WalletPage() {
                           {format(new Date(item.createdAt), 'd MMM yyyy, HH:mm', { locale: ru })}
                         </span>
                         <span className="text-sm font-medium">
-                          +{Math.round(item.secondsPurchased / 60)} мин · {item.amount} ₽
+                          +{Math.round(item.secondsPurchased / 60)} мин · {formatRub(item.amount)} ₽
                         </span>
                       </div>
                       {item.paidAt && (
@@ -360,31 +369,25 @@ export default function WalletPage() {
                     </li>
                   ))}
                 </ul>
-                <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-border/50">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="rounded-xl min-h-[44px] px-3 touch-manipulation"
-                    disabled={!paymentHistory.hasPrevious}
-                    onClick={() => setPaymentHistoryPage((p) => Math.max(1, p - 1))}
-                  >
-                    <ChevronLeft className="w-4 h-4 mr-1" />
-                    Назад
-                  </Button>
-                  <span className="text-xs sm:text-sm text-muted-foreground text-center">
-                    {paymentHistoryPage} из {paymentHistory.totalPages || 1}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="rounded-xl min-h-[44px] px-3 touch-manipulation"
-                    disabled={!paymentHistory.hasNext}
-                    onClick={() => setPaymentHistoryPage((p) => p + 1)}
-                  >
-                    Далее
-                    <ChevronRight className="w-4 h-4 ml-1" />
-                  </Button>
-                </div>
+                {paymentHistoryQuery.hasNextPage && (
+                  <div className="mt-4 pt-3 border-t border-border/50">
+                    <Button
+                      variant="outline"
+                      className="w-full rounded-xl min-h-[44px] touch-manipulation"
+                      disabled={paymentHistoryQuery.isFetchingNextPage}
+                      onClick={() => paymentHistoryQuery.fetchNextPage()}
+                    >
+                      {paymentHistoryQuery.isFetchingNextPage ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Загрузка...
+                        </>
+                      ) : (
+                        `Показать ещё ${PAYMENT_HISTORY_PAGE_SIZE}`
+                      )}
+                    </Button>
+                  </div>
+                )}
               </>
             ) : (
               <p className="text-sm text-muted-foreground py-8 text-center px-2">
@@ -403,15 +406,15 @@ export default function WalletPage() {
             <p className="text-xs sm:text-sm text-muted-foreground">Списание минут за расшифровку и обработку консультаций.</p>
           </div>
           <div className="p-3 sm:p-4">
-            {isLoadingUsageHistory ? (
+            {usageHistoryQuery.isLoading ? (
               <div className="flex items-center gap-2 text-muted-foreground py-8">
                 <Loader2 className="w-5 h-5 animate-spin shrink-0" />
                 <span className="text-sm">Загрузка истории...</span>
               </div>
-            ) : usageHistory && usageHistory.data.length > 0 ? (
+            ) : usageHistoryQuery.data && usageHistoryQuery.data.pages.flatMap((p) => p.data).length > 0 ? (
               <>
                 <ul className="space-y-0">
-                  {usageHistory.data.map((item) => {
+                  {usageHistoryQuery.data.pages.flatMap((p) => p.data).map((item) => {
                     const patientName =
                       item.consultation?.client?.firstName || item.consultation?.client?.lastName
                         ? [item.consultation.client.firstName, item.consultation.client.lastName].filter(Boolean).join(' ')
@@ -444,31 +447,25 @@ export default function WalletPage() {
                     );
                   })}
                 </ul>
-                <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-border/50">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="rounded-xl min-h-[44px] px-3 touch-manipulation"
-                    disabled={!usageHistory.hasPrevious}
-                    onClick={() => setUsageHistoryPage((p) => Math.max(1, p - 1))}
-                  >
-                    <ChevronLeft className="w-4 h-4 mr-1" />
-                    Назад
-                  </Button>
-                  <span className="text-xs sm:text-sm text-muted-foreground text-center">
-                    {usageHistoryPage} из {usageHistory.totalPages || 1}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="rounded-xl min-h-[44px] px-3 touch-manipulation"
-                    disabled={!usageHistory.hasNext}
-                    onClick={() => setUsageHistoryPage((p) => p + 1)}
-                  >
-                    Далее
-                    <ChevronRight className="w-4 h-4 ml-1" />
-                  </Button>
-                </div>
+                {usageHistoryQuery.hasNextPage && (
+                  <div className="mt-4 pt-3 border-t border-border/50">
+                    <Button
+                      variant="outline"
+                      className="w-full rounded-xl min-h-[44px] touch-manipulation"
+                      disabled={usageHistoryQuery.isFetchingNextPage}
+                      onClick={() => usageHistoryQuery.fetchNextPage()}
+                    >
+                      {usageHistoryQuery.isFetchingNextPage ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Загрузка...
+                        </>
+                      ) : (
+                        `Показать ещё ${USAGE_HISTORY_PAGE_SIZE}`
+                      )}
+                    </Button>
+                  </div>
+                )}
               </>
             ) : (
               <p className="text-sm text-muted-foreground py-8 text-center px-2">
