@@ -470,9 +470,15 @@ export default function WalletPage() {
                             {format(new Date(item.createdAt), 'd MMM yyyy, HH:mm', { locale: ru })}
                           </span>
                           <span className="text-sm font-medium">
-                            −{Math.round(item.secondsUsed / 60)} мин
+                            −{formatBalanceTime(item.secondsUsed)}
                             {patientName && (
-                              <span className="text-muted-foreground font-normal"> · <span className="truncate max-w-[120px] sm:max-w-none inline-block align-bottom">{patientName}</span></span>
+                              <span className="text-muted-foreground font-normal">
+                                {' '}
+                                ·{' '}
+                                <span className="truncate max-w-[120px] sm:max-w-none inline-block align-bottom">
+                                  {patientName}
+                                </span>
+                              </span>
                             )}
                           </span>
                         </div>
