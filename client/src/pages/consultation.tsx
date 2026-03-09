@@ -742,11 +742,22 @@ export default function ConsultationPage() {
   const aiReportValue = aiReportProperty?.value ?? '';
   const hasAiReport = aiReportValue.trim().length > 0;
 
-  // Формируем ссылку "Назад" с информацией о том, откуда пришли
+  // Формируем ссылку "Назад" с учетом параметра from (если пришли из другой страницы, например /wallet)
+  const fromParam = (() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const from = params.get('from');
+      return from && from.startsWith('/') ? from : null;
+    } catch {
+      return null;
+    }
+  })();
+
   const backHref =
-    enrichedConsultation.patientId && id
+    fromParam ??
+    (enrichedConsultation.patientId && id
       ? `/patient/${enrichedConsultation.patientId}?from=/consultation/${id}`
-      : '/dashboard';
+      : '/dashboard');
 
   return (
     <Layout>

@@ -162,7 +162,13 @@ export default function WalletPage() {
           </div>
         </div>
 
-        <Tabs defaultValue="balance" className="w-full">
+        <Tabs
+          defaultValue={(() => {
+            const tab = new URLSearchParams(window.location.search).get('tab');
+            return tab === 'credits' || tab === 'debits' || tab === 'balance' ? tab : 'balance';
+          })()}
+          className="w-full"
+        >
           <TabsList className="w-full grid grid-cols-3 min-h-[48px] sm:min-h-[44px] h-auto rounded-xl sm:rounded-2xl bg-muted/80 p-1.5 sm:p-1 gap-1 sm:gap-0">
             <TabsTrigger
               value="balance"
@@ -437,7 +443,7 @@ export default function WalletPage() {
                         </div>
                         {item.consultationId ? (
                           <Link
-                            href={`/consultation/${item.consultationId}`}
+                            href={`/consultation/${item.consultationId}?from=${encodeURIComponent('/wallet?tab=debits')}`}
                             className="text-xs text-primary hover:underline shrink-0 py-2 px-1 -my-2 -mx-1 rounded touch-manipulation min-h-[44px] min-w-[44px] inline-flex items-center justify-end"
                           >
                             К консультации →
