@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="адаптация под мобильные экраны кошелька" />
+    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="инструкция по балансу" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -89,54 +89,7 @@
       <workItem from="1772153316556" duration="2000" />
       <workItem from="1772785492615" duration="3038000" />
       <workItem from="1772911644077" duration="5927000" />
-    </task>
-    <task id="LOCAL-00078" summary="убрать иконку врача">
-      <option name="closed" value="true" />
-      <created>1770783257819</created>
-      <option name="number" value="00078" />
-      <option name="presentableId" value="LOCAL-00078" />
-      <option name="project" value="LOCAL" />
-      <updated>1770783257819</updated>
-    </task>
-    <task id="LOCAL-00079" summary="переработаны вкладки">
-      <option name="closed" value="true" />
-      <created>1770840086954</created>
-      <option name="number" value="00079" />
-      <option name="presentableId" value="LOCAL-00079" />
-      <option name="project" value="LOCAL" />
-      <updated>1770840086954</updated>
-    </task>
-    <task id="LOCAL-00080" summary="добавлена конка карта пациента на страницу отчета , перехад на картц пациента">
-      <option name="closed" value="true" />
-      <created>1770840927576</created>
-      <option name="number" value="00080" />
-      <option name="presentableId" value="LOCAL-00080" />
-      <option name="project" value="LOCAL" />
-      <updated>1770840927576</updated>
-    </task>
-    <task id="LOCAL-00081" summary="замена иконки карты пациента">
-      <option name="closed" value="true" />
-      <created>1770841033859</created>
-      <option name="number" value="00081" />
-      <option name="presentableId" value="LOCAL-00081" />
-      <option name="project" value="LOCAL" />
-      <updated>1770841033859</updated>
-    </task>
-    <task id="LOCAL-00082" summary="подзаголовок в блоках выведен как подсказка">
-      <option name="closed" value="true" />
-      <created>1770842969112</created>
-      <option name="number" value="00082" />
-      <option name="presentableId" value="LOCAL-00082" />
-      <option name="project" value="LOCAL" />
-      <updated>1770842969113</updated>
-    </task>
-    <task id="LOCAL-00083" summary="уменьшение блоков в отчетах">
-      <option name="closed" value="true" />
-      <created>1770843205291</created>
-      <option name="number" value="00083" />
-      <option name="presentableId" value="LOCAL-00083" />
-      <option name="project" value="LOCAL" />
-      <updated>1770843205292</updated>
+      <workItem from="1773040000869" duration="10762000" />
     </task>
     <task id="LOCAL-00084" summary="адаптация под мобилку страницы отчетов">
       <option name="closed" value="true" />
@@ -482,19 +435,61 @@
       <option name="project" value="LOCAL" />
       <updated>1772920745237</updated>
     </task>
-    <option name="localTasksCounter" value="127" />
+    <task id="LOCAL-00127" summary="в истории показываем полною сумму , смена версии">
+      <option name="closed" value="true" />
+      <created>1773040536854</created>
+      <option name="number" value="00127" />
+      <option name="presentableId" value="LOCAL-00127" />
+      <option name="project" value="LOCAL" />
+      <updated>1773040536854</updated>
+    </task>
+    <task id="LOCAL-00128" summary="добавлен возврат с отчета к истории">
+      <option name="closed" value="true" />
+      <created>1773040842116</created>
+      <option name="number" value="00128" />
+      <option name="presentableId" value="LOCAL-00128" />
+      <option name="project" value="LOCAL" />
+      <updated>1773040842116</updated>
+    </task>
+    <task id="LOCAL-00129" summary="перенос баланса">
+      <option name="closed" value="true" />
+      <created>1773054817485</created>
+      <option name="number" value="00129" />
+      <option name="presentableId" value="LOCAL-00129" />
+      <option name="project" value="LOCAL" />
+      <updated>1773054817485</updated>
+    </task>
+    <task id="LOCAL-00130" summary="смена версии работа с балансом , для мобиоки">
+      <option name="closed" value="true" />
+      <created>1773056442213</created>
+      <option name="number" value="00130" />
+      <option name="presentableId" value="LOCAL-00130" />
+      <option name="project" value="LOCAL" />
+      <updated>1773056442213</updated>
+    </task>
+    <task id="LOCAL-00131" summary="проверка отрицательного баланса">
+      <option name="closed" value="true" />
+      <created>1773056980819</created>
+      <option name="number" value="00131" />
+      <option name="presentableId" value="LOCAL-00131" />
+      <option name="project" value="LOCAL" />
+      <updated>1773056980819</updated>
+    </task>
+    <task id="LOCAL-00132" summary="инструкция по балансу">
+      <option name="closed" value="true" />
+      <created>1773061057262</created>
+      <option name="number" value="00132" />
+      <option name="presentableId" value="LOCAL-00132" />
+      <option name="project" value="LOCAL" />
+      <updated>1773061057262</updated>
+    </task>
+    <option name="localTasksCounter" value="133" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="заметки под мобилку" />
-    <MESSAGE value="заметки связь с беком" />
-    <MESSAGE value="блок о пациенте адаптация мобилка" />
-    <MESSAGE value="заметки адаптация мобилка" />
-    <MESSAGE value="карта пациента блоки адаптация мобилка" />
-    <MESSAGE value="профиль вместо профиль врача" />
     <MESSAGE value="добавлены поля роль специализация , настройки и регистрация" />
     <MESSAGE value="отображение ролей и специализации" />
     <MESSAGE value="редактирование разрешения разного экрана" />
@@ -514,6 +509,12 @@
     <MESSAGE value="показ тарифов пользователю" />
     <MESSAGE value="добавлены вкладки историй в кошелек" />
     <MESSAGE value="адаптация под мобильные экраны кошелька" />
-    <option name="LAST_COMMIT_MESSAGE" value="адаптация под мобильные экраны кошелька" />
+    <MESSAGE value="в истории показываем полною сумму , смена версии" />
+    <MESSAGE value="добавлен возврат с отчета к истории" />
+    <MESSAGE value="перенос баланса" />
+    <MESSAGE value="смена версии работа с балансом , для мобиоки" />
+    <MESSAGE value="проверка отрицательного баланса" />
+    <MESSAGE value="инструкция по балансу" />
+    <option name="LAST_COMMIT_MESSAGE" value="инструкция по балансу" />
   </component>
 </project>

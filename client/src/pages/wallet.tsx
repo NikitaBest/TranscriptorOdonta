@@ -198,7 +198,9 @@ export default function WalletPage() {
         {/* Текущий баланс */}
         <Card className="border-border/60 bg-card/70 backdrop-blur-sm rounded-2xl sm:rounded-3xl">
           <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
-            <CardTitle className="text-base sm:text-lg md:text-xl">Текущий баланс</CardTitle>
+            <CardTitle className="text-base sm:text-lg md:text-xl font-display font-bold tracking-tight">
+              Текущий баланс
+            </CardTitle>
             <CardDescription className="text-xs sm:text-sm">
               Доступное время для расшифровки и обработки консультаций.
             </CardDescription>
