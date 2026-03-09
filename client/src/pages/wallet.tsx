@@ -155,7 +155,7 @@ export default function WalletPage() {
             />
           </div>
           <div className="space-y-0.5 min-w-0">
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-display font-bold tracking-tight">Кошелёк</h1>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-display font-bold tracking-tight">Баланс</h1>
             <p className="text-xs sm:text-sm md:text-base text-muted-foreground line-clamp-2">
               Покупайте и используйте минуты для расшифровки и AI‑отчётов.
             </p>

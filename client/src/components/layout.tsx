@@ -27,7 +27,6 @@ export function Layout({ children, hideNavigation = false }: LayoutProps) {
     { href: '/dashboard', icon: Users, label: 'Пациенты' },
     { href: '/history', icon: History, label: 'История' },
     { href: '/record', icon: Mic, label: 'Запись' },
-    { href: '/wallet', icon: Wallet, label: 'Кошелёк' },
   ];
 
   const handleLogout = async (e: React.MouseEvent) => {
@@ -79,6 +78,19 @@ export function Layout({ children, hideNavigation = false }: LayoutProps) {
             </nav>
 
             <div className="p-4 mt-auto border-t border-border/50 space-y-2">
+              <Link href="/wallet">
+                <div 
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-3 rounded-2xl transition-all cursor-pointer text-sm",
+                    location === '/wallet'
+                      ? "bg-primary text-primary-foreground shadow-md" 
+                      : "hover:bg-secondary text-foreground"
+                  )}
+                >
+                  <Wallet className={cn("w-4 h-4", location === '/wallet' ? "text-primary-foreground" : "text-muted-foreground")} />
+                  <span>Баланс</span>
+                </div>
+              </Link>
               <Link href="/settings">
                 <div 
                   className={cn(
@@ -177,6 +189,21 @@ export function Layout({ children, hideNavigation = false }: LayoutProps) {
               </div>
             </Link>
           ))}
+          <Link href="/wallet" className="flex-1">
+            <div 
+              className={cn(
+                "flex flex-col items-center justify-center gap-1 pt-1.5 pb-2 rounded-xl transition-all duration-200",
+                location === '/wallet'
+                  ? "text-primary" 
+                  : "text-muted-foreground"
+              )}
+            >
+              <Wallet className={cn("w-5 h-5", location === '/wallet' && "text-primary")} />
+              <span className={cn("text-[10px] font-medium", location === '/wallet' && "text-primary")}>
+                Баланс
+              </span>
+            </div>
+          </Link>
           <Link href="/settings" className="flex-1">
             <div 
               className={cn(
