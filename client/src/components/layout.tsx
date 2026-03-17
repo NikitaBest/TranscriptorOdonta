@@ -167,7 +167,16 @@ export function Layout({ children, hideNavigation = false }: LayoutProps) {
 
       {/* Mobile Header */}
       {!hideNavigation && (
-        <div className="md:hidden fixed top-0 left-0 right-0 h-14 border-b border-border/50 bg-background/95 backdrop-blur-xl z-50 flex items-center justify-between px-4">
+        <div
+          className="md:hidden fixed top-0 left-0 right-0 h-14 border-b border-border/50 bg-background/95 backdrop-blur-xl z-50 flex items-center justify-between px-4 cursor-pointer"
+          role="button"
+          tabIndex={0}
+          aria-label="Открыть меню разделов"
+          onClick={() => setMobileNavOpen(true)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') setMobileNavOpen(true);
+          }}
+        >
           <div className="flex items-center gap-2">
             <img 
               src="/OdontaLogo.svg" 
@@ -179,7 +188,10 @@ export function Layout({ children, hideNavigation = false }: LayoutProps) {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => setMobileNavOpen(true)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setMobileNavOpen(true);
+              }}
               className="flex items-center justify-center w-9 h-9 rounded-full border border-border/70 text-muted-foreground hover:text-foreground hover:border-primary/60 transition-colors"
               aria-label="Меню разделов"
             >
