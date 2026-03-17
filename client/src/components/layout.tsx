@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation, useRoute } from 'wouter';
 import { 
   Users, 
@@ -8,11 +8,13 @@ import {
   MessageCircle,
   Settings,
   Wallet,
+  MoreVertical,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { authApi } from '@/lib/api/auth';
 import { useToast } from '@/hooks/use-toast';
 import { InstallPWAButton } from '@/components/install-pwa-button';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 function DocumentIcon({ className }: { className?: string }) {
   return <img src="/document.png" alt="" className={cn("w-4 h-4 object-contain", className)} />;
@@ -26,6 +28,7 @@ interface LayoutProps {
 export function Layout({ children, hideNavigation = false }: LayoutProps) {
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const navItems = [
     { href: '/dashboard', icon: Users, label: 'Пациенты' },
@@ -44,6 +47,26 @@ export function Layout({ children, hideNavigation = false }: LayoutProps) {
     });
     setLocation('/auth');
   };
+
+  const mobileSections: Array<
+    | { type: 'route'; href: string; label: string; icon: React.ComponentType<{ className?: string }> | 'document' }
+    | { type: 'external'; href: string; label: string; icon: React.ComponentType<{ className?: string }> }
+    | { type: 'action'; label: string; icon: React.ComponentType<{ className?: string }>; onClick: () => void }
+  > = [
+    { type: 'route', href: '/documents', label: 'Документы', icon: 'document' },
+    { type: 'route', href: '/wallet', label: 'Баланс', icon: Wallet },
+    { type: 'external', href: 'https://t.me/odonta_ai_support', label: 'Поддержка', icon: MessageCircle },
+    {
+      type: 'action',
+      label: 'Выйти',
+      icon: LogOut,
+      onClick: () => {
+        authApi.logout();
+        toast({ title: 'Выход выполнен', description: 'Вы успешно вышли из системы' });
+        setLocation('/auth');
+      },
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col md:flex-row">
@@ -154,47 +177,100 @@ export function Layout({ children, hideNavigation = false }: LayoutProps) {
             <span className="font-display font-bold text-lg">Odonta AI</span>
           </div>
           <div className="flex items-center gap-2">
-            <Link href="/documents">
-              <div
-                className={cn(
-                  "flex items-center justify-center w-9 h-9 rounded-full border border-border/70 text-muted-foreground hover:text-foreground hover:border-primary/60 transition-colors",
-                  location === '/documents' && "border-primary/60"
-                )}
-                aria-label="Документы"
-              >
-                <DocumentIcon className="w-4 h-4 opacity-90" />
-              </div>
-            </Link>
-            <Link href="/wallet">
-              <div
-                className={cn(
-                  "flex items-center justify-center w-9 h-9 rounded-full border border-border/70 text-muted-foreground hover:text-foreground hover:border-primary/60 transition-colors",
-                  location === '/wallet' && "border-primary/60"
-                )}
-                aria-label="Баланс"
-              >
-                <Wallet className="w-4 h-4" />
-              </div>
-            </Link>
-            <a
-              href="https://t.me/odonta_ai_support"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center w-9 h-9 rounded-full border border-border/70 text-muted-foreground hover:text-foreground hover:border-primary/60 transition-colors"
-              aria-label="Техническая поддержка"
-            >
-              <MessageCircle className="w-4 h-4" />
-            </a>
             <button
               type="button"
-              onClick={handleLogout}
-              className="flex items-center justify-center w-9 h-9 rounded-full border border-border/70 text-muted-foreground hover:text-destructive hover:border-destructive/60 transition-colors"
-              aria-label="Выйти из аккаунта"
+              onClick={() => setMobileNavOpen(true)}
+              className="flex items-center justify-center w-9 h-9 rounded-full border border-border/70 text-muted-foreground hover:text-foreground hover:border-primary/60 transition-colors"
+              aria-label="Меню разделов"
             >
-              <LogOut className="w-4 h-4" />
+              <MoreVertical className="w-4 h-4" />
             </button>
           </div>
         </div>
+      )}
+
+      {/* Mobile Sections Menu (3 dots) */}
+      {!hideNavigation && (
+        <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+          <SheetContent side="top" className="p-0 rounded-b-2xl">
+            <div className="p-4 pb-3 border-b border-border/60">
+              <SheetHeader className="space-y-1 text-left">
+                <SheetTitle className="font-display font-bold tracking-tight">Разделы</SheetTitle>
+              </SheetHeader>
+            </div>
+            <div className="p-2">
+              <div className="space-y-1">
+                {mobileSections.map((item) => {
+                  if (item.type === 'external') {
+                    const Icon = item.icon;
+                    return (
+                      <a
+                        key={item.href}
+                        href={item.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => setMobileNavOpen(false)}
+                        className="flex items-center gap-3 w-full px-3 py-3 rounded-xl hover:bg-secondary transition-colors min-h-[48px]"
+                      >
+                        <Icon className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-sm font-medium">{item.label}</span>
+                      </a>
+                    );
+                  }
+
+                  if (item.type === 'action') {
+                    const Icon = item.icon;
+                    return (
+                      <button
+                        key={item.label}
+                        type="button"
+                        onClick={() => {
+                          setMobileNavOpen(false);
+                          item.onClick();
+                        }}
+                        className="flex items-center gap-3 w-full px-3 py-3 rounded-xl hover:bg-destructive/10 hover:text-destructive transition-colors min-h-[48px]"
+                      >
+                        <Icon className="w-4 h-4" />
+                        <span className="text-sm font-medium">{item.label}</span>
+                      </button>
+                    );
+                  }
+
+                  const isActive = location === item.href;
+                  const Icon =
+                    item.icon === 'document'
+                      ? null
+                      : (item.icon as React.ComponentType<{ className?: string }>);
+
+                  return (
+                    <button
+                      key={item.href}
+                      type="button"
+                      onClick={() => {
+                        setMobileNavOpen(false);
+                        setLocation(item.href);
+                      }}
+                      className={cn(
+                        "flex items-center gap-3 w-full px-3 py-3 rounded-xl transition-colors min-h-[48px]",
+                        isActive ? "bg-secondary" : "hover:bg-secondary"
+                      )}
+                    >
+                      {item.icon === 'document' ? (
+                        <DocumentIcon className="w-4 h-4 opacity-90" />
+                      ) : (
+                        Icon && <Icon className="w-4 h-4 text-muted-foreground" />
+                      )}
+                      <span className="text-sm font-medium">{item.label}</span>
+                      {isActive ? (
+                        <span className="ml-auto text-xs text-muted-foreground">Текущая</span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </SheetContent>
+        </Sheet>
       )}
 
       {/* Main Content */}
