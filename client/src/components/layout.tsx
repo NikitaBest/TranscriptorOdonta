@@ -14,6 +14,10 @@ import { authApi } from '@/lib/api/auth';
 import { useToast } from '@/hooks/use-toast';
 import { InstallPWAButton } from '@/components/install-pwa-button';
 
+function DocumentIcon({ className }: { className?: string }) {
+  return <img src="/document.png" alt="" className={cn("w-4 h-4 object-contain", className)} />;
+}
+
 interface LayoutProps {
   children: React.ReactNode;
   hideNavigation?: boolean;
@@ -78,6 +82,19 @@ export function Layout({ children, hideNavigation = false }: LayoutProps) {
             </nav>
 
             <div className="p-4 mt-auto border-t border-border/50 space-y-2">
+              <Link href="/documents">
+                <div 
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-3 rounded-2xl transition-all cursor-pointer text-sm",
+                    location === '/documents'
+                      ? "bg-primary text-primary-foreground shadow-md" 
+                      : "hover:bg-secondary text-foreground"
+                  )}
+                >
+                  <DocumentIcon className={cn(location === '/documents' ? "brightness-[3]" : "opacity-80")} />
+                  <span>Документы</span>
+                </div>
+              </Link>
               <Link href="/wallet">
                 <div 
                   className={cn(
@@ -137,6 +154,17 @@ export function Layout({ children, hideNavigation = false }: LayoutProps) {
             <span className="font-display font-bold text-lg">Odonta AI</span>
           </div>
           <div className="flex items-center gap-2">
+            <Link href="/documents">
+              <div
+                className={cn(
+                  "flex items-center justify-center w-9 h-9 rounded-full border border-border/70 text-muted-foreground hover:text-foreground hover:border-primary/60 transition-colors",
+                  location === '/documents' && "border-primary/60"
+                )}
+                aria-label="Документы"
+              >
+                <DocumentIcon className="w-4 h-4 opacity-90" />
+              </div>
+            </Link>
             <Link href="/wallet">
               <div
                 className={cn(

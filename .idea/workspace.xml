@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="инструкция по балансу" />
+    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="корректировка списания время" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -90,22 +90,7 @@
       <workItem from="1772785492615" duration="3038000" />
       <workItem from="1772911644077" duration="5927000" />
       <workItem from="1773040000869" duration="10762000" />
-    </task>
-    <task id="LOCAL-00084" summary="адаптация под мобилку страницы отчетов">
-      <option name="closed" value="true" />
-      <created>1770844089203</created>
-      <option name="number" value="00084" />
-      <option name="presentableId" value="LOCAL-00084" />
-      <option name="project" value="LOCAL" />
-      <updated>1770844089203</updated>
-    </task>
-    <task id="LOCAL-00085" summary="повторный запрос при обработки при нахождении на отчете">
-      <option name="closed" value="true" />
-      <created>1770857542038</created>
-      <option name="number" value="00085" />
-      <option name="presentableId" value="LOCAL-00085" />
-      <option name="project" value="LOCAL" />
-      <updated>1770857542038</updated>
+      <workItem from="1773085227220" duration="2223000" />
     </task>
     <task id="LOCAL-00086" summary="навигация между отчетом и пациентом">
       <option name="closed" value="true" />
@@ -483,15 +468,29 @@
       <option name="project" value="LOCAL" />
       <updated>1773061057262</updated>
     </task>
-    <option name="localTasksCounter" value="133" />
+    <task id="LOCAL-00133" summary="одинаковые заголовки на балансе">
+      <option name="closed" value="true" />
+      <created>1773085257145</created>
+      <option name="number" value="00133" />
+      <option name="presentableId" value="LOCAL-00133" />
+      <option name="project" value="LOCAL" />
+      <updated>1773085257145</updated>
+    </task>
+    <task id="LOCAL-00134" summary="корректировка списания время">
+      <option name="closed" value="true" />
+      <created>1773085544303</created>
+      <option name="number" value="00134" />
+      <option name="presentableId" value="LOCAL-00134" />
+      <option name="project" value="LOCAL" />
+      <updated>1773085544303</updated>
+    </task>
+    <option name="localTasksCounter" value="135" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="добавлены поля роль специализация , настройки и регистрация" />
-    <MESSAGE value="отображение ролей и специализации" />
     <MESSAGE value="редактирование разрешения разного экрана" />
     <MESSAGE value="Отправляем пустые значения роль специализация" />
     <MESSAGE value="уменьшины отступы для моб заметки и блок пац" />
@@ -515,6 +514,8 @@
     <MESSAGE value="смена версии работа с балансом , для мобиоки" />
     <MESSAGE value="проверка отрицательного баланса" />
     <MESSAGE value="инструкция по балансу" />
-    <option name="LAST_COMMIT_MESSAGE" value="инструкция по балансу" />
+    <MESSAGE value="одинаковые заголовки на балансе" />
+    <MESSAGE value="корректировка списания время" />
+    <option name="LAST_COMMIT_MESSAGE" value="корректировка списания время" />
   </component>
 </project>

@@ -29,6 +29,7 @@ import ForgotPasswordPage from "@/pages/forgot-password";
 import ResetPasswordPage from "@/pages/reset-password";
 import SettingsPage from "@/pages/settings";
 import WalletPage from "@/pages/wallet";
+import DocumentsPage from "@/pages/documents";
 
 // Публичные маршруты, которые не требуют авторизации
 const PUBLIC_ROUTES = ['/auth', '/register', '/share', '/confirm-email', '/forgot-password', '/reset-password'];
@@ -154,6 +155,7 @@ function Router() {
         <Route path="/forgot-password" component={ForgotPasswordPage} />
         <Route path="/reset-password" component={ResetPasswordPage} />
         <Route path="/dashboard" component={Dashboard} />
+        <Route path="/documents" component={DocumentsPage} />
         <Route path="/wallet" component={WalletPage} />
         <Route path="/patient/new" component={PatientCreatePage} />
         <Route path="/patient/:id" component={PatientProfile} />
