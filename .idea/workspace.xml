@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="адаптация вкладок для мобилки три точ" />
+    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="клик на панель мобилка" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -91,14 +91,7 @@
       <workItem from="1772911644077" duration="5927000" />
       <workItem from="1773040000869" duration="10762000" />
       <workItem from="1773085227220" duration="2223000" />
-    </task>
-    <task id="LOCAL-00086" summary="навигация между отчетом и пациентом">
-      <option name="closed" value="true" />
-      <created>1770860275561</created>
-      <option name="number" value="00086" />
-      <option name="presentableId" value="LOCAL-00086" />
-      <option name="project" value="LOCAL" />
-      <updated>1770860275561</updated>
+      <workItem from="1773763259561" duration="884000" />
     </task>
     <task id="LOCAL-00087" summary="редактирование страница настроеек">
       <option name="closed" value="true" />
@@ -484,14 +477,21 @@
       <option name="project" value="LOCAL" />
       <updated>1773085544303</updated>
     </task>
-    <option name="localTasksCounter" value="135" />
+    <task id="LOCAL-00135" summary="клик на панель мобилка">
+      <option name="closed" value="true" />
+      <created>1773763277768</created>
+      <option name="number" value="00135" />
+      <option name="presentableId" value="LOCAL-00135" />
+      <option name="project" value="LOCAL" />
+      <updated>1773763277768</updated>
+    </task>
+    <option name="localTasksCounter" value="136" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="редактирование разрешения разного экрана" />
     <MESSAGE value="Отправляем пустые значения роль специализация" />
     <MESSAGE value="уменьшины отступы для моб заметки и блок пац" />
     <MESSAGE value="скрыть раскрыть заметки , выполнено ли нет" />
@@ -516,6 +516,7 @@
     <MESSAGE value="инструкция по балансу" />
     <MESSAGE value="одинаковые заголовки на балансе" />
     <MESSAGE value="корректировка списания время" />
-    <option name="LAST_COMMIT_MESSAGE" value="корректировка списания время" />
+    <MESSAGE value="клик на панель мобилка" />
+    <option name="LAST_COMMIT_MESSAGE" value="клик на панель мобилка" />
   </component>
 </project>

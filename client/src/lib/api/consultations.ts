@@ -1,5 +1,6 @@
 import { ApiClient } from './client';
 import { getApiUrl } from './config';
+import { audioDebugBlobSummary, audioUploadMilestone } from '@/lib/utils/audio-debug';
 import type { 
   ApiResponse, 
   UploadConsultationResponse,
@@ -33,6 +34,9 @@ export const consultationsApi = {
     let fileToUpload: File;
     if (audioFile instanceof File) {
       fileToUpload = audioFile;
+      audioDebugBlobSummary(fileToUpload, 'uploadConsultation (передан File)', {
+        fileName: fileToUpload.name,
+      });
     } else {
       // Определяем расширение на основе MIME типа (учитываем codecs в типе)
       // Поддерживаемые форматы:
@@ -63,13 +67,9 @@ export const consultationsApi = {
         type: mimeType,
       });
       
-      // Логируем информацию о файле для отладки
-      console.log('Uploading audio file:', {
-        name: fileToUpload.name,
-        size: fileToUpload.size,
-        sizeMB: (fileToUpload.size / (1024 * 1024)).toFixed(2),
-        type: fileToUpload.type,
-        extension: extension,
+      audioDebugBlobSummary(fileToUpload, 'uploadConsultation (из Blob → File)', {
+        fileName: fileToUpload.name,
+        extension,
       });
     }
     
@@ -98,7 +98,7 @@ export const consultationsApi = {
       // Максимальный таймаут: 30 минут (для очень больших файлов на очень медленном интернете)
       const timeoutMs = Math.min(timeoutSeconds * 1000, 1800000); // 30 минут максимум
       
-      console.log('Calculated upload timeout:', {
+      audioUploadMilestone('таймаут загрузки', {
         fileSizeMB: fileSizeMB.toFixed(2),
         estimatedUploadTimeSeconds: estimatedUploadTimeSeconds.toFixed(0),
         timeoutMinutes: (timeoutMs / 60000).toFixed(1),
@@ -117,6 +117,11 @@ export const consultationsApi = {
 
       // Бэкенд возвращает обёрнутый ответ { value: {...}, isSuccess: true, error: null }
       if (response.isSuccess && response.value) {
+        audioUploadMilestone('consultation/upload успех', {
+          consultationId: String(response.value.id),
+          clientId: String(response.value.clientId),
+          uploadedBytes: fileToUpload.size,
+        });
         return {
           ...response.value,
           id: String(response.value.id),

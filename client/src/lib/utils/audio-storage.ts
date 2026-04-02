@@ -3,6 +3,12 @@
  * Защищает от потери данных при отключении интернета или закрытии браузера
  */
 
+import {
+  audioDebug,
+  audioIntegrityError,
+  audioDebugBlobSummary,
+} from '@/lib/utils/audio-debug';
+
 const DB_NAME = 'OdontaAudioStorage';
 const DB_VERSION = 2; // Увеличиваем версию для добавления хранилища метаданных
 const STORE_NAME = 'audioChunks';
@@ -29,6 +35,81 @@ export interface RecordingMetadata {
 }
 
 let dbInstance: IDBDatabase | null = null;
+
+/** Сколько асинхронных saveAudioChunk сейчас в полёте на запись (по recordingId). */
+const pendingChunkWritesByRecording = new Map<string, number>();
+/** Ожидают, пока pendingChunkWritesByRecording станет 0. */
+const pendingChunkWriteWaiters = new Map<string, Array<() => void>>();
+/** Была ошибка put хотя бы одного чанка — собирать blob из IDB нельзя. */
+const chunkWriteFailedRecordings = new Set<string>();
+
+function beginPendingChunkWrite(recordingId: string) {
+  pendingChunkWritesByRecording.set(
+    recordingId,
+    (pendingChunkWritesByRecording.get(recordingId) ?? 0) + 1
+  );
+}
+
+function endPendingChunkWrite(recordingId: string) {
+  const next = (pendingChunkWritesByRecording.get(recordingId) ?? 1) - 1;
+  if (next <= 0) {
+    pendingChunkWritesByRecording.delete(recordingId);
+    const waiters = pendingChunkWriteWaiters.get(recordingId);
+    if (waiters?.length) {
+      pendingChunkWriteWaiters.delete(recordingId);
+      waiters.forEach((w) => w());
+    }
+  } else {
+    pendingChunkWritesByRecording.set(recordingId, next);
+  }
+}
+
+/** Дождаться завершения всех начатых saveAudioChunk для этой записи (перед сборкой blob или удалением). */
+export async function waitForPendingChunkWrites(recordingId: string): Promise<void> {
+  const pendingStart = pendingChunkWritesByRecording.get(recordingId) ?? 0;
+  if (pendingStart === 0) {
+    return;
+  }
+  const t0 = performance.now();
+  audioDebug('waitForPendingChunkWrites: ждём', { recordingId, pending: pendingStart });
+  await new Promise<void>((resolve) => {
+    let list = pendingChunkWriteWaiters.get(recordingId);
+    if (!list) {
+      list = [];
+      pendingChunkWriteWaiters.set(recordingId, list);
+    }
+    list.push(resolve);
+    // На случай гонки: pending обнулили между первой проверкой и push — не зависаем
+    if ((pendingChunkWritesByRecording.get(recordingId) ?? 0) === 0) {
+      const wake = pendingChunkWriteWaiters.get(recordingId) ?? [];
+      pendingChunkWriteWaiters.delete(recordingId);
+      wake.forEach((w) => w());
+    }
+  });
+  audioDebug('waitForPendingChunkWrites: готово', {
+    recordingId,
+    ms: Math.round(performance.now() - t0),
+  });
+}
+
+function clearRecordingWriteTracking(recordingId: string) {
+  pendingChunkWritesByRecording.delete(recordingId);
+  chunkWriteFailedRecordings.delete(recordingId);
+  const waiters = pendingChunkWriteWaiters.get(recordingId);
+  if (waiters?.length) {
+    pendingChunkWriteWaiters.delete(recordingId);
+    waiters.forEach((w) => w());
+  }
+}
+
+function areChunkIndicesContiguousFromZero(chunks: AudioChunk[]): boolean {
+  if (chunks.length === 0) return false;
+  const sorted = [...chunks].sort((a, b) => a.chunkIndex - b.chunkIndex);
+  for (let i = 0; i < sorted.length; i++) {
+    if (sorted[i].chunkIndex !== i) return false;
+  }
+  return true;
+}
 
 /**
  * Инициализация IndexedDB
@@ -80,6 +161,7 @@ export async function saveAudioChunk(
   mimeType: string,
   patientId: string
 ): Promise<void> {
+  beginPendingChunkWrite(recordingId);
   try {
     const db = await initDB();
     const transaction = db.transaction([STORE_NAME], 'readwrite');
@@ -99,9 +181,23 @@ export async function saveAudioChunk(
       request.onsuccess = () => resolve();
       request.onerror = () => reject(new Error('Не удалось сохранить chunk'));
     });
+    if (chunkIndex === 0 || chunkIndex % 25 === 0) {
+      audioDebug('IDB chunk OK', {
+        recordingId,
+        chunkIndex,
+        chunkBytes: chunkData.size,
+      });
+    }
   } catch (error) {
-    console.error('Error saving audio chunk:', error);
+    audioIntegrityError('ошибка сохранения чанка в IndexedDB', {
+      recordingId,
+      chunkIndex,
+      error,
+    });
+    chunkWriteFailedRecordings.add(recordingId);
     // Не пробрасываем ошибку, чтобы не прерывать запись
+  } finally {
+    endPendingChunkWrite(recordingId);
   }
 }
 
@@ -126,7 +222,7 @@ export async function getAllChunks(recordingId: string): Promise<AudioChunk[]> {
       request.onerror = () => reject(new Error('Не удалось получить chunks'));
     });
   } catch (error) {
-    console.error('Error getting chunks:', error);
+    audioIntegrityError('getAllChunks', { recordingId, error });
     return [];
   }
 }
@@ -136,21 +232,50 @@ export async function getAllChunks(recordingId: string): Promise<AudioChunk[]> {
  */
 export async function buildAudioBlob(recordingId: string): Promise<Blob | null> {
   try {
+    await waitForPendingChunkWrites(recordingId);
+
+    if (chunkWriteFailedRecordings.has(recordingId)) {
+      audioIntegrityError('buildAudioBlob: отмена — при сохранении чанков в IDB были ошибки', {
+        recordingId,
+      });
+      return null;
+    }
+
     const chunks = await getAllChunks(recordingId);
-    
+
     if (chunks.length === 0) {
+      audioDebug('buildAudioBlob: нет чанков', { recordingId });
+      return null;
+    }
+
+    const indices = chunks.map((c) => c.chunkIndex);
+    if (!areChunkIndicesContiguousFromZero(chunks)) {
+      audioIntegrityError('buildAudioBlob: индексы не 0..n-1 (дыра или дубликат)', {
+        recordingId,
+        count: chunks.length,
+        indices,
+      });
       return null;
     }
 
     // Определяем MIME тип из первого chunk
     const mimeType = chunks[0].mimeType;
-    
-    // Собираем все данные chunks
-    const blobParts = chunks.map(chunk => chunk.data);
-    
-    return new Blob(blobParts, { type: mimeType });
+
+    // Собираем все данные chunks (уже отсортированы в getAllChunks)
+    const blobParts = chunks.map((chunk) => chunk.data);
+
+    const blob = new Blob(blobParts, { type: mimeType });
+    const totalChunkBytes = blobParts.reduce((acc, p) => acc + p.size, 0);
+    audioDebugBlobSummary(blob, 'buildAudioBlob из IDB', {
+      recordingId,
+      chunkCount: chunks.length,
+      totalChunkBytes,
+      bytesMatch: totalChunkBytes === blob.size,
+    });
+    audioDebug('buildAudioBlob: OK', { recordingId, mimeType, chunkCount: chunks.length });
+    return blob;
   } catch (error) {
-    console.error('Error building audio blob:', error);
+    audioIntegrityError('buildAudioBlob: исключение', { recordingId, error });
     return null;
   }
 }
@@ -159,6 +284,9 @@ export async function buildAudioBlob(recordingId: string): Promise<Blob | null> 
  * Удаление всех chunks для записи
  */
 export async function deleteChunks(recordingId: string): Promise<void> {
+  audioDebug('deleteChunks: старт', { recordingId });
+  await waitForPendingChunkWrites(recordingId);
+
   try {
     const db = await initDB();
     const transaction = db.transaction([STORE_NAME], 'readwrite');
@@ -181,8 +309,11 @@ export async function deleteChunks(recordingId: string): Promise<void> {
       request.onerror = () => reject(new Error('Не удалось удалить chunks'));
     });
   } catch (error) {
-    console.error('Error deleting chunks:', error);
+    audioIntegrityError('deleteChunks', { recordingId, error });
     // Не пробрасываем ошибку
+  } finally {
+    clearRecordingWriteTracking(recordingId);
+    audioDebug('deleteChunks: сброс трекинга записи', { recordingId });
   }
 }
 

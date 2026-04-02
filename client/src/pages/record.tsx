@@ -18,7 +18,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Mic, Square, Pause, Play, Loader2, X, User, ChevronRight, ChevronDown, ChevronUp, Trash2, Send } from 'lucide-react';
+import { Mic, Pause, Play, Loader2, X, User, ChevronRight, ChevronDown, ChevronUp, Trash2, Send } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { patientsApi } from '@/lib/api/patients';
@@ -43,6 +43,26 @@ import {
   getAllChunks,
   type RecordingMetadata
 } from '@/lib/utils/audio-storage';
+import {
+  audioDebug,
+  audioDebugBlobSummary,
+  audioDebugBlobHeaderSample,
+  audioUploadMilestone,
+  audioIntegrityWarn,
+} from '@/lib/utils/audio-debug';
+
+/** Перед stop: форсируем выдачу буфера, чтобы последний ondataavailable успел попасть в чанки (реже обрезанный MP4/WebM). */
+function flushRecorderDataBeforeStop(recorder: MediaRecorder) {
+  if (recorder.state === 'inactive') return;
+  try {
+    if (typeof recorder.requestData === 'function') {
+      audioDebug('requestData() перед stop', { state: recorder.state, mimeType: recorder.mimeType });
+      recorder.requestData();
+    }
+  } catch (e) {
+    audioIntegrityWarn('requestData перед stop', e);
+  }
+}
 
 export default function RecordPage() {
   const [location, setLocation] = useLocation();
@@ -110,7 +130,7 @@ export default function RecordPage() {
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [duration, setDuration] = useState(0);
-  const [status, setStatus] = useState<'idle' | 'recording' | 'stopped' | 'uploading' | 'transcribing' | 'processing'>('idle');
+  const [status, setStatus] = useState<'idle' | 'recording' | 'uploading' | 'transcribing' | 'processing'>('idle');
   const [audioData, setAudioData] = useState<number[]>(Array(40).fill(0));
   const [savedRecording, setSavedRecording] = useState<RecordingMetadata | null>(null);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
@@ -322,99 +342,6 @@ export default function RecordPage() {
       console.warn("Не удалось проверить разрешение на микрофон через Permissions API", e);
     }
 
-    // Если продолжаем запись (status === 'stopped' и есть recordingId)
-    if (status === 'stopped' && recordingIdRef.current && mediaStreamRef.current) {
-      try {
-        // Продолжаем ту же запись - создаем новый MediaRecorder с тем же потоком
-        const mimeType = mediaRecorderOptionsRef.current?.mimeType || 'audio/webm';
-        const bitrate = mediaRecorderOptionsRef.current?.audioBitsPerSecond || 64000;
-        
-        const mediaRecorderOptions: MediaRecorderOptions = {
-          mimeType: mimeType,
-          audioBitsPerSecond: bitrate,
-        };
-        
-        const mediaRecorder = new MediaRecorder(mediaStreamRef.current, mediaRecorderOptions);
-        
-        // Используем тот же recordingId и продолжаем с того же chunkIndex
-        // audioChunksRef.current уже содержит предыдущие chunks
-        finalBlobRef.current = null; // следующий «финальный» blob будет после следующей остановки
-
-        mediaRecorder.ondataavailable = async (event) => {
-          if (event.data.size > 0) {
-            // Сохраняем в память
-            audioChunksRef.current.push(event.data);
-            
-            // Сохраняем в IndexedDB
-            if (recordingIdRef.current && selectedPatientId) {
-              try {
-                await saveAudioChunk(
-                  recordingIdRef.current,
-                  chunkIndexRef.current++,
-                  event.data,
-                  mimeType,
-                  selectedPatientId
-                );
-              } catch (error) {
-                console.error('Failed to save chunk to IndexedDB:', error);
-              }
-            }
-          }
-        };
-        
-        mediaRecorder.onstop = () => {
-          const audioBlob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType });
-          console.log('Audio recording continued:', {
-            size: audioBlob.size,
-            sizeMB: (audioBlob.size / (1024 * 1024)).toFixed(2),
-            mimeType: mediaRecorder.mimeType,
-            duration: duration,
-          });
-          
-          if (recordingStopPromiseRef.current) {
-            recordingStopPromiseRef.current.resolve();
-            recordingStopPromiseRef.current = null;
-          }
-        };
-        
-        mediaRecorderRef.current = mediaRecorder;
-        
-        // Восстанавливаем AudioContext если он был закрыт
-        if (!audioContextRef.current && mediaStreamRef.current) {
-          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-          const source = audioContext.createMediaStreamSource(mediaStreamRef.current);
-          const analyser = audioContext.createAnalyser();
-          
-          analyser.fftSize = 256;
-          analyser.smoothingTimeConstant = 0.8;
-          
-          source.connect(analyser);
-          
-          audioContextRef.current = audioContext;
-          analyserRef.current = analyser;
-        }
-        
-        const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        const timeslice = isMobileDevice ? 500 : 1000;
-        mediaRecorder.start(timeslice);
-        
-        setIsRecording(true);
-        setStatus('recording');
-        // НЕ сбрасываем duration - продолжаем с того же значения
-        
-        console.log('Recording resumed with same ID:', recordingIdRef.current);
-        return;
-      } catch (error) {
-        console.error('Error resuming recording:', error);
-        toast({
-          title: "Ошибка",
-          description: "Не удалось продолжить запись. Начинается новая запись.",
-          variant: "destructive"
-        });
-        // Продолжаем с созданием новой записи
-      }
-    }
-
     // Если есть сохраненная запись, очищаем её перед началом новой
     if (savedRecording) {
       await deleteChunks(savedRecording.id);
@@ -564,7 +491,8 @@ export default function RecordPage() {
       // чтобы избежать проблем с памятью при длинных записях
       const timeslice = isMobileDevice ? 500 : 1000; // 500мс для мобильных, 1с для десктопов
       mediaRecorder.start(timeslice);
-      
+
+      setIsPaused(false);
       setIsRecording(true);
       setStatus('recording');
       setDuration(0);
@@ -579,56 +507,99 @@ export default function RecordPage() {
   };
 
   const handlePause = () => {
-    if (!mediaRecorderRef.current) return;
-    
+    const recorder = mediaRecorderRef.current;
+    if (!recorder || recorder.state === 'inactive') return;
+
+    if (typeof recorder.pause !== 'function' || typeof recorder.resume !== 'function') {
+      toast({
+        title: 'Пауза недоступна',
+        description: 'В этом браузере запись нельзя приостановить. Завершите и отправьте запись.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     if (isPaused) {
-      // Возобновляем запись
-      mediaRecorderRef.current.resume();
-      setIsPaused(false);
+      try {
+        recorder.resume();
+        setIsPaused(false);
+      } catch (e) {
+        console.error('resume failed', e);
+        toast({
+          title: 'Не удалось продолжить',
+          description: 'Попробуйте ещё раз или начните запись заново.',
+          variant: 'destructive',
+        });
+      }
     } else {
-      // Пауза
-      mediaRecorderRef.current.pause();
-      setIsPaused(true);
+      try {
+        recorder.pause();
+        setIsPaused(true);
+      } catch (e) {
+        console.error('pause failed', e);
+        toast({
+          title: 'Не удалось поставить на паузу',
+          description: 'Попробуйте другой браузер или завершите запись.',
+          variant: 'destructive',
+        });
+      }
     }
   };
 
-  const handleStop = async () => {
-    if (!mediaRecorderRef.current || mediaRecorderRef.current.state === 'inactive') {
+  /**
+   * Полный stop MediaRecorder, сбор финального blob в finalBlobRef, освобождение микрофона.
+   * Вызывается перед отправкой на сервер (одна непрерывная сессия записи — без второго MediaRecorder).
+   */
+  const finalizeRecordingForUpload = async (): Promise<void> => {
+    const recorder = mediaRecorderRef.current;
+    if (!recorder || recorder.state === 'inactive') {
       return;
     }
 
     setIsRecording(false);
-    setStatus('stopped');
+    setIsPaused(false);
     setAudioData(Array(40).fill(0));
 
-    // Создаем промис для ожидания окончания записи
+    let stopWaitTimeoutId: number | undefined;
     const stopPromise = new Promise<void>((resolve, reject) => {
-      recordingStopPromiseRef.current = { resolve, reject };
-      
-      // Таймаут на случай, если onstop не сработает
-      setTimeout(() => {
+      const clearStopWait = () => {
+        if (stopWaitTimeoutId !== undefined) {
+          window.clearTimeout(stopWaitTimeoutId);
+          stopWaitTimeoutId = undefined;
+        }
+      };
+      recordingStopPromiseRef.current = {
+        resolve: () => {
+          clearStopWait();
+          resolve();
+        },
+        reject: (err: Error) => {
+          clearStopWait();
+          reject(err);
+        },
+      };
+
+      const chunkCount = audioChunksRef.current.length;
+      const stopWaitMs = Math.min(90_000, Math.max(15_000, 8_000 + chunkCount * 250));
+
+      stopWaitTimeoutId = window.setTimeout(() => {
         if (recordingStopPromiseRef.current) {
           recordingStopPromiseRef.current.reject(new Error('Таймаут ожидания окончания записи'));
           recordingStopPromiseRef.current = null;
         }
-      }, 5000);
+      }, stopWaitMs);
     });
 
-    // Останавливаем запись
-    mediaRecorderRef.current.stop();
+    flushRecorderDataBeforeStop(recorder);
+    recorder.stop();
 
     try {
-      // Ждем окончания записи (onstop вызывается после последнего ondataavailable)
       await stopPromise;
 
-      // Собираем финальный Blob из памяти — на этом моменте все чанки уже есть в audioChunksRef.
-      // Не полагаемся на IndexedDB здесь: последний чанк мог ещё не успеть записаться,
-      // из‑за чего получался обрезанный/битый MP4 и ошибка ffmpeg (trex, tfhd, invalid header).
-      const mimeType = mediaRecorderRef.current?.mimeType || 'audio/webm';
+      const mimeType = recorder.mimeType || mediaRecorderOptionsRef.current?.mimeType || 'audio/webm';
       const blobFromMemory = new Blob(audioChunksRef.current, { type: mimeType });
 
       if (blobFromMemory.size === 0) {
-        // Fallback: если в памяти пусто (редкий кейс), пробуем IndexedDB
         const blobFromIdb = recordingIdRef.current ? await buildAudioBlob(recordingIdRef.current) : null;
         if (!blobFromIdb || blobFromIdb.size === 0) {
           throw new Error('Запись пуста');
@@ -640,54 +611,52 @@ export default function RecordPage() {
 
       const audioBlob = finalBlobRef.current;
       const chunksSize = audioChunksRef.current.length;
-
-      // Логируем информацию о файле для отладки
-      const sizeMB = (audioBlob.size / (1024 * 1024)).toFixed(2);
-      const durationMinutes = (duration / 60).toFixed(1);
-
-      console.log('Recording paused:', {
-        size: `${sizeMB} MB`,
-        duration: `${duration} seconds (${durationMinutes} minutes)`,
-        chunks: chunksSize,
-        mimeType: audioBlob.type,
+      const usedIdbFallback = blobFromMemory.size === 0;
+      audioDebugBlobSummary(audioBlob, 'finalizeRecordingForUpload (финальный blob)', {
         recordingId: recordingIdRef.current,
+        durationSec: duration,
+        chunksInMemoryBeforeClear: chunksSize,
+        source: usedIdbFallback ? 'indexeddb_fallback' : 'memory',
       });
-
-      // Сохраняем метаданные о записи (пока не сохраняем, только останавливаем)
-      // Метаданные будут сохранены при нажатии "Отправить"
-      
-      // НЕ останавливаем потоки (mediaStreamRef и audioContextRef), 
-      // чтобы можно было продолжить запись
-      // Только останавливаем визуализацию
-      
-      console.log('Recording paused. Can be resumed.');
+      await audioDebugBlobHeaderSample(audioBlob, 'finalize после сборки');
+      audioDebug('Запись финализирована для отправки', {
+        sizeMB: (audioBlob.size / (1024 * 1024)).toFixed(2),
+        durationSec: duration,
+        chunks: chunksSize,
+      });
     } catch (error) {
       console.error('Error finishing recording:', error);
-      setStatus('idle');
-      
-      // Останавливаем поток даже при ошибке
       if (mediaStreamRef.current) {
-        mediaStreamRef.current.getTracks().forEach(track => track.stop());
+        mediaStreamRef.current.getTracks().forEach((track) => track.stop());
         mediaStreamRef.current = null;
       }
-      
       if (audioContextRef.current) {
         audioContextRef.current.close();
         audioContextRef.current = null;
       }
-      
-        toast({
-        title: "Ошибка завершения записи",
-        description: "Не удалось завершить запись. Попробуйте еще раз.",
-        variant: "destructive"
+      mediaRecorderRef.current = null;
+      toast({
+        title: 'Ошибка завершения записи',
+        description: 'Не удалось подготовить файл. Попробуйте ещё раз.',
+        variant: 'destructive',
       });
+      throw error;
     } finally {
-      // Очищаем запись из памяти
       audioChunksRef.current = [];
       recordingStopPromiseRef.current = null;
       chunkIndexRef.current = 0;
-      // НЕ очищаем recordingIdRef и duration - они нужны для отправки
     }
+
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      mediaStreamRef.current = null;
+    }
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
+    mediaRecorderRef.current = null;
+    animationFrameRef.current = null;
   };
 
   // Отправка сохраненной записи на бэкенд
@@ -706,16 +675,55 @@ export default function RecordPage() {
     const type = consultationType;
 
     try {
-      // Используем blob, собранный при остановке из памяти (полный файл), чтобы избежать битого MP4.
-      // Fallback на IndexedDB — для фоновой отправки после перезагрузки страницы.
+      if (
+        mediaRecorderRef.current &&
+        mediaRecorderRef.current.state !== 'inactive' &&
+        !isPaused
+      ) {
+        toast({
+          title: 'Сначала поставьте на паузу',
+          description: 'Чтобы отправить запись, приостановите её кнопкой «Пауза».',
+          variant: 'default',
+        });
+        return;
+      }
+
+      if (
+        mediaRecorderRef.current &&
+        mediaRecorderRef.current.state !== 'inactive'
+      ) {
+        await finalizeRecordingForUpload();
+      }
+
+      // Используем blob после finalize из памяти; fallback на IndexedDB — после перезагрузки страницы.
+      const blobSource: 'memory' | 'indexeddb' =
+        finalBlobRef.current && recordingIdRef.current === recordingId ? 'memory' : 'indexeddb';
+
       let audioBlob: Blob | null =
-        finalBlobRef.current && recordingIdRef.current === recordingId
-          ? finalBlobRef.current
-          : await buildAudioBlob(recordingId);
+        blobSource === 'memory' ? finalBlobRef.current : await buildAudioBlob(recordingId);
 
       if (!audioBlob || audioBlob.size === 0) {
+        audioIntegrityWarn('handleSend: не удалось собрать аудио', {
+          recordingId,
+          blobSource,
+        });
         throw new Error('Не удалось собрать аудиофайл');
       }
+
+      audioDebugBlobSummary(audioBlob, 'handleSend перед upload', {
+        recordingId,
+        blobSource,
+        durationSec: duration,
+        consultationType: type,
+      });
+      await audioDebugBlobHeaderSample(audioBlob, 'handleSend перед upload');
+      audioUploadMilestone('старт consultation/upload', {
+        patientId,
+        consultationType: type,
+        size: audioBlob.size,
+        mime: audioBlob.type,
+        source: blobSource,
+      });
 
       // Сохраняем метаданные локально (если отправка упадёт, фоновый процесс подхватит)
       const metadata: RecordingMetadata = {
@@ -764,12 +772,13 @@ export default function RecordPage() {
       recordingIdRef.current = null;
       setSavedRecording(null);
       setIsUploading(false);
+      setIsPaused(false);
+      setIsRecording(false);
 
       setLocation(`/consultation/${consultationId}`);
     } catch (error) {
       console.error('Error uploading recording:', error);
       setIsUploading(false);
-      setStatus('stopped');
 
       toast({
         title: "Запись сохранена локально",
@@ -782,6 +791,8 @@ export default function RecordPage() {
       recordingIdRef.current = null;
       setSavedRecording(null);
       finalBlobRef.current = null;
+      setIsPaused(false);
+      setIsRecording(false);
 
       queryClient.invalidateQueries({ queryKey: ['consultations'] });
       setTimeout(() => setLocation('/history'), 500);
@@ -793,9 +804,11 @@ export default function RecordPage() {
     
     // Если идет запись, останавливаем её
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      flushRecorderDataBeforeStop(mediaRecorderRef.current);
       mediaRecorderRef.current.stop();
     }
-    
+    mediaRecorderRef.current = null;
+
     if (mediaStreamRef.current) {
       mediaStreamRef.current.getTracks().forEach(track => track.stop());
       mediaStreamRef.current = null;
@@ -824,6 +837,7 @@ export default function RecordPage() {
     setConsultationType(null);
     setSavedRecording(null);
     setIsUploading(false);
+    setIsPaused(false);
     setAudioData(Array(40).fill(0));
   };
 
@@ -836,7 +850,7 @@ export default function RecordPage() {
   };
 
   // Скрываем навигацию во время записи или паузы
-  const shouldHideNavigation = status === 'recording' || status === 'stopped';
+  const shouldHideNavigation = status === 'recording' || status === 'uploading';
 
   return (
     <Layout hideNavigation={shouldHideNavigation}>
@@ -1072,7 +1086,7 @@ export default function RecordPage() {
           </div>
 
           {/* Status Messages */}
-          {status !== 'recording' && status !== 'idle' && status !== 'stopped' && (
+          {status !== 'recording' && status !== 'idle' && (
             <div className="flex flex-col items-center gap-3 animate-in fade-in slide-in-from-bottom-4">
               <Loader2 className="w-6 h-6 md:w-8 md:h-8 animate-spin text-primary" />
               <p className="text-base md:text-lg font-medium px-4">
@@ -1142,18 +1156,17 @@ export default function RecordPage() {
             </div>
           )}
 
-          {status === 'recording' && (
+          {status === 'recording' && !isPaused && (
             <div className="flex items-center justify-center gap-6 md:gap-8">
-              {/* Кнопка Отменить */}
               <div className="flex flex-col items-center gap-2">
                 <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
                   <AlertDialogTrigger asChild>
-                <Button 
-                  size="icon" 
+                    <Button
+                      size="icon"
                       className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-destructive text-destructive-foreground hover:scale-105 transition-transform shadow-2xl shadow-destructive/30"
-                >
+                    >
                       <X className="w-6 h-6 md:w-7 md:h-7" />
-                </Button>
+                    </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent className="rounded-3xl">
                     <AlertDialogHeader>
@@ -1175,13 +1188,13 @@ export default function RecordPage() {
                 </AlertDialog>
                 <span className="text-xs text-muted-foreground font-light">Отменить</span>
               </div>
-              
-              {/* Кнопка Пауза */}
+
               <div className="flex flex-col items-center gap-2">
-                <Button 
-                  size="icon" 
+                <Button
+                  size="icon"
                   className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-primary text-primary-foreground hover:scale-105 transition-transform shadow-2xl shadow-primary/30"
-                  onClick={handleStop}
+                  onClick={handlePause}
+                  aria-label="Пауза"
                 >
                   <Pause className="w-6 h-6 md:w-7 md:h-7" />
                 </Button>
@@ -1190,20 +1203,18 @@ export default function RecordPage() {
             </div>
           )}
 
-          {/* Состояние после остановки записи */}
-          {status === 'stopped' && (
-            <div className="flex flex-col items-center justify-center gap-6 md:gap-8">
-              {/* Кнопки Отменить и Продолжить (рядом наверху) */}
+          {status === 'recording' && isPaused && (
+            <div className="flex flex-col items-center justify-center gap-6 md:gap-8 w-full max-w-sm mx-auto">
               <div className="flex items-center justify-center gap-4 md:gap-6">
                 <div className="flex flex-col items-center gap-2">
                   <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
                     <AlertDialogTrigger asChild>
-                <Button 
-                  size="icon" 
+                      <Button
+                        size="icon"
                         className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-destructive text-destructive-foreground hover:scale-105 transition-transform shadow-2xl shadow-destructive/30"
-                >
+                      >
                         <X className="w-6 h-6 md:w-7 md:h-7" />
-                </Button>
+                      </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent className="rounded-3xl">
                       <AlertDialogHeader>
@@ -1226,42 +1237,43 @@ export default function RecordPage() {
                   <span className="text-xs text-muted-foreground font-light">Отменить</span>
                 </div>
                 <div className="flex flex-col items-center gap-2">
-                  <Button 
+                  <Button
                     size="icon"
                     className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-primary text-primary-foreground hover:scale-105 transition-transform shadow-2xl shadow-primary/30"
-                    onClick={handleStart}
+                    onClick={handlePause}
+                    aria-label="Продолжить запись"
                   >
                     <Play className="w-6 h-6 md:w-7 md:h-7" />
                   </Button>
                   <span className="text-xs text-muted-foreground font-light">Продолжить</span>
                 </div>
               </div>
-              
-              {/* Кнопка Отправить (по ширине двух верхних кнопок) */}
-              <div className="flex flex-col items-center">
-                <Button 
-                  className="w-32 md:w-40 h-14 md:h-16 rounded-full bg-primary text-primary-foreground hover:scale-105 transition-transform shadow-2xl shadow-primary/30 disabled:opacity-50 flex items-center justify-center gap-2"
-                  onClick={handleSend}
-                  disabled={isUploading}
-                >
-                  {isUploading ? (
-                    <>
-                      <Loader2 className="w-5 h-5 md:w-6 md:h-6 animate-spin" />
-                      <span className="text-sm md:text-base font-medium">Отправка...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Send className="w-5 h-5 md:w-6 md:h-6" />
-                      <span className="text-sm md:text-base font-medium">Отправить</span>
-                    </>
-                  )}
-                </Button>
-              </div>
+
+              <Button
+                className="w-32 md:w-40 h-14 md:h-16 rounded-full bg-primary text-primary-foreground hover:scale-105 transition-transform shadow-2xl shadow-primary/30 disabled:opacity-50 flex items-center justify-center gap-2"
+                onClick={handleSend}
+                disabled={isUploading}
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 md:w-6 md:h-6 animate-spin" />
+                    <span className="text-sm md:text-base font-medium">Отправка...</span>
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-5 h-5 md:w-6 md:h-6" />
+                    <span className="text-sm md:text-base font-medium">Отправить</span>
+                  </>
+                )}
+              </Button>
             </div>
           )}
-          
-          {status === 'recording' && (
-             <p className="text-muted-foreground animate-pulse text-sm md:text-base">Слушаю...</p>
+
+          {status === 'recording' && !isPaused && (
+            <p className="text-muted-foreground animate-pulse text-sm md:text-base">Слушаю...</p>
+          )}
+          {status === 'recording' && isPaused && (
+            <p className="text-muted-foreground text-sm md:text-base">Запись на паузе — продолжите или отправьте</p>
           )}
         </div>
       </div>

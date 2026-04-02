@@ -2,12 +2,17 @@ import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { consultationsApi } from '@/lib/api/consultations';
 import { ConsultationProcessingStatus, ConsultationType } from '@/lib/api/types';
-import { 
-  getAllSavedRecordings, 
-  buildAudioBlob, 
-  deleteChunks, 
-  deleteRecordingMetadata 
+import {
+  getAllSavedRecordings,
+  buildAudioBlob,
+  deleteChunks,
+  deleteRecordingMetadata,
 } from '@/lib/utils/audio-storage';
+import {
+  audioDebugBlobSummary,
+  audioDebugBlobHeaderSample,
+  audioIntegrityWarn,
+} from '@/lib/utils/audio-debug';
 
 const RETRY_INTERVAL = 10000; // 10 секунд
 
@@ -42,13 +47,21 @@ export function useBackgroundUpload() {
         // Отправляем записи по очереди
         for (const recording of savedRecordings) {
           try {
-            // Собираем Blob из IndexedDB
             const audioBlob = await buildAudioBlob(recording.id);
-            
+
             if (!audioBlob || audioBlob.size === 0) {
-              console.warn(`[Background Upload] Failed to build blob for recording ${recording.id}`);
+              audioIntegrityWarn(`[Background Upload] нет валидного blob, повтор позже`, {
+                recordingId: recording.id,
+                hint: 'IDB pending / ошибки чанков / дыры в индексах',
+              });
               continue;
             }
+
+            audioDebugBlobSummary(audioBlob, 'Background Upload перед отправкой', {
+              recordingId: recording.id,
+              patientId: recording.patientId,
+            });
+            await audioDebugBlobHeaderSample(audioBlob, `Background Upload ${recording.id}`);
 
             console.log(`[Background Upload] Attempting to upload recording ${recording.id} for patient ${recording.patientId}`);
 
