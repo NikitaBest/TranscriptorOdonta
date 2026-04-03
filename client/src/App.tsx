@@ -20,6 +20,7 @@ import PatientProfile from "@/pages/patient";
 import PatientEditPage from "@/pages/patient-edit";
 import PatientCreatePage from "@/pages/patient-create";
 import RecordPage from "@/pages/record";
+import RecordRecommendationsPage from "@/pages/record-recommendations";
 import ConsultationPage from "@/pages/consultation";
 import ConsultationAIReportPage from "@/pages/consultation-ai-report";
 import HistoryPage from "@/pages/history";
@@ -160,6 +161,7 @@ function Router() {
         <Route path="/patient/new" component={PatientCreatePage} />
         <Route path="/patient/:id" component={PatientProfile} />
         <Route path="/patient/:id/edit" component={PatientEditPage} />
+        <Route path="/record/recommendations" component={RecordRecommendationsPage} />
         <Route path="/record" component={RecordPage} />
         <Route path="/consultation/:id" component={ConsultationPage} />
         <Route path="/consultation/:id/ai-report" component={ConsultationAIReportPage} />

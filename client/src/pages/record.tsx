@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useLocation } from 'wouter';
+import { useLocation, Link } from 'wouter';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Layout } from '@/components/layout';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Mic, Pause, Play, Loader2, X, User, ChevronRight, ChevronDown, ChevronUp, Trash2, Send } from 'lucide-react';
+import { Mic, Pause, Play, Loader2, X, User, ChevronRight, BookOpen, Trash2, Send } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { patientsApi } from '@/lib/api/patients';
@@ -135,8 +135,6 @@ export default function RecordPage() {
   const [savedRecording, setSavedRecording] = useState<RecordingMetadata | null>(null);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [isRecommendationsOpen, setIsRecommendationsOpen] = useState(false);
-  
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
@@ -855,7 +853,7 @@ export default function RecordPage() {
   return (
     <Layout hideNavigation={shouldHideNavigation}>
       <div className="min-h-[calc(100vh-8rem)] md:min-h-[80vh] flex items-center justify-center py-8 md:py-0">
-        <div className="w-full max-w-2xl space-y-6 md:space-y-8 text-center px-4">
+        <div className="w-full max-w-2xl xl:max-w-4xl space-y-6 md:space-y-8 text-center px-4">
           
           {/* Patient Selection */}
           {status === 'idle' && (
@@ -1109,102 +1107,42 @@ export default function RecordPage() {
                 <Mic className="w-8 h-8 md:w-10 md:h-10" />
                 </Button>
               
-              {/* Рекомендации по использованию (только до начала записи) */}
-              <div className="w-full max-w-full md:max-w-md mx-auto px-2 md:px-4 animate-in fade-in slide-in-from-bottom-4">
-                <div className="rounded-2xl bg-card border border-border/50 overflow-hidden shadow-sm">
-                  <button
-                    onClick={() => setIsRecommendationsOpen(!isRecommendationsOpen)}
-                    className="w-full p-4 md:p-5 flex items-center justify-between gap-3 transition-colors"
-                  >
-                    <h3 className="font-semibold text-foreground text-center whitespace-nowrap flex-1 min-w-0" style={{ fontSize: 'clamp(0.7rem, 3vw, 1rem)' }}>
-                      Рекомендации для качественной записи
-                    </h3>
-                    {isRecommendationsOpen ? (
-                      <ChevronUp className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                    ) : (
-                      <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                    )}
-                  </button>
-                  
-                  {isRecommendationsOpen && (
-                    <div className="px-4 md:px-5 pb-4 md:pb-5 space-y-3 animate-in slide-in-from-top-2 fade-in duration-200">
-                      <ul className="space-y-2 text-xs md:text-sm text-muted-foreground text-left">
-                        <li className="flex items-start gap-2 text-left">
-                          <span className="text-primary mt-0.5 flex-shrink-0">•</span>
-                          <span className="text-left">Держите телефон/микрофон близко к говорящему</span>
-                        </li>
-                        <li className="flex items-start gap-2 text-left">
-                          <span className="text-primary mt-0.5 flex-shrink-0">•</span>
-                          <span className="text-left">Не кладите устройство в карман, тумбочку или в сумку</span>
-                        </li>
-                        <li className="flex items-start gap-2 text-left">
-                          <span className="text-primary mt-0.5 flex-shrink-0">•</span>
-                          <span className="text-left">Расположите устройство на столе или держите в руке</span>
-                        </li>
-                        <li className="flex items-start gap-2 text-left">
-                          <span className="text-primary mt-0.5 flex-shrink-0">•</span>
-                          <span className="text-left">Избегайте фонового шума и посторонних разговоров</span>
-                        </li>
-                        <li className="flex items-start gap-2 text-left">
-                          <span className="text-primary mt-0.5 flex-shrink-0">•</span>
-                          <span className="text-left">
-                            Не блокируйте экран и не закрывайте вкладку с приложением во время записи — на телефоне
-                            запись может прерваться, если уйти в другой приложение или заблокировать устройство
-                          </span>
-                        </li>
-                        <li className="flex items-start gap-2 text-left">
-                          <span className="text-primary mt-0.5 flex-shrink-0">•</span>
-                          <span className="text-left">
-                            Для длинной консультации заранее подключите зарядку или следите за зарядом: при сильном
-                            энергосбережении ОС может ограничить работу браузера
-                          </span>
-                        </li>
-                        <li className="flex items-start gap-2 text-left">
-                          <span className="text-primary mt-0.5 flex-shrink-0">•</span>
-                          <span className="text-left">
-                            Пауза только ставит запись на паузу: микрофон остаётся занят до отправки. Чтобы завершить,
-                            нажмите «Пауза», затем «Отправить» — до этого момента не начинайте новую запись в другой
-                            вкладке с тем же браузером
-                          </span>
-                        </li>
-                        <li className="flex items-start gap-2 text-left">
-                          <span className="text-primary mt-0.5 flex-shrink-0">•</span>
-                          <span className="text-left">
-                            Перед отправкой убедитесь в устойчивом интернете (лучше Wi‑Fi для длинных записей) —
-                            при обрыве загрузка может не пройти с первого раза; приложение попробует отправить снова,
-                            когда сеть появится
-                          </span>
-                        </li>
-                        <li className="flex items-start gap-2 text-left">
-                          <span className="text-primary mt-0.5 flex-shrink-0">•</span>
-                          <span className="text-left">
-                            При появлении запроса браузера на доступ к микрофону нажмите «Разрешить»; если доступ
-                            запрещён в настройках системы, запись будет недоступна
-                          </span>
-                        </li>
-                        <li className="flex items-start gap-2 text-left">
-                          <span className="text-primary mt-0.5 flex-shrink-0">•</span>
-                          <span className="text-left">
-                            Используйте актуальную версию браузера (Chrome, Safari и др.) — в устаревших версиях запись
-                            или пауза могут работать нестабильно
-                          </span>
-                        </li>
-                        <li className="flex items-start gap-2 text-left">
-                          <span className="text-primary mt-0.5 flex-shrink-0">•</span>
-                          <span className="text-left">
-                            При плохом звуке в помещении можно использовать проводную гарнитуру с микрофоном,
-                            если она подключена к этому же устройству
-                          </span>
-                        </li>
-                      </ul>
-                      <p className="text-xs md:text-sm text-muted-foreground pt-2 border-t border-border/50 text-left">
-                        Чем стабильнее запись и интернет, тем реже будут ошибки и обрывы, а транскрипция и медицинский
-                        отчёт — точнее
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
+              <Button
+                variant="default"
+                className={cn(
+                  'group w-full max-w-md animate-in fade-in slide-in-from-bottom-4 touch-manipulation',
+                  'rounded-2xl border border-white/10 bg-zinc-950 text-white shadow-sm',
+                  'transition-[background-color,box-shadow,border-color,transform] duration-200 ease-out',
+                  'hover:border-white/15 hover:bg-zinc-900 hover:shadow-md',
+                  'active:scale-[0.99] md:active:scale-100',
+                  'min-h-[3rem] h-auto px-4 py-3 md:min-h-[2.875rem] md:px-6 md:py-3',
+                  'text-sm font-medium leading-snug tracking-tight md:text-[0.9375rem] md:leading-6 whitespace-normal',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-background'
+                )}
+                asChild
+              >
+                <Link
+                  href={
+                    selectedPatientId
+                      ? `/record/recommendations?patientId=${encodeURIComponent(selectedPatientId)}`
+                      : '/record/recommendations'
+                  }
+                  className="flex w-full items-center justify-center gap-2.5 md:gap-3"
+                  aria-label="Рекомендации для качественной записи — открыть список"
+                >
+                  <BookOpen
+                    className="h-4 w-4 shrink-0 text-white/75 transition-colors group-hover:text-white/90"
+                    aria-hidden
+                  />
+                  <span className="min-w-0 flex-1 text-balance text-center text-white/95 group-hover:text-white">
+                    Рекомендации для качественной записи
+                  </span>
+                  <ChevronRight
+                    className="h-4 w-4 shrink-0 text-white/45 transition-colors group-hover:text-white/65"
+                    aria-hidden
+                  />
+                </Link>
+              </Button>
             </div>
           )}
 

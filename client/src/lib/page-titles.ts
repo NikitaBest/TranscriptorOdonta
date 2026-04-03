@@ -6,6 +6,7 @@ const ROUTE_TITLES: { pattern: RegExp | string; title: string }[] = [
   { pattern: '/settings', title: 'Настройки' },
   { pattern: '/dashboard', title: 'Пациенты' },
   { pattern: '/history', title: 'История' },
+  { pattern: /^\/record\/recommendations\/?$/, title: 'Рекомендации по записи' },
   { pattern: '/record', title: 'Запись' },
   { pattern: /^\/patient\/new\/?$/, title: 'Новый пациент' },
   { pattern: /^\/patient\/[^/]+\/edit\/?$/, title: 'Редактирование пациента' },

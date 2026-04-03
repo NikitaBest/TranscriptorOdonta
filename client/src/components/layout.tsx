@@ -36,6 +36,11 @@ export function Layout({ children, hideNavigation = false }: LayoutProps) {
     { href: '/record', icon: Mic, label: 'Запись' },
   ];
 
+  const isMainNavActive = (href: string) =>
+    href === '/record'
+      ? location === '/record' || location.startsWith('/record/')
+      : location === href;
+
   const handleLogout = async (e: React.MouseEvent) => {
     e.preventDefault();
     
@@ -92,12 +97,12 @@ export function Layout({ children, hideNavigation = false }: LayoutProps) {
                   <div 
                     className={cn(
                       "flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200 group cursor-pointer",
-                      location === item.href 
+                      isMainNavActive(item.href)
                         ? "bg-primary text-primary-foreground shadow-md" 
                         : "hover:bg-secondary text-foreground"
                     )}
                   >
-                    <item.icon className={cn("w-5 h-5", location === item.href ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground")} />
+                    <item.icon className={cn("w-5 h-5", isMainNavActive(item.href) ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground")} />
                     <span className="font-medium">{item.label}</span>
                   </div>
                 </Link>
@@ -304,13 +309,13 @@ export function Layout({ children, hideNavigation = false }: LayoutProps) {
               <div 
                 className={cn(
                   "flex flex-col items-center justify-center gap-1 pt-1.5 pb-2 rounded-xl transition-all duration-200",
-                  location === item.href 
+                  isMainNavActive(item.href)
                     ? "text-primary" 
                     : "text-muted-foreground"
                 )}
               >
-                <item.icon className={cn("w-5 h-5", location === item.href && "text-primary")} />
-                <span className={cn("text-[10px] font-medium", location === item.href && "text-primary")}>
+                <item.icon className={cn("w-5 h-5", isMainNavActive(item.href) && "text-primary")} />
+                <span className={cn("text-[10px] font-medium", isMainNavActive(item.href) && "text-primary")}>
                   {item.label}
                 </span>
               </div>
