@@ -1033,7 +1033,7 @@ export default function RecordPage() {
                   Тип консультации *
                 </Label>
                 <Select
-                  value={consultationType?.toString()}
+                  value={consultationType !== null ? String(consultationType) : ''}
                   onValueChange={(value) => setConsultationType(Number(value) as ConsultationType)}
                 >
                   <SelectTrigger className="w-full h-12 rounded-xl text-base bg-background border-border/50">
