@@ -1145,9 +1145,61 @@ export default function RecordPage() {
                           <span className="text-primary mt-0.5 flex-shrink-0">•</span>
                           <span className="text-left">Избегайте фонового шума и посторонних разговоров</span>
                         </li>
+                        <li className="flex items-start gap-2 text-left">
+                          <span className="text-primary mt-0.5 flex-shrink-0">•</span>
+                          <span className="text-left">
+                            Не блокируйте экран и не закрывайте вкладку с приложением во время записи — на телефоне
+                            запись может прерваться, если уйти в другой приложение или заблокировать устройство
+                          </span>
+                        </li>
+                        <li className="flex items-start gap-2 text-left">
+                          <span className="text-primary mt-0.5 flex-shrink-0">•</span>
+                          <span className="text-left">
+                            Для длинной консультации заранее подключите зарядку или следите за зарядом: при сильном
+                            энергосбережении ОС может ограничить работу браузера
+                          </span>
+                        </li>
+                        <li className="flex items-start gap-2 text-left">
+                          <span className="text-primary mt-0.5 flex-shrink-0">•</span>
+                          <span className="text-left">
+                            Пауза только ставит запись на паузу: микрофон остаётся занят до отправки. Чтобы завершить,
+                            нажмите «Пауза», затем «Отправить» — до этого момента не начинайте новую запись в другой
+                            вкладке с тем же браузером
+                          </span>
+                        </li>
+                        <li className="flex items-start gap-2 text-left">
+                          <span className="text-primary mt-0.5 flex-shrink-0">•</span>
+                          <span className="text-left">
+                            Перед отправкой убедитесь в устойчивом интернете (лучше Wi‑Fi для длинных записей) —
+                            при обрыве загрузка может не пройти с первого раза; приложение попробует отправить снова,
+                            когда сеть появится
+                          </span>
+                        </li>
+                        <li className="flex items-start gap-2 text-left">
+                          <span className="text-primary mt-0.5 flex-shrink-0">•</span>
+                          <span className="text-left">
+                            При появлении запроса браузера на доступ к микрофону нажмите «Разрешить»; если доступ
+                            запрещён в настройках системы, запись будет недоступна
+                          </span>
+                        </li>
+                        <li className="flex items-start gap-2 text-left">
+                          <span className="text-primary mt-0.5 flex-shrink-0">•</span>
+                          <span className="text-left">
+                            Используйте актуальную версию браузера (Chrome, Safari и др.) — в устаревших версиях запись
+                            или пауза могут работать нестабильно
+                          </span>
+                        </li>
+                        <li className="flex items-start gap-2 text-left">
+                          <span className="text-primary mt-0.5 flex-shrink-0">•</span>
+                          <span className="text-left">
+                            При плохом звуке в помещении можно использовать проводную гарнитуру с микрофоном,
+                            если она подключена к этому же устройству
+                          </span>
+                        </li>
                       </ul>
                       <p className="text-xs md:text-sm text-muted-foreground pt-2 border-t border-border/50 text-left">
-                        Чем лучше качество звука, тем точнее будет транскрипция и медицинский отчет
+                        Чем стабильнее запись и интернет, тем реже будут ошибки и обрывы, а транскрипция и медицинский
+                        отчёт — точнее
                       </p>
                     </div>
                   )}
