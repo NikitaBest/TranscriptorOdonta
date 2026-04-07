@@ -4,7 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="клик на панель мобилка" />
+    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="новая страница рекомендаций">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -92,30 +94,8 @@
       <workItem from="1773040000869" duration="10762000" />
       <workItem from="1773085227220" duration="2223000" />
       <workItem from="1773763259561" duration="884000" />
-    </task>
-    <task id="LOCAL-00087" summary="редактирование страница настроеек">
-      <option name="closed" value="true" />
-      <created>1770863270016</created>
-      <option name="number" value="00087" />
-      <option name="presentableId" value="LOCAL-00087" />
-      <option name="project" value="LOCAL" />
-      <updated>1770863270016</updated>
-    </task>
-    <task id="LOCAL-00088" summary="замена эндпоинта подтверждения">
-      <option name="closed" value="true" />
-      <created>1770863830420</created>
-      <option name="number" value="00088" />
-      <option name="presentableId" value="LOCAL-00088" />
-      <option name="project" value="LOCAL" />
-      <updated>1770863830420</updated>
-    </task>
-    <task id="LOCAL-00089" summary="адаптация кнопок в отчете поддержка и пересоздание">
-      <option name="closed" value="true" />
-      <created>1770873057647</created>
-      <option name="number" value="00089" />
-      <option name="presentableId" value="LOCAL-00089" />
-      <option name="project" value="LOCAL" />
-      <updated>1770873057647</updated>
+      <workItem from="1775464285339" duration="1201000" />
+      <workItem from="1775478203101" duration="756000" />
     </task>
     <task id="LOCAL-00090" summary="адаптация блока инфы пациента на странице пациента для мобильных экранов">
       <option name="closed" value="true" />
@@ -485,16 +465,37 @@
       <option name="project" value="LOCAL" />
       <updated>1773763277768</updated>
     </task>
-    <option name="localTasksCounter" value="136" />
+    <task id="LOCAL-00136" summary="смена записи консультации">
+      <option name="closed" value="true" />
+      <created>1775191520456</created>
+      <option name="number" value="00136" />
+      <option name="presentableId" value="LOCAL-00136" />
+      <option name="project" value="LOCAL" />
+      <updated>1775191520456</updated>
+    </task>
+    <task id="LOCAL-00137" summary="добавление проверок исправление ошибок">
+      <option name="closed" value="true" />
+      <created>1775225676654</created>
+      <option name="number" value="00137" />
+      <option name="presentableId" value="LOCAL-00137" />
+      <option name="project" value="LOCAL" />
+      <updated>1775225676654</updated>
+    </task>
+    <task id="LOCAL-00138" summary="новая страница рекомендаций">
+      <option name="closed" value="true" />
+      <created>1775227671997</created>
+      <option name="number" value="00138" />
+      <option name="presentableId" value="LOCAL-00138" />
+      <option name="project" value="LOCAL" />
+      <updated>1775227671997</updated>
+    </task>
+    <option name="localTasksCounter" value="139" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Отправляем пустые значения роль специализация" />
-    <MESSAGE value="уменьшины отступы для моб заметки и блок пац" />
-    <MESSAGE value="скрыть раскрыть заметки , выполнено ли нет" />
     <MESSAGE value="скрытие аудио при мобильной версии" />
     <MESSAGE value="отправка заметок правка" />
     <MESSAGE value="обновление версии pwa и вторичная консультация" />
@@ -517,6 +518,9 @@
     <MESSAGE value="одинаковые заголовки на балансе" />
     <MESSAGE value="корректировка списания время" />
     <MESSAGE value="клик на панель мобилка" />
-    <option name="LAST_COMMIT_MESSAGE" value="клик на панель мобилка" />
+    <MESSAGE value="смена записи консультации" />
+    <MESSAGE value="добавление проверок исправление ошибок" />
+    <MESSAGE value="новая страница рекомендаций" />
+    <option name="LAST_COMMIT_MESSAGE" value="новая страница рекомендаций" />
   </component>
 </project>

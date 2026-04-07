@@ -963,7 +963,7 @@ export default function PatientProfile() {
                           })()}
                         </div>
                       </div>
-                      <p className="hidden md:block text-sm text-muted-foreground line-clamp-2 mb-4 pl-[3.25rem]">
+                      <p className="text-xs sm:text-sm text-muted-foreground line-clamp-3 mb-3 md:mb-4 pl-0 md:pl-[3.25rem]">
                         {getConsultationPreview(consultation) || 'Нет описания'}
                       </p>
                       <div className="hidden md:block pl-[3.25rem]">
