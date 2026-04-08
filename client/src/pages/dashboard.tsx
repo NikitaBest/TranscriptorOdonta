@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Layout } from '@/components/layout';
@@ -14,19 +14,32 @@ import { ru } from 'date-fns/locale';
 import { patientsApi } from '@/lib/api/patients';
 import type { ApiError, PatientResponse } from '@/lib/api/types';
 import { formatDateForDisplay } from '@/lib/utils/date';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export default function Dashboard() {
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const isMobile = useIsMobile();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setDebouncedSearch(search.trim());
+    }, 350);
+
+    return () => window.clearTimeout(timeout);
+  }, [search]);
+
   // Загрузка списка пациентов
   const { data: patientsData = [], isLoading, error } = useQuery({
-    queryKey: ['patients'],
+    queryKey: ['patients', debouncedSearch],
     queryFn: async () => {
       console.log('[Dashboard] Запрос списка пациентов...');
       try {
-        const result = await patientsApi.get();
+        const result = await patientsApi.get(
+          debouncedSearch ? { search: debouncedSearch } : {}
+        );
         console.log('[Dashboard] Получены пациенты:', result);
         return result;
       } catch (err) {
@@ -50,11 +63,7 @@ export default function Dashboard() {
     birthDate: p.birthDate,
   }));
 
-  const filteredPatients = patients.filter(p => 
-    p.firstName.toLowerCase().includes(search.toLowerCase()) || 
-    p.lastName.toLowerCase().includes(search.toLowerCase()) ||
-    p.phone.includes(search)
-  );
+  const filteredPatients = patients;
 
   const handleCopyPhone = async (e: React.MouseEvent, phone: string) => {
     e.stopPropagation(); // Предотвращаем переход на страницу пациента
@@ -121,11 +130,26 @@ export default function Dashboard() {
         <div className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-muted-foreground" />
           <Input 
-            placeholder="Поиск по имени или телефону..." 
-            className="h-12 md:h-14 pl-10 md:pl-12 rounded-2xl bg-white border-border/50 shadow-sm text-base md:text-lg"
+            placeholder={isMobile ? 'Поиск: имя, телефон, заметка' : 'Поиск пациента по имени, телефону или заметке...'}
+            className="h-11 md:h-14 pl-10 md:pl-12 rounded-2xl bg-white border-border/50 shadow-sm text-sm md:text-lg placeholder:text-sm md:placeholder:text-base"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+        </div>
+        <div className="text-xs md:text-sm text-muted-foreground -mt-4">
+          {debouncedSearch ? (
+            isLoading ? (
+              <>Ищем пациентов по запросу "{debouncedSearch}"...</>
+            ) : (
+              <>
+                По запросу "{debouncedSearch}" найдено: <span className="font-medium text-foreground">{filteredPatients.length}</span>
+              </>
+            )
+          ) : (
+            <>
+              Всего пациентов: <span className="font-medium text-foreground">{filteredPatients.length}</span>
+            </>
+          )}
         </div>
 
         {/* Patient Grid */}
