@@ -65,6 +65,19 @@ export interface UserProfile {
  * Запрос на обновление профиля пользователя.
  * Пустые поля отправляются как null.
  */
+/**
+ * Врач (пользователь) тенанта. Элемент ответа GET /tenant/doctors
+ */
+export interface TenantDoctor {
+  id: string | number;
+  firstName?: string | null;
+  lastName?: string | null;
+  middleName?: string | null;
+  userName?: string | null;
+  email?: string | null;
+  clinicRole?: string | null;
+}
+
 export interface UpdateUserProfileRequest {
   id: string;
   firstName: string;
@@ -361,6 +374,10 @@ export interface GetConsultationsRequest {
   pageNumber?: number;
   pageSize?: number;
   clientIds?: (string | number)[];
+  doctorIds?: (string | number)[];
+  search?: string;
+  createdAtFrom?: string;
+  createdAtTo?: string;
   order?: string;
 }
 

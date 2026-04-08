@@ -10,4 +10,5 @@ export { patientsApi } from './patients';
 export { consultationsApi } from './consultations';
 export { userApi } from './user';
 export { walletApi } from './wallet';
+export { tenantApi } from './tenant';
 

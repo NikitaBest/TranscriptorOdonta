@@ -281,6 +281,56 @@ export const consultationsApi = {
   },
 
   /**
+   * Получение страницы консультаций через POST /consultation/get
+   * с поддержкой расширенных фильтров (search, period, ids, сортировка).
+   */
+  async getConsultationsPagePost(params: {
+    pageNumber: number;
+    pageSize: number;
+    clientIds?: (string | number)[];
+    doctorIds?: (string | number)[];
+    search?: string;
+    createdAtFrom?: string;
+    createdAtTo?: string;
+    order?: string;
+  }): Promise<{ data: ConsultationResponse[]; hasNext: boolean }> {
+    const response = await ApiClient.post<ApiResponse<GetConsultationsResponse | ConsultationResponse[]>>(
+      'consultation/get',
+      {
+        pageNumber: params.pageNumber,
+        pageSize: params.pageSize,
+        ...(params.clientIds?.length ? { clientIds: params.clientIds } : {}),
+        ...(params.doctorIds?.length ? { doctorIds: params.doctorIds } : {}),
+        ...(params.search ? { search: params.search } : {}),
+        ...(params.createdAtFrom ? { createdAtFrom: params.createdAtFrom } : {}),
+        ...(params.createdAtTo ? { createdAtTo: params.createdAtTo } : {}),
+        ...(params.order ? { order: params.order } : {}),
+      },
+      { requireAuth: true }
+    );
+
+    let data: ConsultationResponse[] = [];
+    let hasNext = false;
+
+    if (response.isSuccess && response.value) {
+      if (Array.isArray(response.value)) {
+        data = response.value.map((c) => this.normalizeConsultation(c));
+        hasNext = data.length === params.pageSize;
+      } else if ('data' in response.value && Array.isArray(response.value.data)) {
+        data = response.value.data.map((c) => this.normalizeConsultation(c));
+        const raw = response.value as GetConsultationsResponse;
+        const byPage =
+          typeof raw.currentPage === 'number' &&
+          typeof raw.totalPages === 'number' &&
+          raw.currentPage < raw.totalPages;
+        hasNext = raw.hasNext ?? byPage ?? data.length === params.pageSize;
+      }
+    }
+
+    return { data, hasNext };
+  },
+
+  /**
    * Обновление свойства консультации
    * PATCH /consultation/property
    */

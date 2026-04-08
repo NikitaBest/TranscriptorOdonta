@@ -6,10 +6,24 @@ import { Layout } from '@/components/layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { consultationsApi } from '@/lib/api/consultations';
 import { patientsApi } from '@/lib/api/patients';
+import { tenantApi } from '@/lib/api/tenant';
 import { ConsultationProcessingStatus, ConsultationType } from '@/lib/api/types';
-import type { ConsultationResponse, ConsultationProperty, PatientResponse } from '@/lib/api/types';
+import type {
+  ConsultationResponse,
+  ConsultationProperty,
+  PatientResponse,
+  TenantDoctor,
+} from '@/lib/api/types';
 import { Search, Filter, ArrowUpRight, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -17,6 +31,16 @@ import { cn, getConsultationRoleLabel } from '@/lib/utils';
 import { getAllSavedRecordings, type RecordingMetadata } from '@/lib/utils/audio-storage';
 
 // Функция для получения названия типа консультации
+function formatTenantDoctorName(d: TenantDoctor): string {
+  const parts = [d.lastName, d.firstName, d.middleName].filter(
+    (p): p is string => typeof p === 'string' && p.trim() !== ''
+  );
+  if (parts.length > 0) return parts.join(' ');
+  if (d.userName?.trim()) return d.userName.trim();
+  if (d.email?.trim()) return d.email.trim();
+  return String(d.id);
+}
+
 function getConsultationTypeName(type: number | undefined): string {
   if (!type) return 'Консультация';
   
@@ -32,8 +56,174 @@ function getConsultationTypeName(type: number | undefined): string {
   }
 }
 
+function pad2(n: number): string {
+  return n < 10 ? `0${n}` : String(n);
+}
+
+function isValidYmd(year: number, month: number, day: number): boolean {
+  if (!Number.isInteger(year) || year < 1900 || year > 2100) return false;
+  if (!Number.isInteger(month) || month < 1 || month > 12) return false;
+  if (!Number.isInteger(day) || day < 1 || day > 31) return false;
+  const dt = new Date(year, month - 1, day);
+  return dt.getFullYear() === year && dt.getMonth() === month - 1 && dt.getDate() === day;
+}
+
+/** Убирает пробелы, приводит запятую к точке, схлопывает повторяющиеся разделители. */
+function normalizeFilterDateRaw(raw: string): string {
+  let s = raw.trim().replace(/\s+/g, '').replace(/,/g, '.');
+  s = s.replace(/\.{2,}/g, '.').replace(/\/{2,}/g, '/').replace(/-{2,}/g, '-');
+  return s;
+}
+
+/** Сжатая цифрами дата: начинать с года (ГГГГММДД) или с дня (ДДММГГГГ)? */
+function useYearFirstDigitGrouping(digits: string): boolean {
+  if (digits.length < 4) return false;
+  const yyyy = parseInt(digits.slice(0, 4), 10);
+  const dd = parseInt(digits.slice(0, 2), 10);
+  const mm = parseInt(digits.slice(2, 4), 10);
+  const dayFirstHeaderValid =
+    dd >= 1 && dd <= 31 && mm >= 1 && mm <= 12;
+  const yearPlausible = yyyy >= 1900 && yyyy <= 2100;
+  if (!yearPlausible) return false;
+  if (!dayFirstHeaderValid) return true;
+  if (mm > 12) return true;
+  if (dd > 31) return true;
+  return false;
+}
+
+function formatDigitsDayFirstWhileTyping(d: string): string {
+  if (d.length <= 2) return d;
+  if (d.length <= 4) return `${d.slice(0, 2)}.${d.slice(2)}`;
+  return `${d.slice(0, 2)}.${d.slice(2, 4)}.${d.slice(4)}`;
+}
+
+function formatDigitsYearFirstWhileTyping(d: string): string {
+  if (d.length <= 4) return d.slice(0, 4);
+  if (d.length <= 6) return `${d.slice(0, 4)}.${d.slice(4)}`;
+  return `${d.slice(0, 4)}.${d.slice(4, 6)}.${d.slice(6)}`;
+}
+
+/** Форматирование при вводе: только цифры (до 8) → ДД.ММ.ГГГГ или ГГГГ.ММ.ДД; ведущие нули сохраняются. */
+function formatFilterDateWhileTyping(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return '';
+  const digits = trimmed.replace(/\D/g, '').slice(0, 8);
+  if (digits.length > 0) {
+    return useYearFirstDigitGrouping(digits)
+      ? formatDigitsYearFirstWhileTyping(digits)
+      : formatDigitsDayFirstWhileTyping(digits);
+  }
+  return normalizeFilterDateRaw(trimmed).slice(0, 32);
+}
+
+function tryParseYmdFromCompactString(s: string): string | null {
+  if (!s) return null;
+
+  const iso = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(s);
+  if (iso) {
+    const y = Number(iso[1]);
+    const mo = Number(iso[2]);
+    const d = Number(iso[3]);
+    if (!isValidYmd(y, mo, d)) return null;
+    return `${y}-${pad2(mo)}-${pad2(d)}`;
+  }
+
+  const ymdSep = /^(\d{4})[./-](\d{1,2})[./-](\d{1,2})$/.exec(s);
+  if (ymdSep) {
+    const y = Number(ymdSep[1]);
+    const mo = Number(ymdSep[2]);
+    const d = Number(ymdSep[3]);
+    if (!isValidYmd(y, mo, d)) return null;
+    return `${y}-${pad2(mo)}-${pad2(d)}`;
+  }
+
+  const dmy = /^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/.exec(s);
+  if (dmy) {
+    const d = Number(dmy[1]);
+    const mo = Number(dmy[2]);
+    const y = Number(dmy[3]);
+    if (!isValidYmd(y, mo, d)) return null;
+    return `${y}-${pad2(mo)}-${pad2(d)}`;
+  }
+
+  if (/^\d{8}$/.test(s)) {
+    const yIso = Number(s.slice(0, 4));
+    const mIso = Number(s.slice(4, 6));
+    const dIso = Number(s.slice(6, 8));
+    if (isValidYmd(yIso, mIso, dIso)) {
+      return `${yIso}-${pad2(mIso)}-${pad2(dIso)}`;
+    }
+    const dEu = Number(s.slice(0, 2));
+    const m2 = Number(s.slice(2, 4));
+    const yEu = Number(s.slice(4, 8));
+    if (isValidYmd(yEu, m2, dEu)) {
+      return `${yEu}-${pad2(m2)}-${pad2(dEu)}`;
+    }
+  }
+
+  return null;
+}
+
+/** Собирает кандидатов для разбора (целиком строка и первое вхождение похожей на дату подстроки). */
+function parseFilterDateToYmd(raw: string): string | null {
+  const n = normalizeFilterDateRaw(raw);
+  if (!n) return null;
+
+  const candidates: string[] = [n];
+  const dmy = n.match(/\d{1,2}[./-]\d{1,2}[./-]\d{4}/);
+  if (dmy && !candidates.includes(dmy[0])) candidates.push(dmy[0]);
+  const iso = n.match(/\d{4}-\d{1,2}-\d{1,2}/);
+  if (iso && !candidates.includes(iso[0])) candidates.push(iso[0]);
+
+  for (const c of candidates) {
+    const ymd = tryParseYmdFromCompactString(c);
+    if (ymd) return ymd;
+  }
+  return null;
+}
+
+/** После blur/Enter: приводит к ДД.ММ.ГГГГ при успехе, иначе — к нормализованной строке. */
+function commitFilterDateDisplay(raw: string): string {
+  const ymd = parseFilterDateToYmd(raw);
+  if (ymd) return formatYmdAsRuDisplay(ymd);
+  const n = normalizeFilterDateRaw(raw);
+  return n;
+}
+
+function formatYmdAsRuDisplay(ymd: string): string {
+  const [y, m, d] = ymd.split('-');
+  if (!y || !m || !d) return ymd;
+  return `${d.padStart(2, '0')}.${m.padStart(2, '0')}.${y}`;
+}
+
+function toDateStartIso(ymd: string): string {
+  const date = new Date(`${ymd}T00:00:00`);
+  return date.toISOString();
+}
+
+function toDateEndIso(ymd: string): string {
+  const date = new Date(`${ymd}T23:59:59.999`);
+  return date.toISOString();
+}
+
+/** Поля фильтров истории: компактнее на мобильных (подписи/текст/высота). */
+const historyFilterLabelClass =
+  'text-muted-foreground text-xs font-normal leading-none sm:text-sm';
+const historyFilterControlClass =
+  'min-w-0 bg-background px-2.5 font-normal text-sm leading-snug shadow-sm placeholder:text-muted-foreground sm:px-3';
+const historyFilterFieldHeightClass =
+  'h-10 min-h-10 sm:h-11 sm:min-h-11 md:h-10 md:min-h-0';
+
 export default function HistoryPage() {
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  const [dateFromInput, setDateFromInput] = useState('');
+  const [dateToInput, setDateToInput] = useState('');
+  const [dateFromTouched, setDateFromTouched] = useState(false);
+  const [dateToTouched, setDateToTouched] = useState(false);
+  const [order, setOrder] = useState('-createdAt');
+  const [doctorIdFilter, setDoctorIdFilter] = useState('');
   const [localRecordings, setLocalRecordings] = useState<RecordingMetadata[]>([]);
   const queryClient = useQueryClient();
   const { isOffline } = useOnline();
@@ -70,6 +260,41 @@ export default function HistoryPage() {
 
   const CONSULTATIONS_PAGE_SIZE = 10;
 
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setDebouncedSearch(search.trim());
+    }, 350);
+    return () => window.clearTimeout(timeout);
+  }, [search]);
+
+  const { data: tenantDoctors = [], isLoading: doctorsLoading } = useQuery({
+    queryKey: ['tenant', 'doctors'],
+    queryFn: () => tenantApi.getDoctors(),
+    enabled: !isOffline,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const parsedDateFrom = useMemo(
+    () => parseFilterDateToYmd(dateFromInput),
+    [dateFromInput]
+  );
+  const parsedDateTo = useMemo(
+    () => parseFilterDateToYmd(dateToInput),
+    [dateToInput]
+  );
+
+  const tenantDoctorsSorted = useMemo(() => {
+    return [...tenantDoctors].sort((a, b) => {
+      const byLast = (a.lastName || '').localeCompare(b.lastName || '', 'ru', {
+        sensitivity: 'base',
+      });
+      if (byLast !== 0) return byLast;
+      return (a.firstName || '').localeCompare(b.firstName || '', 'ru', {
+        sensitivity: 'base',
+      });
+    });
+  }, [tenantDoctors]);
+
   // Постраничная загрузка консультаций (подгрузка при прокрутке)
   const {
     data: consultationsData,
@@ -79,12 +304,24 @@ export default function HistoryPage() {
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery({
-    queryKey: ['consultations', 'infinite'],
+    queryKey: [
+      'consultations',
+      'infinite',
+      debouncedSearch,
+      parsedDateFrom,
+      parsedDateTo,
+      order,
+      doctorIdFilter,
+    ],
     queryFn: ({ pageParam }) =>
-      consultationsApi.getConsultationsPage({
+      consultationsApi.getConsultationsPagePost({
         pageNumber: pageParam,
         pageSize: CONSULTATIONS_PAGE_SIZE,
-        order: '-createdAt',
+        order,
+        ...(debouncedSearch ? { search: debouncedSearch } : {}),
+        ...(parsedDateFrom ? { createdAtFrom: toDateStartIso(parsedDateFrom) } : {}),
+        ...(parsedDateTo ? { createdAtTo: toDateEndIso(parsedDateTo) } : {}),
+        ...(doctorIdFilter ? { doctorIds: [doctorIdFilter] } : {}),
       }),
     initialPageParam: 1,
     getNextPageParam: (lastPage, allPages) =>
@@ -247,16 +484,36 @@ export default function HistoryPage() {
     });
   }, [allConsultations, patientsMap]);
   
-  // Фильтрация консультаций по поисковому запросу
-  const filteredConsultations = enrichedConsultations.filter(c => {
-    const matchesSearch =
-      (c.patientName?.toLowerCase().includes(search.toLowerCase()) ?? false) ||
-      (c.summary?.toLowerCase().includes(search.toLowerCase()) ?? false) ||
-      (c.transcript?.toLowerCase().includes(search.toLowerCase()) ?? false) ||
-      (c.complaints?.toLowerCase().includes(search.toLowerCase()) ?? false);
+  // Дата: для данных с сервера фильтр уже в запросе; клиентский проход нужен для локальных записей.
+  // По врачу: сервер фильтрует выдачу; локальные записи без doctorId скрываем при выбранном враче.
+  const filteredConsultations = useMemo(
+    () =>
+      enrichedConsultations.filter((c) => {
+        const isLocal = localRecordings.some((r) => r.id === c.id);
+        if (doctorIdFilter && isLocal) return false;
 
-    return matchesSearch;
-  });
+        const sourceDate = c.createdAt || c.date;
+        const dateMs = sourceDate ? new Date(sourceDate).getTime() : NaN;
+        const fromMs = parsedDateFrom
+          ? new Date(`${parsedDateFrom}T00:00:00`).getTime()
+          : null;
+        const toMs = parsedDateTo
+          ? new Date(`${parsedDateTo}T23:59:59.999`).getTime()
+          : null;
+        const matchesFrom =
+          fromMs == null || (!isNaN(dateMs) && dateMs >= fromMs);
+        const matchesTo =
+          toMs == null || (!isNaN(dateMs) && dateMs <= toMs);
+        return matchesFrom && matchesTo;
+      }),
+    [
+      enrichedConsultations,
+      localRecordings,
+      doctorIdFilter,
+      parsedDateFrom,
+      parsedDateTo,
+    ]
+  );
 
   // Получаем текстовое превью консультации для карточки
   const getConsultationPreview = (consultation: ConsultationResponse): string => {
@@ -375,15 +632,277 @@ export default function HistoryPage() {
           </div>
         </div>
 
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-muted-foreground" />
-          <Input 
-            placeholder="Поиск по имени пациента" 
-            className="h-12 md:h-14 pl-10 md:pl-12 rounded-2xl bg-white border-border/50 shadow-sm text-sm md:text-lg"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+        <div className="flex flex-col gap-2">
+          <div className="flex items-stretch gap-2 sm:gap-3">
+            <div className="relative min-w-0 flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground sm:left-4 md:h-5 md:w-5" />
+              <Input
+                placeholder="Поиск по имени пациента"
+                className="h-11 min-h-11 w-full rounded-2xl border-border/50 bg-white pl-9 pr-4 text-base shadow-sm placeholder:text-sm sm:h-12 sm:pl-10 sm:pr-4 sm:text-sm md:h-14 md:pl-12 md:pr-5 md:text-lg md:placeholder:text-base dark:bg-card"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              aria-expanded={showFilters}
+              aria-controls="history-filters-panel"
+              className={cn(
+                'h-11 min-h-11 shrink-0 gap-1 rounded-2xl border-border/50 px-2.5 font-medium shadow-sm sm:h-12 sm:min-h-12 sm:gap-1.5 sm:px-3.5 md:h-14 md:min-h-14 md:px-4',
+                showFilters && 'border-primary/35 bg-primary/[0.06]'
+              )}
+              onClick={() => setShowFilters((v) => !v)}
+            >
+              <Filter className="h-3.5 w-3.5 shrink-0 opacity-80 sm:h-4 sm:w-4" />
+              <span className="whitespace-nowrap text-[0.6875rem] leading-tight sm:text-xs md:text-sm">
+                Фильтры
+              </span>
+            </Button>
+          </div>
         </div>
+        {showFilters && (
+          <div
+            id="history-filters-panel"
+            className="rounded-2xl border border-border/50 bg-white p-3 shadow-sm dark:bg-card sm:p-4 md:p-5"
+          >
+            <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-12 lg:items-start lg:gap-x-4 lg:gap-y-4">
+              <div className="flex min-w-0 flex-col gap-1.5 sm:gap-2 lg:col-span-4">
+                <Label
+                  htmlFor="history-filter-doctor"
+                  className={historyFilterLabelClass}
+                >
+                  Врач
+                </Label>
+                <Select
+                  value={doctorIdFilter === '' ? '__all_doctors' : doctorIdFilter}
+                  onValueChange={(v) =>
+                    setDoctorIdFilter(v === '__all_doctors' ? '' : v)
+                  }
+                  disabled={doctorsLoading || isOffline}
+                >
+                  <SelectTrigger
+                    id="history-filter-doctor"
+                    className={cn(
+                      'w-full',
+                      historyFilterFieldHeightClass,
+                      historyFilterControlClass
+                    )}
+                  >
+                    <SelectValue
+                      placeholder={
+                        doctorsLoading ? 'Загрузка списка…' : 'Все врачи'
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent
+                    align="start"
+                    position="popper"
+                    className="max-h-[min(24rem,70vh)] w-[min(100vw-2rem,var(--radix-select-trigger-width))] text-sm sm:w-[var(--radix-select-trigger-width)]"
+                  >
+                    <SelectItem value="__all_doctors">Все врачи</SelectItem>
+                    {tenantDoctorsSorted.map((d) => (
+                      <SelectItem key={String(d.id)} value={String(d.id)}>
+                        {formatTenantDoctorName(d)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid min-w-0 grid-cols-2 gap-2 sm:gap-3 lg:contents">
+                <div className="flex min-w-0 flex-col gap-1.5 sm:gap-2 lg:col-span-2">
+                  <Label
+                    htmlFor="history-filter-from"
+                    className={historyFilterLabelClass}
+                  >
+                    Дата от
+                  </Label>
+                  <Input
+                    id="history-filter-from"
+                    type="text"
+                    autoComplete="off"
+                    placeholder="ДД.ММ.ГГГГ"
+                    value={dateFromInput}
+                    onChange={(e) =>
+                      setDateFromInput(
+                        formatFilterDateWhileTyping(e.target.value)
+                      )
+                    }
+                    onFocus={() => setDateFromTouched(false)}
+                    onBlur={() => {
+                      setDateFromTouched(true);
+                      setDateFromInput((v) => commitFilterDateDisplay(v));
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        (e.target as HTMLInputElement).blur();
+                      }
+                    }}
+                    aria-invalid={
+                      dateFromTouched &&
+                      normalizeFilterDateRaw(dateFromInput) !== '' &&
+                      parsedDateFrom === null
+                    }
+                    aria-describedby={
+                      dateFromTouched &&
+                      normalizeFilterDateRaw(dateFromInput) !== '' &&
+                      parsedDateFrom === null
+                        ? 'history-date-from-error'
+                        : undefined
+                    }
+                    className={cn(
+                      historyFilterFieldHeightClass,
+                      historyFilterControlClass,
+                      dateFromTouched &&
+                        normalizeFilterDateRaw(dateFromInput) !== '' &&
+                        parsedDateFrom === null &&
+                        'border-destructive focus-visible:ring-destructive'
+                    )}
+                  />
+                  {dateFromTouched &&
+                    normalizeFilterDateRaw(dateFromInput) !== '' &&
+                    parsedDateFrom === null && (
+                      <p
+                        id="history-date-from-error"
+                        role="alert"
+                        className="text-destructive text-[0.6875rem] leading-snug sm:text-xs"
+                      >
+                        Неверная дата. Примеры: 08.04.2026, 2026-04-08, 20260408.
+                      </p>
+                    )}
+                </div>
+
+                <div className="flex min-w-0 flex-col gap-1.5 sm:gap-2 lg:col-span-2">
+                  <Label
+                    htmlFor="history-filter-to"
+                    className={historyFilterLabelClass}
+                  >
+                    Дата до
+                  </Label>
+                  <Input
+                    id="history-filter-to"
+                    type="text"
+                    autoComplete="off"
+                    placeholder="ДД.ММ.ГГГГ"
+                    value={dateToInput}
+                    onChange={(e) =>
+                      setDateToInput(
+                        formatFilterDateWhileTyping(e.target.value)
+                      )
+                    }
+                    onFocus={() => setDateToTouched(false)}
+                    onBlur={() => {
+                      setDateToTouched(true);
+                      setDateToInput((v) => commitFilterDateDisplay(v));
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        (e.target as HTMLInputElement).blur();
+                      }
+                    }}
+                    aria-invalid={
+                      dateToTouched &&
+                      normalizeFilterDateRaw(dateToInput) !== '' &&
+                      parsedDateTo === null
+                    }
+                    aria-describedby={
+                      dateToTouched &&
+                      normalizeFilterDateRaw(dateToInput) !== '' &&
+                      parsedDateTo === null
+                        ? 'history-date-to-error'
+                        : undefined
+                    }
+                    className={cn(
+                      historyFilterFieldHeightClass,
+                      historyFilterControlClass,
+                      dateToTouched &&
+                        normalizeFilterDateRaw(dateToInput) !== '' &&
+                        parsedDateTo === null &&
+                        'border-destructive focus-visible:ring-destructive'
+                    )}
+                  />
+                  {dateToTouched &&
+                    normalizeFilterDateRaw(dateToInput) !== '' &&
+                    parsedDateTo === null && (
+                      <p
+                        id="history-date-to-error"
+                        role="alert"
+                        className="text-destructive text-[0.6875rem] leading-snug sm:text-xs"
+                      >
+                        Неверная дата. Примеры: 08.04.2026, 2026-04-08, 20260408.
+                      </p>
+                    )}
+                </div>
+              </div>
+
+              <div className="flex min-w-0 flex-col gap-1.5 sm:gap-2 lg:col-span-2">
+                <Label
+                  htmlFor="history-filter-order"
+                  className={historyFilterLabelClass}
+                >
+                  Сортировка
+                </Label>
+                <Select value={order} onValueChange={setOrder}>
+                  <SelectTrigger
+                    id="history-filter-order"
+                    className={cn(
+                      'w-full',
+                      historyFilterFieldHeightClass,
+                      historyFilterControlClass
+                    )}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent
+                    align="start"
+                    position="popper"
+                    className="w-[min(100vw-2rem,var(--radix-select-trigger-width))] text-sm sm:w-[var(--radix-select-trigger-width)]"
+                  >
+                    <SelectItem value="-createdAt">Сначала новые</SelectItem>
+                    <SelectItem value="createdAt">Сначала старые</SelectItem>
+                    <SelectItem value="-id">ID по убыванию</SelectItem>
+                    <SelectItem value="id">ID по возрастанию</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex min-w-0 flex-col gap-1.5 sm:gap-2 lg:col-span-2">
+                <Label
+                  aria-hidden
+                  className={cn(
+                    historyFilterLabelClass,
+                    'pointer-events-none hidden select-none text-transparent lg:block'
+                  )}
+                >
+                  Врач
+                </Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className={cn(
+                    historyFilterFieldHeightClass,
+                    'w-full shrink-0 text-sm font-normal'
+                  )}
+                  onClick={() => {
+                    setSearch('');
+                    setDebouncedSearch('');
+                    setDateFromInput('');
+                    setDateToInput('');
+                    setDateFromTouched(false);
+                    setDateToTouched(false);
+                    setOrder('-createdAt');
+                    setDoctorIdFilter('');
+                  }}
+                >
+                  Сбросить
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div>
           {isLoading && (
