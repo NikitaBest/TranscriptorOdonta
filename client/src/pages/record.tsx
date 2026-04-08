@@ -28,6 +28,7 @@ import type { PatientResponse } from '@/lib/api/types';
 import { ConsultationProcessingStatus, ConsultationType } from '@/lib/api/types';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
+import { formatPatientFullName } from '@/lib/utils/patient-display';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -102,19 +103,25 @@ export default function RecordPage() {
     ? patientsData.find((p: PatientResponse) => String(p.id) === selectedPatientId)
     : null;
   
-  const patient = patientFromList ? {
-    id: String(patientFromList.id),
-    firstName: patientFromList.firstName,
-    lastName: patientFromList.lastName,
-    phone: patientFromList.phone || '',
-    avatar: `${patientFromList.firstName[0]}${patientFromList.lastName[0]}`.toUpperCase(),
-  } : (selectedPatientData ? {
-    id: String(selectedPatientData.id),
-    firstName: selectedPatientData.firstName,
-    lastName: selectedPatientData.lastName,
-    phone: selectedPatientData.phone || '',
-    avatar: `${selectedPatientData.firstName[0]}${selectedPatientData.lastName[0]}`.toUpperCase(),
-  } : null);
+  const patient = patientFromList
+    ? {
+        id: String(patientFromList.id),
+        firstName: patientFromList.firstName,
+        lastName: patientFromList.lastName,
+        middleName: patientFromList.middleName ?? undefined,
+        phone: patientFromList.phone || '',
+        avatar: `${patientFromList.firstName[0]}${patientFromList.lastName[0]}`.toUpperCase(),
+      }
+    : selectedPatientData
+      ? {
+          id: String(selectedPatientData.id),
+          firstName: selectedPatientData.firstName,
+          lastName: selectedPatientData.lastName,
+          middleName: selectedPatientData.middleName ?? undefined,
+          phone: selectedPatientData.phone || '',
+          avatar: `${selectedPatientData.firstName[0]}${selectedPatientData.lastName[0]}`.toUpperCase(),
+        }
+      : null;
 
   // Фильтруем пациентов для поиска
   const filteredPatients = patientsData.filter((p: PatientResponse) => {
@@ -123,6 +130,7 @@ export default function RecordPage() {
     return (
       p.firstName.toLowerCase().includes(search) ||
       p.lastName.toLowerCase().includes(search) ||
+      (p.middleName && p.middleName.toLowerCase().includes(search)) ||
       p.phone?.toLowerCase().includes(search)
     );
   });
@@ -727,7 +735,13 @@ export default function RecordPage() {
       const metadata: RecordingMetadata = {
         id: recordingId,
         patientId,
-        patientName: patient ? `${patient.firstName} ${patient.lastName}` : undefined,
+        patientName: patient
+          ? formatPatientFullName({
+              firstName: patient.firstName,
+              lastName: patient.lastName,
+              middleName: patient.middleName,
+            })
+          : undefined,
         timestamp: Date.now(),
         duration,
         size: audioBlob.size,
@@ -879,7 +893,13 @@ export default function RecordPage() {
                                   {patient.avatar || `${patient.firstName[0]}${patient.lastName[0]}`}
                                 </AvatarFallback>
                               </Avatar>
-                              <span className="font-medium">{patient.firstName} {patient.lastName}</span>
+                              <span className="font-medium truncate">
+                                {formatPatientFullName({
+                                  firstName: patient.firstName,
+                                  lastName: patient.lastName,
+                                  middleName: patient.middleName,
+                                })}
+                              </span>
                             </>
                           ) : (
                             <>
@@ -912,7 +932,11 @@ export default function RecordPage() {
                                 {filteredPatients.map((p: PatientResponse) => (
                                   <CommandItem
                                     key={p.id}
-                                    value={`${p.firstName} ${p.lastName} ${p.phone || ''}`}
+                                    value={`${formatPatientFullName({
+                                      firstName: p.firstName,
+                                      lastName: p.lastName,
+                                      middleName: p.middleName,
+                                    })} ${p.phone || ''}`}
                                     onSelect={(currentValue) => {
                                       // currentValue может быть строкой поиска, поэтому используем p.id напрямую
                                       handlePatientSelect(String(p.id));
@@ -926,7 +950,13 @@ export default function RecordPage() {
                                         </AvatarFallback>
                                       </Avatar>
                                       <div className="flex-1 min-w-0">
-                                        <div className="font-medium truncate">{p.firstName} {p.lastName}</div>
+                                        <div className="font-medium truncate">
+                                          {formatPatientFullName({
+                                            firstName: p.firstName,
+                                            lastName: p.lastName,
+                                            middleName: p.middleName,
+                                          })}
+                                        </div>
                                         {p.phone && (
                                           <div className="text-xs text-muted-foreground truncate">{p.phone}</div>
                                         )}
@@ -959,7 +989,13 @@ export default function RecordPage() {
                                   {patient.avatar || `${patient.firstName[0]}${patient.lastName[0]}`}
                                 </AvatarFallback>
                               </Avatar>
-                              <span className="font-medium">{patient.firstName} {patient.lastName}</span>
+                              <span className="font-medium truncate">
+                                {formatPatientFullName({
+                                  firstName: patient.firstName,
+                                  lastName: patient.lastName,
+                                  middleName: patient.middleName,
+                                })}
+                              </span>
                             </>
                           ) : (
                             <>
@@ -995,7 +1031,11 @@ export default function RecordPage() {
                                 {filteredPatients.map((p: PatientResponse) => (
                                   <CommandItem
                                     key={p.id}
-                                    value={`${p.firstName} ${p.lastName} ${p.phone || ''}`}
+                                    value={`${formatPatientFullName({
+                                      firstName: p.firstName,
+                                      lastName: p.lastName,
+                                      middleName: p.middleName,
+                                    })} ${p.phone || ''}`}
                                     onSelect={() => handlePatientSelect(String(p.id))}
                                     className="flex items-center gap-3 px-4 py-4 cursor-pointer"
                                   >
@@ -1005,7 +1045,13 @@ export default function RecordPage() {
                                       </AvatarFallback>
                                     </Avatar>
                                     <div className="flex-1 min-w-0">
-                                      <div className="font-medium truncate">{p.firstName} {p.lastName}</div>
+                                      <div className="font-medium truncate">
+                                        {formatPatientFullName({
+                                          firstName: p.firstName,
+                                          lastName: p.lastName,
+                                          middleName: p.middleName,
+                                        })}
+                                      </div>
                                       {p.phone && (
                                         <div className="text-xs text-muted-foreground truncate">{p.phone}</div>
                                       )}
@@ -1055,7 +1101,13 @@ export default function RecordPage() {
 
           <div className="space-y-2">
             <h2 className="text-xs md:text-sm uppercase tracking-widest text-muted-foreground font-bold">
-              {patient ? `Консультация: ${patient.firstName} ${patient.lastName}` : 'Пациент не выбран'}
+              {patient
+                ? `Консультация: ${formatPatientFullName({
+                    firstName: patient.firstName,
+                    lastName: patient.lastName,
+                    middleName: patient.middleName,
+                  })}`
+                : 'Пациент не выбран'}
             </h2>
             <h1 className="text-4xl md:text-6xl font-display font-bold tabular-nums tracking-tight">
               {formatTime(duration)}

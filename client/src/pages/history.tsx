@@ -28,6 +28,7 @@ import { Search, Filter, ArrowUpRight, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { cn, getConsultationRoleLabel } from '@/lib/utils';
+import { formatPatientFullName } from '@/lib/utils/patient-display';
 import { getAllSavedRecordings, type RecordingMetadata } from '@/lib/utils/audio-storage';
 
 // Функция для получения названия типа консультации
@@ -214,6 +215,9 @@ const historyFilterControlClass =
 const historyFilterFieldHeightClass =
   'h-10 min-h-10 sm:h-11 sm:min-h-11 md:h-10 md:min-h-0';
 
+/** Сортировка списка на бэкенде: только по дате создания. */
+type HistoryConsultationsOrder = '-createdAt' | 'createdAt';
+
 export default function HistoryPage() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -222,7 +226,7 @@ export default function HistoryPage() {
   const [dateToInput, setDateToInput] = useState('');
   const [dateFromTouched, setDateFromTouched] = useState(false);
   const [dateToTouched, setDateToTouched] = useState(false);
-  const [order, setOrder] = useState('-createdAt');
+  const [order, setOrder] = useState<HistoryConsultationsOrder>('-createdAt');
   const [doctorIdFilter, setDoctorIdFilter] = useState('');
   const [localRecordings, setLocalRecordings] = useState<RecordingMetadata[]>([]);
   const queryClient = useQueryClient();
@@ -382,16 +386,17 @@ export default function HistoryPage() {
     return () => observer.disconnect();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage, isOffline]);
 
-  // Собираем уникальные clientId из консультаций, у которых нет patientName
+  // Уникальные clientId: подгружаем пациентов, чтобы собрать ФИО с отчеством (даже если в ответе уже есть patientName без middleName).
   const clientIdsToLoad = useMemo(() => {
     const ids = new Set<string | number>();
-    consultations.forEach(c => {
-      if (c.clientId && !c.patientName) {
-        ids.add(c.clientId);
-      }
+    consultations.forEach((c) => {
+      if (c.clientId) ids.add(c.clientId);
     });
-    return Array.from(ids);
-  }, [consultations]);
+    localRecordings.forEach((r) => {
+      if (r.patientId) ids.add(r.patientId);
+    });
+    return Array.from(ids).sort((a, b) => String(a).localeCompare(String(b)));
+  }, [consultations, localRecordings]);
 
   // Загружаем данные пациентов для консультаций, у которых нет имени
   const { data: patientsData = [] } = useQuery({
@@ -410,12 +415,16 @@ export default function HistoryPage() {
 
   // Создаем мапу пациентов по ID
   const patientsMap = useMemo(() => {
-    const map = new Map<string | number, { firstName: string; lastName: string }>();
+    const map = new Map<
+      string | number,
+      { firstName: string; lastName: string; middleName?: string | null }
+    >();
     (patientsData as (PatientResponse | null)[]).forEach((patient: PatientResponse | null) => {
       if (patient) {
         map.set(patient.id, {
           firstName: patient.firstName,
           lastName: patient.lastName,
+          middleName: patient.middleName,
         });
       }
     });
@@ -456,27 +465,24 @@ export default function HistoryPage() {
     });
   }, [consultations, localConsultations]);
 
-  // Обогащаем консультации именами пациентов
+  // Обогащаем консультации именами пациентов (приоритет — карточка пациента с отчеством)
   const enrichedConsultations = useMemo(() => {
-    return allConsultations.map(c => {
+    return allConsultations.map((c) => {
       const preservedCreatedAt = c.createdAt;
-      
-      if (c.patientName) {
-        return {
-          ...c,
-          createdAt: preservedCreatedAt || c.createdAt,
-        };
-      }
-      
+
       if (c.clientId && patientsMap.has(c.clientId)) {
         const patient = patientsMap.get(c.clientId)!;
         return {
           ...c,
-          patientName: `${patient.firstName} ${patient.lastName}`,
+          patientName: formatPatientFullName({
+            firstName: patient.firstName,
+            lastName: patient.lastName,
+            middleName: patient.middleName,
+          }),
           createdAt: preservedCreatedAt || c.createdAt,
         };
       }
-      
+
       return {
         ...c,
         createdAt: preservedCreatedAt || c.createdAt,
@@ -845,7 +851,12 @@ export default function HistoryPage() {
                 >
                   Сортировка
                 </Label>
-                <Select value={order} onValueChange={setOrder}>
+                <Select
+                  value={order}
+                  onValueChange={(v) => {
+                    if (v === '-createdAt' || v === 'createdAt') setOrder(v);
+                  }}
+                >
                   <SelectTrigger
                     id="history-filter-order"
                     className={cn(
@@ -863,8 +874,6 @@ export default function HistoryPage() {
                   >
                     <SelectItem value="-createdAt">Сначала новые</SelectItem>
                     <SelectItem value="createdAt">Сначала старые</SelectItem>
-                    <SelectItem value="-id">ID по убыванию</SelectItem>
-                    <SelectItem value="id">ID по возрастанию</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

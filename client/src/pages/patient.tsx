@@ -16,6 +16,7 @@ import { ConsultationProcessingStatus, ConsultationType } from '@/lib/api/types'
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn, getConsultationRoleLabel } from '@/lib/utils';
+import { formatPatientFullName } from '@/lib/utils/patient-display';
 import type { PatientResponse, ConsultationResponse, ConsultationProperty, ClientTask } from '@/lib/api/types';
 
 // Функция для получения названия типа консультации
@@ -161,6 +162,7 @@ export default function PatientProfile() {
         id: patientData.id,
         firstName: patientData.firstName,
         lastName: patientData.lastName,
+        middleName: patientData.middleName ?? null,
         // Если телефон пустой или состоит из пробелов — отправляем null
         phone: patientData.phone && patientData.phone.trim() !== '' ? patientData.phone : null,
         comment: patientData.comment ?? '',
@@ -469,6 +471,7 @@ export default function PatientProfile() {
           id,
           firstName: patientData.firstName,
           lastName: patientData.lastName,
+          middleName: patientData.middleName ?? null,
           birthDate: patientData.birthDate || undefined,
           // Если поле очищено, отправляем пустую строку, а не null
           comment: trimmedComment,
@@ -513,28 +516,32 @@ export default function PatientProfile() {
   // Загрузка консультаций пациента
   const { data: consultationsData = [], isLoading: isLoadingConsultations } = useQuery({
     queryKey: ['patient-consultations', id],
-    queryFn: () => {
+    queryFn: async () => {
       if (!id) return [];
-      return consultationsApi.get({ 
+      const { data } = await consultationsApi.getConsultationsPagePost({
         pageNumber: 1,
         pageSize: 100,
-        clientIds: [id], // Используем массив clientIds
-        order: '-createdAt'
+        clientIds: [id],
+        order: '-createdAt',
       });
+      return data;
     },
     enabled: !!id && !!patientData,
   });
 
   // Преобразуем данные пациента в формат для отображения
-  const patient = patientData ? {
-    id: String(patientData.id),
-    firstName: patientData.firstName,
-    lastName: patientData.lastName,
-    phone: patientData.phone || '',
-    lastVisit: patientData.createdAt || new Date().toISOString(),
-    summary: patientData.comment || '',
-    avatar: `${patientData.firstName[0]}${patientData.lastName[0]}`.toUpperCase(),
-  } : null;
+  const patient = patientData
+    ? {
+        id: String(patientData.id),
+        firstName: patientData.firstName,
+        lastName: patientData.lastName,
+        middleName: patientData.middleName ?? undefined,
+        phone: patientData.phone || '',
+        lastVisit: patientData.createdAt || new Date().toISOString(),
+        summary: patientData.comment || '',
+        avatar: `${patientData.firstName[0]}${patientData.lastName[0]}`.toUpperCase(),
+      }
+    : null;
 
   // Функция для конвертации UTC времени в московское время (UTC+3)
   const convertToMoscowTime = (timeSource: string | undefined): { dateObj: Date | null; moscowHours: number; moscowMinutes: number } => {
@@ -768,7 +775,13 @@ export default function PatientProfile() {
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h1 className="text-base sm:text-xl md:text-2xl lg:text-3xl font-display font-bold tracking-tight mb-1.5 sm:mb-2 truncate">{patient.firstName} {patient.lastName}</h1>
+                  <h1 className="text-base sm:text-xl md:text-2xl lg:text-3xl font-display font-bold tracking-tight mb-1.5 sm:mb-2 truncate">
+                    {formatPatientFullName({
+                      firstName: patient.firstName,
+                      lastName: patient.lastName,
+                      middleName: patient.middleName,
+                    })}
+                  </h1>
 
                   {/* О пациенте — поле под ФИО */}
                   <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-border/40 w-full">

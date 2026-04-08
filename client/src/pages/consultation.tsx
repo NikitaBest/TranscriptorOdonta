@@ -27,6 +27,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { useAutoSaveConsultation } from '@/hooks/use-auto-save-consultation';
 import { cn, getConsultationRoleLabel } from '@/lib/utils';
+import { formatPatientFullName } from '@/lib/utils/patient-display';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { generateConsultationPDF } from '@/lib/utils/pdf-generator';
@@ -168,8 +169,15 @@ export default function ConsultationPage() {
   // Обогащаем консультацию данными пациента, если они загружены
   const enrichedConsultation: ConsultationResponse | null = consultation ? {
     ...consultation,
-    patientName: consultation.patientName || 
-                 (patientData ? `${patientData.firstName} ${patientData.lastName}` : undefined),
+    patientName:
+      consultation.patientName ||
+      (patientData
+        ? formatPatientFullName({
+            firstName: patientData.firstName,
+            lastName: patientData.lastName,
+            middleName: patientData.middleName,
+          })
+        : undefined),
   } : null;
 
   // Синхронизируем локальные состояния с данными из API

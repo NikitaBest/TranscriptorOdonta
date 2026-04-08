@@ -14,6 +14,7 @@ import { ru } from 'date-fns/locale';
 import { patientsApi } from '@/lib/api/patients';
 import type { ApiError, PatientResponse } from '@/lib/api/types';
 import { formatDateForDisplay } from '@/lib/utils/date';
+import { formatPatientFullName } from '@/lib/utils/patient-display';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 export default function Dashboard() {
@@ -102,6 +103,7 @@ export default function Dashboard() {
     id: String(p.id),
     firstName: p.firstName,
     lastName: p.lastName,
+    middleName: p.middleName ?? undefined,
     phone: p.phone || '',
     lastVisit: p.createdAt || new Date().toISOString(),
     summary: p.comment || 'Новый пациент',
@@ -245,7 +247,11 @@ export default function Dashboard() {
           <>
             <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-4">
               {filteredPatients.map((patient) => {
-                const fullName = `${patient.firstName} ${patient.lastName}`;
+                const fullName = formatPatientFullName({
+                  firstName: patient.firstName,
+                  lastName: patient.lastName,
+                  middleName: patient.middleName,
+                });
                 const isLongName = fullName.length > 18;
 
                 return (

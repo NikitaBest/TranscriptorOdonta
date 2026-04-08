@@ -115,6 +115,7 @@ export interface RefreshTokenResponse {
 export interface CreatePatientRequest {
   firstName: string;
   lastName: string;
+  middleName?: string;
   phone: string;
   comment?: string;
   birthDate?: string; // Дата рождения в формате ISO (YYYY-MM-DD)
@@ -127,6 +128,7 @@ export interface CreatePatientResponse {
   id: string | number;
   firstName: string;
   lastName: string;
+  middleName?: string | null;
   phone: string;
   comment?: string;
   birthDate?: string;
@@ -151,6 +153,7 @@ export interface UpdatePatientRequest {
   id: string | number;
   firstName: string;
   lastName: string;
+  middleName?: string | null;
   phone?: string | null; // необязательно; при отсутствии — null
   comment?: string;
   birthDate?: string | null; // Дата рождения в формате ISO (YYYY-MM-DD) или null если пусто
@@ -164,6 +167,7 @@ export interface UpdatePatientResponse {
   id: string | number;
   firstName: string;
   lastName: string;
+  middleName?: string | null;
   phone: string;
   comment?: string;
   birthDate?: string;
@@ -241,6 +245,7 @@ export interface PatientResponse {
   id: string | number;
   firstName: string;
   lastName: string;
+  middleName?: string | null;
   phone: string;
   comment?: string;
   birthDate?: string; // Дата рождения в формате ISO (YYYY-MM-DD)

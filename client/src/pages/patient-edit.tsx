@@ -24,6 +24,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { ApiError } from '@/lib/api/types';
 import { normalizePhone, handlePhoneInput, formatPhoneForDisplay } from '@/lib/utils/phone';
 import { normalizeDate, handleDateInput, isValidDate, formatDateForDisplay } from '@/lib/utils/date';
+import { formatPatientFullName } from '@/lib/utils/patient-display';
 
 export default function PatientEditPage() {
   const { id } = useParams();
@@ -33,6 +34,7 @@ export default function PatientEditPage() {
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [middleName, setMiddleName] = useState('');
   const [phone, setPhone] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [comment, setComment] = useState('');
@@ -63,6 +65,7 @@ export default function PatientEditPage() {
     if (patientData) {
       setFirstName(patientData.firstName || '');
       setLastName(patientData.lastName || '');
+      setMiddleName(patientData.middleName?.trim() ? patientData.middleName : '');
       // Форматируем телефон для отображения
       setPhone(patientData.phone ? formatPhoneForDisplay(patientData.phone) : '');
       // Форматируем дату рождения для отображения (DD.MM.YYYY)
@@ -119,6 +122,7 @@ export default function PatientEditPage() {
         id,
         firstName: firstName.trim(),
         lastName: lastName.trim(),
+        middleName: middleName.trim() ? middleName.trim() : null,
         birthDate: trimmedBirthDate ? normalizeDate(trimmedBirthDate) : null,
         phone: trimmedPhone ? normalizePhone(trimmedPhone) : null,
         comment: comment.trim() || undefined,
@@ -131,6 +135,7 @@ export default function PatientEditPage() {
         id: updatedPatient.id,
         firstName: updatedPatient.firstName,
         lastName: updatedPatient.lastName,
+        middleName: updatedPatient.middleName,
         phone: updatedPatient.phone,
         birthDate: updatedPatient.birthDate,
         comment: updatedPatient.comment,
@@ -158,6 +163,7 @@ export default function PatientEditPage() {
         apiError.errors?.lastName?.[0] ||
         apiError.errors?.phone?.[0] ||
         apiError.errors?.birthDate?.[0] ||
+        apiError.errors?.middleName?.[0] ||
         "Произошла ошибка при обновлении пациента. Попробуйте еще раз.";
 
       toast({
@@ -297,6 +303,18 @@ export default function PatientEditPage() {
                 </div>
 
                 <div className="grid gap-1.5 sm:gap-2">
+                  <Label htmlFor="middleName" className="text-sm sm:text-base">Отчество</Label>
+                  <Input
+                    id="middleName"
+                    value={middleName}
+                    onChange={(e) => setMiddleName(e.target.value)}
+                    className="rounded-xl h-11 sm:h-12 text-sm sm:text-base"
+                    placeholder="Необязательно"
+                    disabled={isSaving}
+                  />
+                </div>
+
+                <div className="grid gap-1.5 sm:gap-2">
                   <Label htmlFor="phone" className="text-sm sm:text-base">Телефон</Label>
                   <Input 
                     id="phone" 
@@ -388,7 +406,15 @@ export default function PatientEditPage() {
                     <AlertDialogHeader>
                       <AlertDialogTitle>Удалить пациента?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Вы уверены, что хотите удалить пациента <strong>{firstName} {lastName}</strong>? 
+                        Вы уверены, что хотите удалить пациента{' '}
+                        <strong>
+                          {formatPatientFullName({
+                            firstName,
+                            lastName,
+                            middleName: middleName || null,
+                          })}
+                        </strong>
+                        ?{' '}
                         Это действие нельзя отменить. Все данные пациента будут безвозвратно удалены.
                       </AlertDialogDescription>
                     </AlertDialogHeader>

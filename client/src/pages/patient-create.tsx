@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { ApiError } from '@/lib/api/types';
 import { normalizePhone, handlePhoneInput } from '@/lib/utils/phone';
 import { normalizeDate, handleDateInput, isValidDate } from '@/lib/utils/date';
+import { formatPatientFullName } from '@/lib/utils/patient-display';
 
 export default function PatientCreatePage() {
   const [, setLocation] = useLocation();
@@ -21,6 +22,7 @@ export default function PatientCreatePage() {
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [middleName, setMiddleName] = useState('');
   const [phone, setPhone] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [comment, setComment] = useState('');
@@ -68,6 +70,7 @@ export default function PatientCreatePage() {
       const response = await patientsApi.create({
         firstName: firstName.trim(),
         lastName: lastName.trim(),
+        ...(middleName.trim() ? { middleName: middleName.trim() } : {}),
         phone: normalizePhone(phone),
         birthDate: dateOfBirth ? normalizeDate(dateOfBirth) : undefined,
         comment: comment.trim() || undefined,
@@ -78,7 +81,11 @@ export default function PatientCreatePage() {
 
       toast({
         title: "Пациент добавлен",
-        description: `${response.firstName} ${response.lastName} добавлен в ваш список.`,
+        description: `${formatPatientFullName({
+          firstName: response.firstName,
+          lastName: response.lastName,
+          middleName: response.middleName,
+        })} добавлен в ваш список.`,
       });
 
       // Перенаправляем на страницу созданного пациента
@@ -93,6 +100,7 @@ export default function PatientCreatePage() {
         apiError.errors?.lastName?.[0] ||
         apiError.errors?.phone?.[0] ||
         apiError.errors?.birthDate?.[0] ||
+        apiError.errors?.middleName?.[0] ||
         "Произошла ошибка при создании пациента. Попробуйте еще раз.";
 
       toast({
@@ -152,6 +160,18 @@ export default function PatientCreatePage() {
                     onChange={e => setLastName(e.target.value)} 
                     className="rounded-xl h-11 sm:h-12 text-sm sm:text-base"
                     required
+                    disabled={isCreating}
+                  />
+                </div>
+
+                <div className="grid gap-1.5 sm:gap-2">
+                  <Label htmlFor="middleName" className="text-sm sm:text-base">Отчество</Label>
+                  <Input
+                    id="middleName"
+                    value={middleName}
+                    onChange={(e) => setMiddleName(e.target.value)}
+                    className="rounded-xl h-11 sm:h-12 text-sm sm:text-base"
+                    placeholder="Необязательно"
                     disabled={isCreating}
                   />
                 </div>
