@@ -103,6 +103,8 @@ export default function WalletPage() {
   };
 
   const [isInitiating, setIsInitiating] = useState(false);
+  const sectionTitleClass = 'text-base sm:text-lg md:text-xl font-display font-medium tracking-tight';
+  const sectionDescriptionClass = 'text-xs sm:text-sm md:text-base text-muted-foreground';
 
   const handlePay = async () => {
     if (!isValidMinutes) {
@@ -198,10 +200,10 @@ export default function WalletPage() {
         {/* Текущий баланс */}
         <Card className="border-border/60 bg-card/70 backdrop-blur-sm rounded-2xl sm:rounded-3xl">
           <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
-            <CardTitle className="text-base sm:text-lg md:text-xl font-display font-bold tracking-tight">
+            <CardTitle className={sectionTitleClass}>
               Текущий баланс
             </CardTitle>
-            <CardDescription className="text-xs sm:text-sm">
+            <CardDescription className={sectionDescriptionClass}>
               Доступное время для расшифровки и обработки консультаций.
             </CardDescription>
           </CardHeader>
@@ -236,11 +238,11 @@ export default function WalletPage() {
         {tariff.length > 0 && (
           <Card className="border-border/60 bg-card/70 backdrop-blur-sm rounded-2xl sm:rounded-3xl">
             <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
-              <CardTitle className="text-base sm:text-lg md:text-xl flex items-center gap-2">
+              <CardTitle className={`${sectionTitleClass} flex items-center gap-2`}>
                 <List className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
                 Тарифы
               </CardTitle>
-              <CardDescription className="text-xs sm:text-sm">
+              <CardDescription className={sectionDescriptionClass}>
                 Стоимость минуты зависит от объёма покупки. Чем больше минут — тем выгоднее.
               </CardDescription>
             </CardHeader>
@@ -269,8 +271,8 @@ export default function WalletPage() {
         {/* Калькулятор покупки минут */}
         <Card className="border-border/60 bg-card/70 backdrop-blur-sm rounded-2xl sm:rounded-3xl">
           <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
-            <CardTitle className="text-base sm:text-lg md:text-xl">Калькулятор минут</CardTitle>
-            <CardDescription className="text-xs sm:text-sm">
+            <CardTitle className={sectionTitleClass}>Калькулятор минут</CardTitle>
+            <CardDescription className={sectionDescriptionClass}>
               Укажите, сколько минут хотите докупить, и увидите ориентировочную стоимость.
             </CardDescription>
           </CardHeader>
@@ -377,8 +379,8 @@ export default function WalletPage() {
         {/* История пополнений — только список */}
         <div className="rounded-2xl sm:rounded-3xl border border-border/60 bg-card/70 backdrop-blur-sm overflow-hidden">
           <div className="px-3 sm:px-4 py-3 border-b border-border/50">
-            <h2 className="text-base sm:text-lg font-display font-bold">История пополнений</h2>
-            <p className="text-xs sm:text-sm text-muted-foreground">Платежи по пополнению баланса минут.</p>
+            <h2 className={sectionTitleClass}>История пополнений</h2>
+            <p className={sectionDescriptionClass}>Платежи по пополнению баланса минут.</p>
           </div>
           <div className="p-3 sm:p-4">
             {paymentHistoryQuery.isLoading ? (
@@ -443,8 +445,8 @@ export default function WalletPage() {
         {/* История списаний — только список */}
         <div className="rounded-2xl sm:rounded-3xl border border-border/60 bg-card/70 backdrop-blur-sm overflow-hidden">
           <div className="px-3 sm:px-4 py-3 border-b border-border/50">
-            <h2 className="text-base sm:text-lg font-display font-bold">История списаний</h2>
-            <p className="text-xs sm:text-sm text-muted-foreground">Списание минут за расшифровку и обработку консультаций.</p>
+            <h2 className={sectionTitleClass}>История списаний</h2>
+            <p className={sectionDescriptionClass}>Списание минут за расшифровку и обработку консультаций.</p>
           </div>
           <div className="p-3 sm:p-4">
             {usageHistoryQuery.isLoading ? (
