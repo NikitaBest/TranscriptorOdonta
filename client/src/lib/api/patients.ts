@@ -19,6 +19,65 @@ import type {
  * API функции для работы с пациентами
  */
 export const patientsApi = {
+  async getPatientsPage(params: GetPatientsRequest): Promise<{
+    data: PatientResponse[];
+    hasNext: boolean;
+    totalCount?: number;
+  }> {
+    const requestPayload = {
+      ...params,
+      // Бэкенд в разных версиях принимает page или pageNumber; отправляем оба для совместимости.
+      pageNumber: params.pageNumber ?? params.page,
+    };
+
+    const response = await ApiClient.post<ApiResponse<GetPatientsResponse | PatientResponse[]>>(
+      'client/get',
+      requestPayload,
+      { requireAuth: true }
+    );
+
+    const normalizePatients = (items: PatientResponse[]) =>
+      items.map((patient) => ({
+        ...patient,
+        id: String(patient.id),
+      }));
+
+    if (response.isSuccess && response.value) {
+      if (Array.isArray(response.value)) {
+        const pageSize = params.pageSize ?? response.value.length;
+        return {
+          data: normalizePatients(response.value),
+          hasNext: response.value.length === pageSize,
+        };
+      }
+
+      if ('data' in response.value && Array.isArray(response.value.data)) {
+        const hasNextByPage =
+          typeof response.value.currentPage === 'number' &&
+          typeof response.value.totalPages === 'number' &&
+          response.value.currentPage < response.value.totalPages;
+
+        return {
+          data: normalizePatients(response.value.data),
+          hasNext: Boolean(response.value.hasNext ?? hasNextByPage),
+          totalCount: response.value.totalCount,
+        };
+      }
+
+      if ('items' in response.value && Array.isArray(response.value.items)) {
+        const items = normalizePatients(response.value.items);
+        const pageSize = params.pageSize ?? items.length;
+        return {
+          data: items,
+          hasNext: items.length === pageSize,
+        };
+      }
+    }
+
+    console.warn('Неожиданный формат ответа от сервера при постраничной загрузке пациентов:', response);
+    return { data: [], hasNext: false };
+  },
+
   /**
    * Создание нового пациента
    * POST /client/create
@@ -55,30 +114,70 @@ export const patientsApi = {
       { requireAuth: true }
     );
 
+    const normalizePatients = (items: PatientResponse[]) =>
+      items.map((patient) => ({
+        ...patient,
+        id: String(patient.id),
+      }));
+
     // Бэкенд возвращает обёрнутый ответ { value: { data: [...], currentPage, totalPages, ... }, isSuccess: true, error: null }
     if (response.isSuccess && response.value) {
       // Проверяем, массив ли это напрямую (старый формат)
       if (Array.isArray(response.value)) {
-        return response.value.map(patient => ({
-          ...patient,
-          id: String(patient.id),
-        }));
+        return normalizePatients(response.value);
       }
       
       // Если это объект с data (новый формат с пагинацией)
       if ('data' in response.value && Array.isArray(response.value.data)) {
-        return response.value.data.map(patient => ({
-          ...patient,
-          id: String(patient.id),
-        }));
+        const firstPage = response.value;
+
+        // Если явно запрошена конкретная страница, возвращаем только её
+        if (params?.page) {
+          return normalizePatients(firstPage.data);
+        }
+
+        // Автодогрузка всех страниц пациентов (бэкенд по умолчанию может вернуть только первые 50)
+        const allPatients = [...firstPage.data];
+        const totalPages = Number(firstPage.totalPages) || 1;
+
+        if (totalPages > 1) {
+          const baseParams: GetPatientsRequest = { ...(params || {}) };
+          const pageSize = firstPage.pageSize || baseParams.pageSize;
+
+          for (let page = 2; page <= totalPages; page += 1) {
+            const pageResponse = await ApiClient.post<ApiResponse<GetPatientsResponse | PatientResponse[]>>(
+              'client/get',
+              {
+                ...baseParams,
+                page,
+                ...(pageSize ? { pageSize } : {}),
+              },
+              { requireAuth: true }
+            );
+
+            if (!pageResponse.isSuccess || !pageResponse.value) {
+              break;
+            }
+
+            if (Array.isArray(pageResponse.value)) {
+              allPatients.push(...pageResponse.value);
+              break;
+            }
+
+            if ('data' in pageResponse.value && Array.isArray(pageResponse.value.data)) {
+              allPatients.push(...pageResponse.value.data);
+            } else {
+              break;
+            }
+          }
+        }
+
+        return normalizePatients(allPatients);
       }
       
       // Если это объект с items (старый формат)
       if ('items' in response.value && Array.isArray(response.value.items)) {
-        return response.value.items.map(patient => ({
-          ...patient,
-          id: String(patient.id),
-        }));
+        return normalizePatients(response.value.items);
       }
     }
 

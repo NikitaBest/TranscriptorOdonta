@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="сокращение строк" />
+    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="добавление поиска пациента фильтр" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -94,14 +94,7 @@
       <workItem from="1773763259561" duration="884000" />
       <workItem from="1775464285339" duration="1201000" />
       <workItem from="1775478203101" duration="756000" />
-    </task>
-    <task id="LOCAL-00090" summary="адаптация блока инфы пациента на странице пациента для мобильных экранов">
-      <option name="closed" value="true" />
-      <created>1770874228724</created>
-      <option name="number" value="00090" />
-      <option name="presentableId" value="LOCAL-00090" />
-      <option name="project" value="LOCAL" />
-      <updated>1770874228724</updated>
+      <workItem from="1775652856118" duration="944000" />
     </task>
     <task id="LOCAL-00091" summary="уменьшины отступы инфы на странице пациента для мобильных экранов">
       <option name="closed" value="true" />
@@ -487,14 +480,21 @@
       <option name="project" value="LOCAL" />
       <updated>1775227671997</updated>
     </task>
-    <option name="localTasksCounter" value="139" />
+    <task id="LOCAL-00139" summary="добавление поиска пациента фильтр">
+      <option name="closed" value="true" />
+      <created>1775652878367</created>
+      <option name="number" value="00139" />
+      <option name="presentableId" value="LOCAL-00139" />
+      <option name="project" value="LOCAL" />
+      <updated>1775652878367</updated>
+    </task>
+    <option name="localTasksCounter" value="140" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="скрытие аудио при мобильной версии" />
     <MESSAGE value="отправка заметок правка" />
     <MESSAGE value="обновление версии pwa и вторичная консультация" />
     <MESSAGE value="защита на подмену заголовок и вкладок" />
@@ -519,6 +519,7 @@
     <MESSAGE value="смена записи консультации" />
     <MESSAGE value="добавление проверок исправление ошибок" />
     <MESSAGE value="новая страница рекомендаций" />
-    <option name="LAST_COMMIT_MESSAGE" value="новая страница рекомендаций" />
+    <MESSAGE value="добавление поиска пациента фильтр" />
+    <option name="LAST_COMMIT_MESSAGE" value="добавление поиска пациента фильтр" />
   </component>
 </project>

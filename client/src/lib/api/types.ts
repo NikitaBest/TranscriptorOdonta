@@ -165,9 +165,12 @@ export interface UpdatePatientResponse {
  */
 export interface GetPatientsRequest {
   page?: number;
+  pageNumber?: number;
   pageSize?: number;
   search?: string;
   id?: string | number;
+  ids?: (string | number)[];
+  order?: string;
 }
 
 /**
