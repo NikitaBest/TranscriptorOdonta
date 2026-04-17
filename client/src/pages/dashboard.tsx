@@ -4,17 +4,9 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { Layout } from '@/components/layout';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Search, Plus, Mic, ChevronRight, Calendar, Phone, Loader2, Copy, Filter } from 'lucide-react';
+import { Search, Plus, Mic, ChevronRight, Calendar, Phone, Loader2, Copy } from 'lucide-react';
 import { Patient } from '@/lib/mock-data';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -24,22 +16,10 @@ import type { ApiError, PatientResponse } from '@/lib/api/types';
 import { formatDateForDisplay } from '@/lib/utils/date';
 import { formatPatientFullName } from '@/lib/utils/patient-display';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { cn } from '@/lib/utils';
-
-const patientFilterLabelClass = 'text-muted-foreground text-xs font-normal leading-none sm:text-sm';
-const patientFilterControlClass =
-  'min-w-0 bg-background px-2.5 font-normal text-sm leading-snug shadow-sm placeholder:text-muted-foreground sm:px-3';
-const patientFilterFieldHeightClass = 'h-10 min-h-10 sm:h-11 sm:min-h-11 md:h-10 md:min-h-0';
-type PatientsConsultationOrder = '-lastVisitedAt' | 'lastVisitedAt';
 
 export default function Dashboard() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
-  const [lastNameFilter, setLastNameFilter] = useState('');
-  const [phoneFilter, setPhoneFilter] = useState('');
-  const [consultationOrder, setConsultationOrder] =
-    useState<PatientsConsultationOrder>('-lastVisitedAt');
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const PATIENTS_PAGE_SIZE = 20;
@@ -63,14 +43,14 @@ export default function Dashboard() {
     isFetchingNextPage,
     refetch,
   } = useInfiniteQuery({
-    queryKey: ['patients', 'infinite', debouncedSearch, consultationOrder],
+    queryKey: ['patients', 'infinite', debouncedSearch],
     queryFn: async ({ pageParam }) => {
       console.log('[Dashboard] Запрос списка пациентов, страница:', pageParam);
       return patientsApi.getPatientsPage({
         page: pageParam,
         pageNumber: pageParam,
         pageSize: PATIENTS_PAGE_SIZE,
-        order: consultationOrder,
+        order: '-lastVisitedAt',
         ...(debouncedSearch ? { search: debouncedSearch } : {}),
       });
     },
@@ -138,26 +118,7 @@ export default function Dashboard() {
     lastVisitedAt: p.lastVisitedAt,
   }));
 
-  // Локальные фильтры поверх порядка с бэкенда.
-  const filteredPatients = useMemo(() => {
-    const normalizedLastName = lastNameFilter.trim().toLowerCase();
-    const normalizedPhone = phoneFilter.trim().toLowerCase();
-
-    return patients.filter((patient) => {
-      const matchesLastName =
-        normalizedLastName.length === 0 ||
-        patient.lastName.toLowerCase().includes(normalizedLastName);
-
-      const matchesPhone =
-        normalizedPhone.length === 0 ||
-        (patient.phone || '').toLowerCase().includes(normalizedPhone);
-      return matchesLastName && matchesPhone;
-    });
-  }, [
-    patients,
-    lastNameFilter,
-    phoneFilter,
-  ]);
+  const filteredPatients = useMemo(() => patients, [patients]);
 
   const handleCopyPhone = async (e: React.MouseEvent, phone: string) => {
     e.stopPropagation(); // Предотвращаем переход на страницу пациента
@@ -221,104 +182,15 @@ export default function Dashboard() {
         </div>
 
         {/* Search */}
-        <div className="flex flex-col gap-2">
-          <div className="flex items-stretch gap-2 sm:gap-3">
-            <div className="relative min-w-0 flex-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground sm:left-4 md:h-5 md:w-5" />
-              <Input
-                placeholder={isMobile ? 'Поиск: имя, телефон, заметка' : 'Поиск пациента по имени, телефону или заметке...'}
-                className="h-11 min-h-11 w-full rounded-2xl border-border/50 bg-white pl-9 pr-4 text-base shadow-sm placeholder:text-sm sm:h-12 sm:pl-10 sm:pr-4 sm:text-sm md:h-14 md:pl-12 md:pr-5 md:text-lg md:placeholder:text-base"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              aria-expanded={showFilters}
-              aria-controls="patients-filters-panel"
-              className={cn(
-                'h-11 min-h-11 shrink-0 gap-1 rounded-2xl border-border/50 px-2.5 font-medium shadow-sm sm:h-12 sm:min-h-12 sm:gap-1.5 sm:px-3.5 md:h-14 md:min-h-14 md:px-4',
-                showFilters && 'border-primary/35 bg-primary/[0.06]'
-              )}
-              onClick={() => setShowFilters((v) => !v)}
-            >
-              <Filter className="h-3.5 w-3.5 shrink-0 opacity-80 sm:h-4 sm:w-4" />
-              <span className="whitespace-nowrap text-[0.6875rem] leading-tight sm:text-xs md:text-sm">
-                Фильтры
-              </span>
-            </Button>
-          </div>
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-muted-foreground" />
+          <Input
+            placeholder={isMobile ? 'Поиск: имя, телефон, заметка' : 'Поиск пациента по имени, телефону или заметке...'}
+            className="h-11 md:h-14 pl-10 md:pl-12 rounded-2xl bg-white border-border/50 shadow-sm text-sm md:text-lg placeholder:text-sm md:placeholder:text-base"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
-        {showFilters && (
-          <div
-            id="patients-filters-panel"
-            className="rounded-2xl border border-border/50 bg-white p-3 shadow-sm sm:p-4 md:p-5"
-          >
-            <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-12 lg:items-start lg:gap-x-4 lg:gap-y-4">
-              <div className="flex min-w-0 flex-col gap-1.5 sm:gap-2 lg:col-span-4">
-                <Label className={patientFilterLabelClass}>Фамилия</Label>
-                <Input
-                  placeholder="Введите фамилию"
-                  value={lastNameFilter}
-                  onChange={(e) => setLastNameFilter(e.target.value)}
-                  className={cn(patientFilterFieldHeightClass, patientFilterControlClass)}
-                />
-              </div>
-              <div className="flex min-w-0 flex-col gap-1.5 sm:gap-2 lg:col-span-4">
-                <Label className={patientFilterLabelClass}>Номер телефона</Label>
-                <Input
-                  placeholder="+7..."
-                  value={phoneFilter}
-                  onChange={(e) => setPhoneFilter(e.target.value)}
-                  className={cn(patientFilterFieldHeightClass, patientFilterControlClass)}
-                />
-              </div>
-              <div className="flex min-w-0 flex-col gap-1.5 sm:gap-2 lg:col-span-4">
-                <Label className={patientFilterLabelClass}>Сортировка консультаций</Label>
-                <Select
-                  value={consultationOrder}
-                  onValueChange={(v) => {
-                    if (v === '-lastVisitedAt' || v === 'lastVisitedAt') {
-                      setConsultationOrder(v);
-                    }
-                  }}
-                >
-                  <SelectTrigger className={cn(patientFilterFieldHeightClass, patientFilterControlClass)}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="-lastVisitedAt">Сначала последние консультации</SelectItem>
-                    <SelectItem value="lastVisitedAt">Сначала давние консультации</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex min-w-0 flex-col gap-1.5 sm:gap-2 lg:col-span-2">
-                <Label
-                  aria-hidden
-                  className={cn(
-                    patientFilterLabelClass,
-                    'pointer-events-none hidden select-none text-transparent lg:block'
-                  )}
-                >
-                  Сброс
-                </Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className={cn(patientFilterFieldHeightClass, 'w-full shrink-0 text-sm font-normal')}
-                  onClick={() => {
-                    setConsultationOrder('-lastVisitedAt');
-                    setLastNameFilter('');
-                    setPhoneFilter('');
-                  }}
-                >
-                  Сбросить фильтры
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
         <div className="text-xs md:text-sm text-muted-foreground -mt-4">
           {debouncedSearch ? (
             isLoading ? (
