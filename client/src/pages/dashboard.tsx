@@ -7,6 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Search, Plus, Mic, ChevronRight, Calendar, Phone, Loader2, Copy, Filter } from 'lucide-react';
 import { Patient } from '@/lib/mock-data';
 import { format } from 'date-fns';
@@ -19,132 +26,11 @@ import { formatPatientFullName } from '@/lib/utils/patient-display';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 
-function pad2(n: number): string {
-  return n < 10 ? `0${n}` : String(n);
-}
-
-function isValidYmd(year: number, month: number, day: number): boolean {
-  if (!Number.isInteger(year) || year < 1900 || year > 2100) return false;
-  if (!Number.isInteger(month) || month < 1 || month > 12) return false;
-  if (!Number.isInteger(day) || day < 1 || day > 31) return false;
-  const dt = new Date(year, month - 1, day);
-  return dt.getFullYear() === year && dt.getMonth() === month - 1 && dt.getDate() === day;
-}
-
-function normalizeFilterDateRaw(raw: string): string {
-  let s = raw.trim().replace(/\s+/g, '').replace(/,/g, '.');
-  s = s.replace(/\.{2,}/g, '.').replace(/\/{2,}/g, '/').replace(/-{2,}/g, '-');
-  return s;
-}
-
-function useYearFirstDigitGrouping(digits: string): boolean {
-  if (digits.length < 4) return false;
-  const yyyy = parseInt(digits.slice(0, 4), 10);
-  const dd = parseInt(digits.slice(0, 2), 10);
-  const mm = parseInt(digits.slice(2, 4), 10);
-  const dayFirstHeaderValid = dd >= 1 && dd <= 31 && mm >= 1 && mm <= 12;
-  const yearPlausible = yyyy >= 1900 && yyyy <= 2100;
-  if (!yearPlausible) return false;
-  if (!dayFirstHeaderValid) return true;
-  if (mm > 12) return true;
-  if (dd > 31) return true;
-  return false;
-}
-
-function formatDigitsDayFirstWhileTyping(d: string): string {
-  if (d.length <= 2) return d;
-  if (d.length <= 4) return `${d.slice(0, 2)}.${d.slice(2)}`;
-  return `${d.slice(0, 2)}.${d.slice(2, 4)}.${d.slice(4)}`;
-}
-
-function formatDigitsYearFirstWhileTyping(d: string): string {
-  if (d.length <= 4) return d.slice(0, 4);
-  if (d.length <= 6) return `${d.slice(0, 4)}.${d.slice(4)}`;
-  return `${d.slice(0, 4)}.${d.slice(4, 6)}.${d.slice(6)}`;
-}
-
-function formatFilterDateWhileTyping(raw: string): string {
-  const trimmed = raw.trim();
-  if (!trimmed) return '';
-  const digits = trimmed.replace(/\D/g, '').slice(0, 8);
-  if (digits.length > 0) {
-    return useYearFirstDigitGrouping(digits)
-      ? formatDigitsYearFirstWhileTyping(digits)
-      : formatDigitsDayFirstWhileTyping(digits);
-  }
-  return normalizeFilterDateRaw(trimmed).slice(0, 32);
-}
-
-function tryParseYmdFromCompactString(s: string): string | null {
-  if (!s) return null;
-  const iso = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(s);
-  if (iso) {
-    const y = Number(iso[1]);
-    const mo = Number(iso[2]);
-    const d = Number(iso[3]);
-    if (!isValidYmd(y, mo, d)) return null;
-    return `${y}-${pad2(mo)}-${pad2(d)}`;
-  }
-  const ymdSep = /^(\d{4})[./-](\d{1,2})[./-](\d{1,2})$/.exec(s);
-  if (ymdSep) {
-    const y = Number(ymdSep[1]);
-    const mo = Number(ymdSep[2]);
-    const d = Number(ymdSep[3]);
-    if (!isValidYmd(y, mo, d)) return null;
-    return `${y}-${pad2(mo)}-${pad2(d)}`;
-  }
-  const dmy = /^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/.exec(s);
-  if (dmy) {
-    const d = Number(dmy[1]);
-    const mo = Number(dmy[2]);
-    const y = Number(dmy[3]);
-    if (!isValidYmd(y, mo, d)) return null;
-    return `${y}-${pad2(mo)}-${pad2(d)}`;
-  }
-  if (/^\d{8}$/.test(s)) {
-    const yIso = Number(s.slice(0, 4));
-    const mIso = Number(s.slice(4, 6));
-    const dIso = Number(s.slice(6, 8));
-    if (isValidYmd(yIso, mIso, dIso)) return `${yIso}-${pad2(mIso)}-${pad2(dIso)}`;
-    const dEu = Number(s.slice(0, 2));
-    const m2 = Number(s.slice(2, 4));
-    const yEu = Number(s.slice(4, 8));
-    if (isValidYmd(yEu, m2, dEu)) return `${yEu}-${pad2(m2)}-${pad2(dEu)}`;
-  }
-  return null;
-}
-
-function parseFilterDateToYmd(raw: string): string | null {
-  const n = normalizeFilterDateRaw(raw);
-  if (!n) return null;
-  const candidates: string[] = [n];
-  const dmy = n.match(/\d{1,2}[./-]\d{1,2}[./-]\d{4}/);
-  if (dmy && !candidates.includes(dmy[0])) candidates.push(dmy[0]);
-  const iso = n.match(/\d{4}-\d{1,2}-\d{1,2}/);
-  if (iso && !candidates.includes(iso[0])) candidates.push(iso[0]);
-  for (const c of candidates) {
-    const ymd = tryParseYmdFromCompactString(c);
-    if (ymd) return ymd;
-  }
-  return null;
-}
-
-function formatYmdAsRuDisplay(ymd: string): string {
-  const [y, m, d] = ymd.split('-');
-  if (!y || !m || !d) return ymd;
-  return `${d.padStart(2, '0')}.${m.padStart(2, '0')}.${y}`;
-}
-
-function commitFilterDateDisplay(raw: string): string {
-  const ymd = parseFilterDateToYmd(raw);
-  if (ymd) return formatYmdAsRuDisplay(ymd);
-  return normalizeFilterDateRaw(raw);
-}
-
 const patientFilterLabelClass = 'text-muted-foreground text-xs font-normal leading-none sm:text-sm';
 const patientFilterControlClass =
   'min-w-0 bg-background px-2.5 font-normal text-sm leading-snug shadow-sm placeholder:text-muted-foreground sm:px-3';
 const patientFilterFieldHeightClass = 'h-10 min-h-10 sm:h-11 sm:min-h-11 md:h-10 md:min-h-0';
+type PatientsConsultationOrder = '-lastVisitedAt' | 'lastVisitedAt';
 
 export default function Dashboard() {
   const [search, setSearch] = useState('');
@@ -152,14 +38,8 @@ export default function Dashboard() {
   const [showFilters, setShowFilters] = useState(false);
   const [lastNameFilter, setLastNameFilter] = useState('');
   const [phoneFilter, setPhoneFilter] = useState('');
-  const [createdDateFrom, setCreatedDateFrom] = useState('');
-  const [createdDateTo, setCreatedDateTo] = useState('');
-  const [consultationDateFrom, setConsultationDateFrom] = useState('');
-  const [consultationDateTo, setConsultationDateTo] = useState('');
-  const [createdDateFromTouched, setCreatedDateFromTouched] = useState(false);
-  const [createdDateToTouched, setCreatedDateToTouched] = useState(false);
-  const [consultationDateFromTouched, setConsultationDateFromTouched] = useState(false);
-  const [consultationDateToTouched, setConsultationDateToTouched] = useState(false);
+  const [consultationOrder, setConsultationOrder] =
+    useState<PatientsConsultationOrder>('-lastVisitedAt');
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const PATIENTS_PAGE_SIZE = 20;
@@ -173,23 +53,6 @@ export default function Dashboard() {
     return () => window.clearTimeout(timeout);
   }, [search]);
 
-  const parsedCreatedDateFrom = useMemo(
-    () => parseFilterDateToYmd(createdDateFrom),
-    [createdDateFrom]
-  );
-  const parsedCreatedDateTo = useMemo(
-    () => parseFilterDateToYmd(createdDateTo),
-    [createdDateTo]
-  );
-  const parsedConsultationDateFrom = useMemo(
-    () => parseFilterDateToYmd(consultationDateFrom),
-    [consultationDateFrom]
-  );
-  const parsedConsultationDateTo = useMemo(
-    () => parseFilterDateToYmd(consultationDateTo),
-    [consultationDateTo]
-  );
-
   // Постраничная загрузка пациентов
   const {
     data: patientsPages,
@@ -200,14 +63,14 @@ export default function Dashboard() {
     isFetchingNextPage,
     refetch,
   } = useInfiniteQuery({
-    queryKey: ['patients', 'infinite', debouncedSearch],
+    queryKey: ['patients', 'infinite', debouncedSearch, consultationOrder],
     queryFn: async ({ pageParam }) => {
       console.log('[Dashboard] Запрос списка пациентов, страница:', pageParam);
       return patientsApi.getPatientsPage({
         page: pageParam,
         pageNumber: pageParam,
         pageSize: PATIENTS_PAGE_SIZE,
-        order: '-updatedAt',
+        order: consultationOrder,
         ...(debouncedSearch ? { search: debouncedSearch } : {}),
       });
     },
@@ -261,40 +124,24 @@ export default function Dashboard() {
   const totalCount = patientsPages?.pages[0]?.totalCount;
 
   // Преобразуем данные из API в формат Patient для отображения
-  const patients: (Patient & { birthDate?: string; createdAt?: string; updatedAt?: string })[] = patientsData.map((p: PatientResponse) => ({
+  const patients: (Patient & { birthDate?: string; createdAt?: string; lastVisitedAt?: string })[] = patientsData.map((p: PatientResponse) => ({
     id: String(p.id),
     firstName: p.firstName,
     lastName: p.lastName,
     middleName: p.middleName ?? undefined,
     phone: p.phone || '',
-    lastVisit: p.createdAt || new Date().toISOString(),
+    lastVisit: p.lastVisitedAt || p.createdAt || new Date().toISOString(),
     summary: p.comment || 'Новый пациент',
     avatar: `${p.firstName[0]}${p.lastName[0]}`.toUpperCase(),
     birthDate: p.birthDate,
     createdAt: p.createdAt,
-    updatedAt: p.updatedAt,
+    lastVisitedAt: p.lastVisitedAt,
   }));
-
-  const toDayStartMs = (value?: string | null): number | null => {
-    if (!value) return null;
-    const ms = new Date(`${value}T00:00:00`).getTime();
-    return Number.isNaN(ms) ? null : ms;
-  };
-
-  const toDayEndMs = (value?: string | null): number | null => {
-    if (!value) return null;
-    const ms = new Date(`${value}T23:59:59.999`).getTime();
-    return Number.isNaN(ms) ? null : ms;
-  };
 
   // Локальные фильтры поверх порядка с бэкенда.
   const filteredPatients = useMemo(() => {
     const normalizedLastName = lastNameFilter.trim().toLowerCase();
     const normalizedPhone = phoneFilter.trim().toLowerCase();
-    const createdFromMs = toDayStartMs(parsedCreatedDateFrom);
-    const createdToMs = toDayEndMs(parsedCreatedDateTo);
-    const consultationFromMs = toDayStartMs(parsedConsultationDateFrom);
-    const consultationToMs = toDayEndMs(parsedConsultationDateTo);
 
     return patients.filter((patient) => {
       const matchesLastName =
@@ -304,39 +151,12 @@ export default function Dashboard() {
       const matchesPhone =
         normalizedPhone.length === 0 ||
         (patient.phone || '').toLowerCase().includes(normalizedPhone);
-
-      const createdMs = patient.createdAt ? new Date(patient.createdAt).getTime() : NaN;
-      const matchesCreatedFrom =
-        createdFromMs == null || (!Number.isNaN(createdMs) && createdMs >= createdFromMs);
-      const matchesCreatedTo =
-        createdToMs == null || (!Number.isNaN(createdMs) && createdMs <= createdToMs);
-
-      // На клиенте используем updatedAt как "дату консультации/последней активности".
-      const consultationMs = patient.updatedAt ? new Date(patient.updatedAt).getTime() : NaN;
-      const matchesConsultationFrom =
-        consultationFromMs == null ||
-        (!Number.isNaN(consultationMs) && consultationMs >= consultationFromMs);
-      const matchesConsultationTo =
-        consultationToMs == null ||
-        (!Number.isNaN(consultationMs) && consultationMs <= consultationToMs);
-
-      return (
-        matchesLastName &&
-        matchesPhone &&
-        matchesCreatedFrom &&
-        matchesCreatedTo &&
-        matchesConsultationFrom &&
-        matchesConsultationTo
-      );
+      return matchesLastName && matchesPhone;
     });
   }, [
     patients,
     lastNameFilter,
     phoneFilter,
-    parsedCreatedDateFrom,
-    parsedCreatedDateTo,
-    parsedConsultationDateFrom,
-    parsedConsultationDateTo,
   ]);
 
   const handleCopyPhone = async (e: React.MouseEvent, phone: string) => {
@@ -454,173 +274,24 @@ export default function Dashboard() {
                   className={cn(patientFilterFieldHeightClass, patientFilterControlClass)}
                 />
               </div>
-              <div className="grid min-w-0 grid-cols-2 gap-2 sm:gap-3 lg:contents">
-                <div className="flex min-w-0 flex-col gap-1.5 sm:gap-2 lg:col-span-2">
-                  <Label className={patientFilterLabelClass}>Дата добавления: с</Label>
-                  <Input
-                    type="text"
-                    autoComplete="off"
-                    placeholder="ДД.ММ.ГГГГ"
-                    value={createdDateFrom}
-                    onChange={(e) => setCreatedDateFrom(formatFilterDateWhileTyping(e.target.value))}
-                    onFocus={() => setCreatedDateFromTouched(false)}
-                    onBlur={() => {
-                      setCreatedDateFromTouched(true);
-                      setCreatedDateFrom((v) => commitFilterDateDisplay(v));
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        (e.target as HTMLInputElement).blur();
-                      }
-                    }}
-                    aria-invalid={
-                      createdDateFromTouched &&
-                      normalizeFilterDateRaw(createdDateFrom) !== '' &&
-                      parsedCreatedDateFrom === null
+              <div className="flex min-w-0 flex-col gap-1.5 sm:gap-2 lg:col-span-4">
+                <Label className={patientFilterLabelClass}>Сортировка консультаций</Label>
+                <Select
+                  value={consultationOrder}
+                  onValueChange={(v) => {
+                    if (v === '-lastVisitedAt' || v === 'lastVisitedAt') {
+                      setConsultationOrder(v);
                     }
-                    className={cn(
-                      patientFilterFieldHeightClass,
-                      patientFilterControlClass,
-                      createdDateFromTouched &&
-                        normalizeFilterDateRaw(createdDateFrom) !== '' &&
-                        parsedCreatedDateFrom === null &&
-                        'border-destructive focus-visible:ring-destructive'
-                    )}
-                  />
-                  {createdDateFromTouched &&
-                    normalizeFilterDateRaw(createdDateFrom) !== '' &&
-                    parsedCreatedDateFrom === null && (
-                      <p role="alert" className="text-destructive text-[0.6875rem] leading-snug sm:text-xs">
-                        Неверная дата. Примеры: 08.04.2026, 2026-04-08, 20260408.
-                      </p>
-                    )}
-                </div>
-                <div className="flex min-w-0 flex-col gap-1.5 sm:gap-2 lg:col-span-2">
-                  <Label className={patientFilterLabelClass}>Дата добавления: по</Label>
-                  <Input
-                    type="text"
-                    autoComplete="off"
-                    placeholder="ДД.ММ.ГГГГ"
-                    value={createdDateTo}
-                    onChange={(e) => setCreatedDateTo(formatFilterDateWhileTyping(e.target.value))}
-                    onFocus={() => setCreatedDateToTouched(false)}
-                    onBlur={() => {
-                      setCreatedDateToTouched(true);
-                      setCreatedDateTo((v) => commitFilterDateDisplay(v));
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        (e.target as HTMLInputElement).blur();
-                      }
-                    }}
-                    aria-invalid={
-                      createdDateToTouched &&
-                      normalizeFilterDateRaw(createdDateTo) !== '' &&
-                      parsedCreatedDateTo === null
-                    }
-                    className={cn(
-                      patientFilterFieldHeightClass,
-                      patientFilterControlClass,
-                      createdDateToTouched &&
-                        normalizeFilterDateRaw(createdDateTo) !== '' &&
-                        parsedCreatedDateTo === null &&
-                        'border-destructive focus-visible:ring-destructive'
-                    )}
-                  />
-                  {createdDateToTouched &&
-                    normalizeFilterDateRaw(createdDateTo) !== '' &&
-                    parsedCreatedDateTo === null && (
-                      <p role="alert" className="text-destructive text-[0.6875rem] leading-snug sm:text-xs">
-                        Неверная дата. Примеры: 08.04.2026, 2026-04-08, 20260408.
-                      </p>
-                    )}
-                </div>
-              </div>
-              <div className="grid min-w-0 grid-cols-2 gap-2 sm:gap-3 lg:contents">
-                <div className="flex min-w-0 flex-col gap-1.5 sm:gap-2 lg:col-span-2">
-                  <Label className={patientFilterLabelClass}>Дата консультации: с</Label>
-                  <Input
-                    type="text"
-                    autoComplete="off"
-                    placeholder="ДД.ММ.ГГГГ"
-                    value={consultationDateFrom}
-                    onChange={(e) => setConsultationDateFrom(formatFilterDateWhileTyping(e.target.value))}
-                    onFocus={() => setConsultationDateFromTouched(false)}
-                    onBlur={() => {
-                      setConsultationDateFromTouched(true);
-                      setConsultationDateFrom((v) => commitFilterDateDisplay(v));
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        (e.target as HTMLInputElement).blur();
-                      }
-                    }}
-                    aria-invalid={
-                      consultationDateFromTouched &&
-                      normalizeFilterDateRaw(consultationDateFrom) !== '' &&
-                      parsedConsultationDateFrom === null
-                    }
-                    className={cn(
-                      patientFilterFieldHeightClass,
-                      patientFilterControlClass,
-                      consultationDateFromTouched &&
-                        normalizeFilterDateRaw(consultationDateFrom) !== '' &&
-                        parsedConsultationDateFrom === null &&
-                        'border-destructive focus-visible:ring-destructive'
-                    )}
-                  />
-                  {consultationDateFromTouched &&
-                    normalizeFilterDateRaw(consultationDateFrom) !== '' &&
-                    parsedConsultationDateFrom === null && (
-                      <p role="alert" className="text-destructive text-[0.6875rem] leading-snug sm:text-xs">
-                        Неверная дата. Примеры: 08.04.2026, 2026-04-08, 20260408.
-                      </p>
-                    )}
-                </div>
-                <div className="flex min-w-0 flex-col gap-1.5 sm:gap-2 lg:col-span-2">
-                  <Label className={patientFilterLabelClass}>Дата консультации: по</Label>
-                  <Input
-                    type="text"
-                    autoComplete="off"
-                    placeholder="ДД.ММ.ГГГГ"
-                    value={consultationDateTo}
-                    onChange={(e) => setConsultationDateTo(formatFilterDateWhileTyping(e.target.value))}
-                    onFocus={() => setConsultationDateToTouched(false)}
-                    onBlur={() => {
-                      setConsultationDateToTouched(true);
-                      setConsultationDateTo((v) => commitFilterDateDisplay(v));
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        (e.target as HTMLInputElement).blur();
-                      }
-                    }}
-                    aria-invalid={
-                      consultationDateToTouched &&
-                      normalizeFilterDateRaw(consultationDateTo) !== '' &&
-                      parsedConsultationDateTo === null
-                    }
-                    className={cn(
-                      patientFilterFieldHeightClass,
-                      patientFilterControlClass,
-                      consultationDateToTouched &&
-                        normalizeFilterDateRaw(consultationDateTo) !== '' &&
-                        parsedConsultationDateTo === null &&
-                        'border-destructive focus-visible:ring-destructive'
-                    )}
-                  />
-                  {consultationDateToTouched &&
-                    normalizeFilterDateRaw(consultationDateTo) !== '' &&
-                    parsedConsultationDateTo === null && (
-                      <p role="alert" className="text-destructive text-[0.6875rem] leading-snug sm:text-xs">
-                        Неверная дата. Примеры: 08.04.2026, 2026-04-08, 20260408.
-                      </p>
-                    )}
-                </div>
+                  }}
+                >
+                  <SelectTrigger className={cn(patientFilterFieldHeightClass, patientFilterControlClass)}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="-lastVisitedAt">Сначала последние консультации</SelectItem>
+                    <SelectItem value="lastVisitedAt">Сначала давние консультации</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="flex min-w-0 flex-col gap-1.5 sm:gap-2 lg:col-span-2">
                 <Label
@@ -637,16 +308,9 @@ export default function Dashboard() {
                   variant="outline"
                   className={cn(patientFilterFieldHeightClass, 'w-full shrink-0 text-sm font-normal')}
                   onClick={() => {
+                    setConsultationOrder('-lastVisitedAt');
                     setLastNameFilter('');
                     setPhoneFilter('');
-                    setCreatedDateFrom('');
-                    setCreatedDateTo('');
-                    setConsultationDateFrom('');
-                    setConsultationDateTo('');
-                    setCreatedDateFromTouched(false);
-                    setCreatedDateToTouched(false);
-                    setConsultationDateFromTouched(false);
-                    setConsultationDateToTouched(false);
                   }}
                 >
                   Сбросить фильтры

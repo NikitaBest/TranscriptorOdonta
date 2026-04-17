@@ -251,6 +251,7 @@ export interface PatientResponse {
   birthDate?: string; // Дата рождения в формате ISO (YYYY-MM-DD)
   medicalRecord?: MedicalRecord | null; // Медицинская карта пациента
   tasks?: ClientTask[]; // Заметки/задачи пациента
+  lastVisitedAt?: string; // Дата/время последнего посещения (последней консультации)
   createdAt?: string;
   updatedAt?: string;
 }
