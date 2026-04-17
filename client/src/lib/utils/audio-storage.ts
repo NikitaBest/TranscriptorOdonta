@@ -32,6 +32,8 @@ export interface RecordingMetadata {
   size: number; // Размер файла в байтах
   mimeType: string; // MIME тип аудио
   consultationType?: number; // Тип консультации (1, 2 или 3)
+  uploading?: boolean; // Защита от параллельной отправки (ручная + фон)
+  uploadStartedAt?: number; // Время старта текущей отправки
 }
 
 let dbInstance: IDBDatabase | null = null;
@@ -380,6 +382,22 @@ export async function saveRecordingMetadata(metadata: RecordingMetadata): Promis
   } catch (error) {
     console.error('Error saving recording metadata:', error);
     throw error;
+  }
+}
+
+/**
+ * Частичное обновление метаданных записи
+ */
+export async function updateRecordingMetadata(
+  recordingId: string,
+  patch: Partial<RecordingMetadata>
+): Promise<void> {
+  try {
+    const current = await getRecordingMetadata(recordingId);
+    if (!current) return;
+    await saveRecordingMetadata({ ...current, ...patch });
+  } catch (error) {
+    console.error('Error updating recording metadata:', error);
   }
 }
 

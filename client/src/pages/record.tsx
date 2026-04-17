@@ -38,6 +38,7 @@ import {
   deleteChunks, 
   generateRecordingId,
   saveRecordingMetadata,
+  updateRecordingMetadata,
   getRecordingMetadata,
   deleteRecordingMetadata,
   getLatestSavedRecording,
@@ -156,6 +157,7 @@ export default function RecordPage() {
   const chunkIndexRef = useRef<number>(0); // Счетчик chunks для IndexedDB
   /** Финальный blob, собранный из памяти при остановке (полный файл; избегаем гонки с IndexedDB и битый MP4) */
   const finalBlobRef = useRef<Blob | null>(null);
+  const sendLockRef = useRef(false);
 
   // Анализ звука в реальном времени
   useEffect(() => {
@@ -667,6 +669,9 @@ export default function RecordPage() {
 
   // Отправка сохраненной записи на бэкенд
   const handleSend = async () => {
+    if (sendLockRef.current || isUploading) {
+      return;
+    }
     if (!recordingIdRef.current || !selectedPatientId || !consultationType) {
       toast({
         title: "Ошибка",
@@ -679,6 +684,9 @@ export default function RecordPage() {
     const recordingId = recordingIdRef.current;
     const patientId = selectedPatientId;
     const type = consultationType;
+
+    sendLockRef.current = true;
+    setIsUploading(true);
 
     try {
       if (
@@ -747,10 +755,11 @@ export default function RecordPage() {
         size: audioBlob.size,
         mimeType: audioBlob.type,
         consultationType: type,
+        uploading: true,
+        uploadStartedAt: Date.now(),
       };
       await saveRecordingMetadata(metadata);
 
-      setIsUploading(true);
       setStatus('uploading');
 
       // Сразу отправляем на сервер
@@ -790,6 +799,10 @@ export default function RecordPage() {
       setLocation(`/consultation/${consultationId}`);
     } catch (error) {
       console.error('Error uploading recording:', error);
+      await updateRecordingMetadata(recordingId, {
+        uploading: false,
+        uploadStartedAt: undefined,
+      });
       setIsUploading(false);
 
       toast({
@@ -808,6 +821,9 @@ export default function RecordPage() {
 
       queryClient.invalidateQueries({ queryKey: ['consultations'] });
       setTimeout(() => setLocation('/history'), 500);
+    } finally {
+      sendLockRef.current = false;
+      setIsUploading(false);
     }
   };
 

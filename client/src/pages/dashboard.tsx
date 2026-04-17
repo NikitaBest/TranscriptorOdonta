@@ -225,10 +225,10 @@ export default function Dashboard() {
       return hasNewPatients ? allPages.length + 1 : undefined;
     },
     staleTime: 30000,
-    // Для длинного списка отключаем авто-перезапросы, чтобы лента не "прыгала" при скролле.
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    refetchOnMount: false,
+    // При возврате на вкладку/страницу пациентов всегда запрашиваем актуальные данные.
+    refetchOnWindowFocus: 'always',
+    refetchOnReconnect: true,
+    refetchOnMount: 'always',
   });
 
   useEffect(() => {

@@ -7,6 +7,7 @@ import {
   buildAudioBlob,
   deleteChunks,
   deleteRecordingMetadata,
+  updateRecordingMetadata,
 } from '@/lib/utils/audio-storage';
 import {
   audioDebugBlobSummary,
@@ -15,6 +16,7 @@ import {
 } from '@/lib/utils/audio-debug';
 
 const RETRY_INTERVAL = 10000; // 10 секунд
+const UPLOAD_LOCK_TTL_MS = 2 * 60 * 1000; // 2 минуты
 
 /**
  * Хук для фоновой отправки записей из IndexedDB
@@ -47,12 +49,36 @@ export function useBackgroundUpload() {
         // Отправляем записи по очереди
         for (const recording of savedRecordings) {
           try {
+            const uploadLockAgeMs = recording.uploadStartedAt
+              ? Date.now() - recording.uploadStartedAt
+              : null;
+            const hasActiveUploadLock =
+              Boolean(recording.uploading) &&
+              uploadLockAgeMs != null &&
+              uploadLockAgeMs >= 0 &&
+              uploadLockAgeMs < UPLOAD_LOCK_TTL_MS;
+
+            // Если запись уже отправляется вручную/другим циклом — пропускаем.
+            if (hasActiveUploadLock) {
+              continue;
+            }
+
+            // Ставим lock перед попыткой фоновой отправки.
+            await updateRecordingMetadata(recording.id, {
+              uploading: true,
+              uploadStartedAt: Date.now(),
+            });
+
             const audioBlob = await buildAudioBlob(recording.id);
 
             if (!audioBlob || audioBlob.size === 0) {
               audioIntegrityWarn(`[Background Upload] нет валидного blob, повтор позже`, {
                 recordingId: recording.id,
                 hint: 'IDB pending / ошибки чанков / дыры в индексах',
+              });
+              await updateRecordingMetadata(recording.id, {
+                uploading: false,
+                uploadStartedAt: undefined,
               });
               continue;
             }
@@ -68,6 +94,10 @@ export function useBackgroundUpload() {
             // Проверяем наличие типа консультации
             if (!recording.consultationType) {
               console.warn(`[Background Upload] Recording ${recording.id} missing consultation type, skipping`);
+              await updateRecordingMetadata(recording.id, {
+                uploading: false,
+                uploadStartedAt: undefined,
+              });
               continue;
             }
 
@@ -115,7 +145,17 @@ export function useBackgroundUpload() {
                 console.warn(`[Background Upload] Recording ${recording.id} is too large, removing it`);
                 await deleteChunks(recording.id);
                 await deleteRecordingMetadata(recording.id);
+              } else {
+                await updateRecordingMetadata(recording.id, {
+                  uploading: false,
+                  uploadStartedAt: undefined,
+                });
               }
+            } else {
+              await updateRecordingMetadata(recording.id, {
+                uploading: false,
+                uploadStartedAt: undefined,
+              });
             }
           }
         }
