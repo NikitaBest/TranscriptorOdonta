@@ -6,21 +6,30 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Search, Plus, Mic, ChevronRight, Calendar, Phone, Loader2, Copy } from 'lucide-react';
 import { Patient } from '@/lib/mock-data';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { ru } from 'date-fns/locale';
 import { patientsApi } from '@/lib/api/patients';
-import { consultationsApi } from '@/lib/api/consultations';
 import type { ApiError, PatientResponse } from '@/lib/api/types';
 import { formatDateForDisplay } from '@/lib/utils/date';
 import { formatPatientFullName } from '@/lib/utils/patient-display';
 import { useIsMobile } from '@/hooks/use-mobile';
 
+type PatientsOrder = '-updatedAt' | 'updatedAt';
+
 export default function Dashboard() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [order, setOrder] = useState<PatientsOrder>('-updatedAt');
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const PATIENTS_PAGE_SIZE = 20;
@@ -44,13 +53,14 @@ export default function Dashboard() {
     isFetchingNextPage,
     refetch,
   } = useInfiniteQuery({
-    queryKey: ['patients', 'infinite', debouncedSearch],
+    queryKey: ['patients', 'infinite', debouncedSearch, order],
     queryFn: async ({ pageParam }) => {
       console.log('[Dashboard] Запрос списка пациентов, страница:', pageParam);
       return patientsApi.getPatientsPage({
         page: pageParam,
         pageNumber: pageParam,
         pageSize: PATIENTS_PAGE_SIZE,
+        order,
         ...(debouncedSearch ? { search: debouncedSearch } : {}),
       });
     },
@@ -68,6 +78,10 @@ export default function Dashboard() {
       return hasNewPatients ? allPages.length + 1 : undefined;
     },
     staleTime: 30000,
+    // Для длинного списка отключаем авто-перезапросы, чтобы лента не "прыгала" при скролле.
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: false,
   });
 
   useEffect(() => {
@@ -99,37 +113,6 @@ export default function Dashboard() {
   }, [patientsPages]);
   const totalCount = patientsPages?.pages[0]?.totalCount;
 
-  const loadedPatientIds = useMemo(
-    () => patientsData.map((p) => String(p.id)).sort((a, b) => a.localeCompare(b)),
-    [patientsData]
-  );
-
-  const { data: lastConsultationByPatientId = {} } = useQuery({
-    queryKey: ['patients', 'last-consultations', loadedPatientIds],
-    enabled: loadedPatientIds.length > 0,
-    staleTime: 30000,
-    queryFn: async () => {
-      const pageSize = Math.min(1000, Math.max(100, loadedPatientIds.length * 10));
-      const { data } = await consultationsApi.getConsultationsPagePost({
-        pageNumber: 1,
-        pageSize,
-        clientIds: loadedPatientIds,
-        order: '-createdAt',
-      });
-
-      const map: Record<string, string> = {};
-      data.forEach((consultation) => {
-        const clientId = consultation.clientId ?? consultation.patientId;
-        const createdAt = consultation.createdAt || consultation.date;
-        if (!clientId || !createdAt) return;
-        const patientId = String(clientId);
-        // Данные уже отсортированы по убыванию даты, поэтому первое вхождение — последняя консультация.
-        if (!map[patientId]) map[patientId] = createdAt;
-      });
-      return map;
-    },
-  });
-
   // Преобразуем данные из API в формат Patient для отображения
   const patients: (Patient & { birthDate?: string; createdAt?: string })[] = patientsData.map((p: PatientResponse) => ({
     id: String(p.id),
@@ -137,40 +120,15 @@ export default function Dashboard() {
     lastName: p.lastName,
     middleName: p.middleName ?? undefined,
     phone: p.phone || '',
-    lastVisit: lastConsultationByPatientId[String(p.id)] || p.createdAt || new Date().toISOString(),
+    lastVisit: p.createdAt || new Date().toISOString(),
     summary: p.comment || 'Новый пациент',
     avatar: `${p.firstName[0]}${p.lastName[0]}`.toUpperCase(),
     birthDate: p.birthDate,
     createdAt: p.createdAt,
   }));
 
-  const filteredPatients = useMemo(
-    () =>
-      [...patients].sort((a, b) => {
-        const lastConsultA = lastConsultationByPatientId[a.id];
-        const lastConsultB = lastConsultationByPatientId[b.id];
-        const aHasConsultation = Boolean(lastConsultA);
-        const bHasConsultation = Boolean(lastConsultB);
-        if (aHasConsultation !== bHasConsultation) return aHasConsultation ? -1 : 1;
-
-        const lastConsultTsA = lastConsultA ? new Date(lastConsultA).getTime() : NaN;
-        const lastConsultTsB = lastConsultB ? new Date(lastConsultB).getTime() : NaN;
-        if (!isNaN(lastConsultTsA) && !isNaN(lastConsultTsB) && lastConsultTsA !== lastConsultTsB) {
-          return lastConsultTsB - lastConsultTsA;
-        }
-
-        const createdTsA = a.createdAt ? new Date(a.createdAt).getTime() : NaN;
-        const createdTsB = b.createdAt ? new Date(b.createdAt).getTime() : NaN;
-        if (!isNaN(createdTsA) && !isNaN(createdTsB) && createdTsA !== createdTsB) {
-          return createdTsB - createdTsA;
-        }
-
-        const byLastName = a.lastName.localeCompare(b.lastName, 'ru', { sensitivity: 'base' });
-        if (byLastName !== 0) return byLastName;
-        return a.firstName.localeCompare(b.firstName, 'ru', { sensitivity: 'base' });
-      }),
-    [patients, lastConsultationByPatientId]
-  );
+  // Сохраняем порядок, который вернул бэкенд (с учётом order в запросе).
+  const filteredPatients = useMemo(() => patients, [patients]);
 
   const handleCopyPhone = async (e: React.MouseEvent, phone: string) => {
     e.stopPropagation(); // Предотвращаем переход на страницу пациента
@@ -234,14 +192,32 @@ export default function Dashboard() {
         </div>
 
         {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-muted-foreground" />
-          <Input 
-            placeholder={isMobile ? 'Поиск: имя, телефон, заметка' : 'Поиск пациента по имени, телефону или заметке...'}
-            className="h-11 md:h-14 pl-10 md:pl-12 rounded-2xl bg-white border-border/50 shadow-sm text-sm md:text-lg placeholder:text-sm md:placeholder:text-base"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+        <div className="flex flex-col gap-2 md:gap-3">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-muted-foreground" />
+            <Input
+              placeholder={isMobile ? 'Поиск: имя, телефон, заметка' : 'Поиск пациента по имени, телефону или заметке...'}
+              className="h-11 md:h-14 pl-10 md:pl-12 rounded-2xl bg-white border-border/50 shadow-sm text-sm md:text-lg placeholder:text-sm md:placeholder:text-base"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <div className="w-full sm:w-[260px]">
+            <Select
+              value={order}
+              onValueChange={(v) => {
+                if (v === '-updatedAt' || v === 'updatedAt') setOrder(v);
+              }}
+            >
+              <SelectTrigger className="h-10 rounded-xl border-border/50 bg-white shadow-sm">
+                <SelectValue placeholder="Сортировка" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="-updatedAt">Новые консультации</SelectItem>
+                <SelectItem value="updatedAt">Старые консультации</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         <div className="text-xs md:text-sm text-muted-foreground -mt-4">
           {debouncedSearch ? (
