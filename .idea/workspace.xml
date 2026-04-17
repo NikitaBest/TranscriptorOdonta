@@ -4,7 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="добавление поиска пациента фильтр" />
+    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="фио у пациента">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -95,38 +97,7 @@
       <workItem from="1775464285339" duration="1201000" />
       <workItem from="1775478203101" duration="756000" />
       <workItem from="1775652856118" duration="944000" />
-    </task>
-    <task id="LOCAL-00091" summary="уменьшины отступы инфы на странице пациента для мобильных экранов">
-      <option name="closed" value="true" />
-      <created>1770874574084</created>
-      <option name="number" value="00091" />
-      <option name="presentableId" value="LOCAL-00091" />
-      <option name="project" value="LOCAL" />
-      <updated>1770874574084</updated>
-    </task>
-    <task id="LOCAL-00092" summary="блок заметок на странице пациента для мобильных экранов">
-      <option name="closed" value="true" />
-      <created>1770875407355</created>
-      <option name="number" value="00092" />
-      <option name="presentableId" value="LOCAL-00092" />
-      <option name="project" value="LOCAL" />
-      <updated>1770875407355</updated>
-    </task>
-    <task id="LOCAL-00093" summary="блок истории консультации на странице пациента для мобильных экранов">
-      <option name="closed" value="true" />
-      <created>1770875766414</created>
-      <option name="number" value="00093" />
-      <option name="presentableId" value="LOCAL-00093" />
-      <option name="project" value="LOCAL" />
-      <updated>1770875766414</updated>
-    </task>
-    <task id="LOCAL-00094" summary="работа с вкладками для мобилки">
-      <option name="closed" value="true" />
-      <created>1770876060768</created>
-      <option name="number" value="00094" />
-      <option name="presentableId" value="LOCAL-00094" />
-      <option name="project" value="LOCAL" />
-      <updated>1770876060768</updated>
+      <workItem from="1775808825931" duration="1000" />
     </task>
     <task id="LOCAL-00095" summary="адаптация кнопок на странице настроеек">
       <option name="closed" value="true" />
@@ -488,17 +459,45 @@
       <option name="project" value="LOCAL" />
       <updated>1775652878367</updated>
     </task>
-    <option name="localTasksCounter" value="140" />
+    <task id="LOCAL-00140" summary="заголовоки в балансе">
+      <option name="closed" value="true" />
+      <created>1775660978736</created>
+      <option name="number" value="00140" />
+      <option name="presentableId" value="LOCAL-00140" />
+      <option name="project" value="LOCAL" />
+      <updated>1775660978736</updated>
+    </task>
+    <task id="LOCAL-00141" summary="фильтрация истории консультаций">
+      <option name="closed" value="true" />
+      <created>1775663740807</created>
+      <option name="number" value="00141" />
+      <option name="presentableId" value="LOCAL-00141" />
+      <option name="project" value="LOCAL" />
+      <updated>1775663740807</updated>
+    </task>
+    <task id="LOCAL-00142" summary="отчество и сортировка">
+      <option name="closed" value="true" />
+      <created>1775666093800</created>
+      <option name="number" value="00142" />
+      <option name="presentableId" value="LOCAL-00142" />
+      <option name="project" value="LOCAL" />
+      <updated>1775666093800</updated>
+    </task>
+    <task id="LOCAL-00143" summary="фио у пациента">
+      <option name="closed" value="true" />
+      <created>1775668535004</created>
+      <option name="number" value="00143" />
+      <option name="presentableId" value="LOCAL-00143" />
+      <option name="project" value="LOCAL" />
+      <updated>1775668535004</updated>
+    </task>
+    <option name="localTasksCounter" value="144" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="отправка заметок правка" />
-    <MESSAGE value="обновление версии pwa и вторичная консультация" />
-    <MESSAGE value="защита на подмену заголовок и вкладок" />
-    <MESSAGE value="подстраничная загрузка" />
     <MESSAGE value="смена проверки токена , убран лишние запросы рефреш токен" />
     <MESSAGE value="не отображать аи реко в публичной странице и скчивании" />
     <MESSAGE value="логика по разрешению микрофона" />
@@ -520,6 +519,10 @@
     <MESSAGE value="добавление проверок исправление ошибок" />
     <MESSAGE value="новая страница рекомендаций" />
     <MESSAGE value="добавление поиска пациента фильтр" />
-    <option name="LAST_COMMIT_MESSAGE" value="добавление поиска пациента фильтр" />
+    <MESSAGE value="заголовоки в балансе" />
+    <MESSAGE value="фильтрация истории консультаций" />
+    <MESSAGE value="отчество и сортировка" />
+    <MESSAGE value="фио у пациента" />
+    <option name="LAST_COMMIT_MESSAGE" value="фио у пациента" />
   </component>
 </project>

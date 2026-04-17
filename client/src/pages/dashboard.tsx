@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'wouter';
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { Layout } from '@/components/layout';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { ru } from 'date-fns/locale';
 import { patientsApi } from '@/lib/api/patients';
+import { consultationsApi } from '@/lib/api/consultations';
 import type { ApiError, PatientResponse } from '@/lib/api/types';
 import { formatDateForDisplay } from '@/lib/utils/date';
 import { formatPatientFullName } from '@/lib/utils/patient-display';
@@ -98,27 +99,77 @@ export default function Dashboard() {
   }, [patientsPages]);
   const totalCount = patientsPages?.pages[0]?.totalCount;
 
+  const loadedPatientIds = useMemo(
+    () => patientsData.map((p) => String(p.id)).sort((a, b) => a.localeCompare(b)),
+    [patientsData]
+  );
+
+  const { data: lastConsultationByPatientId = {} } = useQuery({
+    queryKey: ['patients', 'last-consultations', loadedPatientIds],
+    enabled: loadedPatientIds.length > 0,
+    staleTime: 30000,
+    queryFn: async () => {
+      const pageSize = Math.min(1000, Math.max(100, loadedPatientIds.length * 10));
+      const { data } = await consultationsApi.getConsultationsPagePost({
+        pageNumber: 1,
+        pageSize,
+        clientIds: loadedPatientIds,
+        order: '-createdAt',
+      });
+
+      const map: Record<string, string> = {};
+      data.forEach((consultation) => {
+        const clientId = consultation.clientId ?? consultation.patientId;
+        const createdAt = consultation.createdAt || consultation.date;
+        if (!clientId || !createdAt) return;
+        const patientId = String(clientId);
+        // Данные уже отсортированы по убыванию даты, поэтому первое вхождение — последняя консультация.
+        if (!map[patientId]) map[patientId] = createdAt;
+      });
+      return map;
+    },
+  });
+
   // Преобразуем данные из API в формат Patient для отображения
-  const patients: (Patient & { birthDate?: string })[] = patientsData.map((p: PatientResponse) => ({
+  const patients: (Patient & { birthDate?: string; createdAt?: string })[] = patientsData.map((p: PatientResponse) => ({
     id: String(p.id),
     firstName: p.firstName,
     lastName: p.lastName,
     middleName: p.middleName ?? undefined,
     phone: p.phone || '',
-    lastVisit: p.createdAt || new Date().toISOString(),
+    lastVisit: lastConsultationByPatientId[String(p.id)] || p.createdAt || new Date().toISOString(),
     summary: p.comment || 'Новый пациент',
     avatar: `${p.firstName[0]}${p.lastName[0]}`.toUpperCase(),
     birthDate: p.birthDate,
+    createdAt: p.createdAt,
   }));
 
   const filteredPatients = useMemo(
     () =>
       [...patients].sort((a, b) => {
+        const lastConsultA = lastConsultationByPatientId[a.id];
+        const lastConsultB = lastConsultationByPatientId[b.id];
+        const aHasConsultation = Boolean(lastConsultA);
+        const bHasConsultation = Boolean(lastConsultB);
+        if (aHasConsultation !== bHasConsultation) return aHasConsultation ? -1 : 1;
+
+        const lastConsultTsA = lastConsultA ? new Date(lastConsultA).getTime() : NaN;
+        const lastConsultTsB = lastConsultB ? new Date(lastConsultB).getTime() : NaN;
+        if (!isNaN(lastConsultTsA) && !isNaN(lastConsultTsB) && lastConsultTsA !== lastConsultTsB) {
+          return lastConsultTsB - lastConsultTsA;
+        }
+
+        const createdTsA = a.createdAt ? new Date(a.createdAt).getTime() : NaN;
+        const createdTsB = b.createdAt ? new Date(b.createdAt).getTime() : NaN;
+        if (!isNaN(createdTsA) && !isNaN(createdTsB) && createdTsA !== createdTsB) {
+          return createdTsB - createdTsA;
+        }
+
         const byLastName = a.lastName.localeCompare(b.lastName, 'ru', { sensitivity: 'base' });
         if (byLastName !== 0) return byLastName;
         return a.firstName.localeCompare(b.firstName, 'ru', { sensitivity: 'base' });
       }),
-    [patients]
+    [patients, lastConsultationByPatientId]
   );
 
   const handleCopyPhone = async (e: React.MouseEvent, phone: string) => {
