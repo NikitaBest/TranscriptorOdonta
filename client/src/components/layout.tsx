@@ -60,7 +60,7 @@ export function Layout({ children, hideNavigation = false }: LayoutProps) {
   > = [
     { type: 'route', href: '/documents', label: 'Документы', icon: 'document' },
     { type: 'route', href: '/wallet', label: 'Баланс', icon: Wallet },
-    { type: 'external', href: 'https://t.me/odonta_ai_support', label: 'Поддержка', icon: MessageCircle },
+    { type: 'route', href: '/support', label: 'Поддержка', icon: MessageCircle },
     {
       type: 'action',
       label: 'Выйти',
@@ -149,15 +149,19 @@ export function Layout({ children, hideNavigation = false }: LayoutProps) {
                   <span>Настройки</span>
                 </div>
               </Link>
-              <a
-                href="https://t.me/odonta_ai_support"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 px-4 py-3 rounded-2xl transition-all hover:bg-secondary cursor-pointer text-sm"
-              >
-                <MessageCircle className="w-4 h-4" />
-                <span>Поддержка</span>
-              </a>
+              <Link href="/support">
+                <div
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-3 rounded-2xl transition-all cursor-pointer text-sm",
+                    location === '/support'
+                      ? "bg-primary text-primary-foreground shadow-md"
+                      : "hover:bg-secondary text-foreground"
+                  )}
+                >
+                  <MessageCircle className={cn("w-4 h-4", location === '/support' ? "text-primary-foreground" : "text-muted-foreground")} />
+                  <span>Поддержка</span>
+                </div>
+              </Link>
               <div 
                 onClick={handleLogout}
                 className="flex items-center gap-3 px-4 py-3 rounded-2xl transition-all hover:bg-destructive/10 hover:text-destructive cursor-pointer text-sm"
