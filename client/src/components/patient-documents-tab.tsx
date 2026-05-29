@@ -31,7 +31,6 @@ import {
   X,
   Plus,
   Search,
-  ExternalLink,
   AlertCircle,
   Trash2,
   Pencil,
@@ -125,110 +124,125 @@ function DocumentListItem({
     doc.file?.sizeBytes != null ? formatFileSize(Number(doc.file.sizeBytes)) : null;
   const showImage = isDocumentImage(doc) && url;
 
-  return (
-    <Card className="border-border/50 rounded-2xl overflow-hidden shadow-none hover:border-primary/20 transition-colors">
-      <CardContent className="p-3 sm:p-4 space-y-3">
-        <div className="flex gap-3 sm:gap-4 min-w-0">
-          <div className="shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-xl border border-border/50 bg-secondary/40 overflow-hidden flex items-center justify-center">
-            {showImage ? (
-              <img src={url} alt="" className="w-full h-full object-cover" />
-            ) : (
-              <FileText className="w-7 h-7 text-muted-foreground" />
-            )}
-          </div>
-          <div className="flex-1 min-w-0 space-y-1">
-            <p className="font-medium text-sm sm:text-base truncate">{title}</p>
-            <p className="text-xs text-muted-foreground">
-              {[dateLabel, sizeLabel, doc.file?.extension?.replace(/^\./, '')]
-                .filter(Boolean)
-                .join(' · ')}
-            </p>
-            {doc.description?.trim() && (
-              <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">
-                {doc.description}
-              </p>
-            )}
-            {doc.comment?.trim() && (
-              <p className="text-xs text-muted-foreground/80 line-clamp-1 italic">
-                {doc.comment}
-              </p>
-            )}
-          </div>
-        </div>
+  const preview = (
+    <div className="shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-xl border border-border/50 bg-secondary/40 overflow-hidden flex items-center justify-center">
+      {showImage ? (
+        <img src={url!} alt="" className="w-full h-full object-cover" />
+      ) : (
+        <FileText className="w-6 h-6 sm:w-7 sm:h-7 text-muted-foreground" />
+      )}
+    </div>
+  );
 
-        <div className="flex flex-wrap gap-1.5 sm:gap-2 pt-3 border-t border-border/50">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="rounded-lg h-8 sm:h-9 gap-1 sm:gap-1.5 flex-1 sm:flex-none min-w-0 px-1.5 sm:px-3 text-[10px] sm:text-sm leading-tight"
-            disabled={disabled || isDeleting}
-            onClick={() => onEdit(doc)}
-          >
-            <Pencil className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
-            <span className="whitespace-nowrap">Изменить</span>
-          </Button>
-          {url && (
+  const body = (
+    <div className="flex-1 min-w-0 space-y-0.5">
+      <p className="font-medium text-sm sm:text-base truncate">{title}</p>
+      <p className="text-xs text-muted-foreground">
+        {[dateLabel, sizeLabel, doc.file?.extension?.replace(/^\./, '')]
+          .filter(Boolean)
+          .join(' · ')}
+      </p>
+      {doc.description?.trim() && (
+        <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 pt-0.5">
+          {doc.description}
+        </p>
+      )}
+      {doc.comment?.trim() && (
+        <p className="text-xs text-muted-foreground/80 line-clamp-1 italic">
+          {doc.comment}
+        </p>
+      )}
+    </div>
+  );
+
+  const mainContentClass = cn(
+    'flex flex-1 min-w-0 gap-3 sm:gap-3.5 rounded-xl -m-1 p-1 transition-colors',
+    url && 'hover:bg-secondary/40 cursor-pointer'
+  );
+
+  return (
+    <Card
+      className={cn(
+        'border-border/50 rounded-2xl overflow-hidden shadow-none transition-colors',
+        url && 'hover:border-primary/30'
+      )}
+    >
+      <CardContent className="p-3 sm:p-4">
+        <div className="flex items-start gap-2 sm:gap-3">
+          {url ? (
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={mainContentClass}
+              aria-label={`Открыть «${title}»`}
+            >
+              {preview}
+              {body}
+            </a>
+          ) : (
+            <div className={mainContentClass}>{preview}{body}</div>
+          )}
+
+          <div className="flex shrink-0 flex-col gap-0.5 -mr-1">
             <Button
               type="button"
-              variant="outline"
-              size="sm"
-              className="rounded-lg h-8 sm:h-9 gap-1 sm:gap-1.5 flex-1 sm:flex-none min-w-0 px-1.5 sm:px-3 text-[10px] sm:text-sm leading-tight"
-              asChild
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg text-muted-foreground hover:text-foreground"
+              disabled={disabled || isDeleting}
+              aria-label="Изменить документ"
+              onClick={() => onEdit(doc)}
             >
-              <a href={url} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
-                <span className="whitespace-nowrap">Открыть</span>
-              </a>
+              <Pencil className="w-4 h-4" />
             </Button>
-          )}
-          <AlertDialog open={isDeleteDialogOpen} onOpenChange={onDeleteDialogOpenChange}>
-            <AlertDialogTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="rounded-lg h-8 sm:h-9 gap-1 sm:gap-1.5 flex-1 sm:flex-none min-w-0 px-1.5 sm:px-3 text-[10px] sm:text-sm leading-tight text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
-                disabled={disabled || isDeleting}
-                aria-label="Удалить документ"
-              >
-                {isDeleting ? (
-                  <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-spin shrink-0" />
-                ) : (
-                  <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
-                )}
-                <span className="whitespace-nowrap">Удалить</span>
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent className="rounded-2xl">
-              <AlertDialogHeader>
-                <AlertDialogTitle>Удалить документ?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  «{title}» будет удалён безвозвратно вместе с файлом на сервере.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel className="rounded-xl">Отмена</AlertDialogCancel>
-                <AlertDialogAction
-                  className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  disabled={isDeleting}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    onConfirmDelete(doc);
-                  }}
+            <AlertDialog open={isDeleteDialogOpen} onOpenChange={onDeleteDialogOpenChange}>
+              <AlertDialogTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                  disabled={disabled || isDeleting}
+                  aria-label="Удалить документ"
                 >
                   {isDeleting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                      Удаление…
-                    </>
+                    <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
-                    'Удалить'
+                    <Trash2 className="w-4 h-4" />
                   )}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="rounded-2xl">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Удалить документ?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    «{title}» будет удалён безвозвратно вместе с файлом на сервере.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel className="rounded-xl">Отмена</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    disabled={isDeleting}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      onConfirmDelete(doc);
+                    }}
+                  >
+                    {isDeleting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                        Удаление…
+                      </>
+                    ) : (
+                      'Удалить'
+                    )}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </div>
       </CardContent>
     </Card>
