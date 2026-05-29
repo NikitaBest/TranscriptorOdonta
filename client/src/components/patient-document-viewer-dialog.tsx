@@ -63,7 +63,9 @@ export function PatientDocumentViewerDialog({
     setIsDownloading(true);
 
     try {
-      const result = await downloadDocumentFile(remoteUrl, fileName, contentType);
+      const result = await downloadDocumentFile(remoteUrl, fileName, contentType, {
+        isImage: kind === 'image',
+      });
       if (result === 'blob') {
         toast({
           title: 'Скачивание начато',
@@ -71,9 +73,9 @@ export function PatientDocumentViewerDialog({
         });
       } else {
         toast({
-          title: 'Скачивание',
+          title: 'Откройте файл в новой вкладке',
           description:
-            'Если файл открылся в браузере — сохраните его через меню «Поделиться» или «Скачать».',
+            'Сохраните через меню браузера: «Скачать» или «Поделиться» → «Сохранить».',
         });
       }
     } catch {

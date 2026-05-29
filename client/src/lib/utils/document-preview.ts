@@ -211,39 +211,71 @@ function triggerBlobDownload(blob: Blob, fileName: string): void {
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-/** Прямое скачивание по URL (когда fetch заблокирован CORS). */
-function triggerDirectDownload(url: string, fileName: string): void {
-  const safeName = sanitizeDownloadFileName(fileName);
+function mimeForDownload(contentType?: string, fileName?: string): string {
+  if (contentType && contentType !== 'application/octet-stream') return contentType;
+  const ext = fileName?.split('.').pop()?.toLowerCase() ?? '';
+  return mimeTypeForFileName(fileName || 'file', contentType);
+}
 
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = safeName;
-  link.rel = 'noopener noreferrer';
-  link.style.display = 'none';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+/** Скачивание изображения через canvas (работает только если S3 отдаёт CORS). */
+function downloadImageViaCanvas(url: string, fileName: string, contentType?: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.referrerPolicy = 'no-referrer';
 
-  const iframe = document.createElement('iframe');
-  iframe.style.display = 'none';
-  iframe.src = url;
-  document.body.appendChild(iframe);
-  window.setTimeout(() => {
-    iframe.remove();
-  }, 120_000);
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(false);
+          return;
+        }
+        ctx.drawImage(img, 0, 0);
+        const mime = mimeForDownload(contentType, fileName);
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              triggerBlobDownload(blob, fileName);
+              resolve(true);
+            } else {
+              resolve(false);
+            }
+          },
+          mime.startsWith('image/') ? mime : 'image/png',
+          0.92
+        );
+      } catch {
+        resolve(false);
+      }
+    };
+
+    img.onerror = () => resolve(false);
+    img.src = url;
+  });
+}
+
+/** Fallback: cross-origin download через <a download> не работает — открываем в новой вкладке. */
+function triggerDirectDownload(url: string): void {
+  window.open(url, '_blank', 'noopener,noreferrer');
 }
 
 export type DocumentDownloadResult = 'blob' | 'direct';
 
 /**
  * Скачать файл документа.
- * Сначала пробует fetch → blob (same-origin или S3 с CORS),
- * иначе — прямую навигацию по presigned URL.
+ * 1) fetch → blob (если CORS разрешён)
+ * 2) для изображений — canvas
+ * 3) иначе новая вкладка (сохранить вручную)
  */
 export async function downloadDocumentFile(
   url: string,
   fileName: string,
-  contentType?: string
+  contentType?: string,
+  options?: { isImage?: boolean }
 ): Promise<DocumentDownloadResult> {
   const safeName = sanitizeDownloadFileName(fileName);
   const headers: Record<string, string> = {};
@@ -268,16 +300,19 @@ export async function downloadDocumentFile(
     }
 
     const blob = await response.blob();
-    const type = contentType || blob.type || 'application/octet-stream';
+    const type = mimeForDownload(contentType, safeName);
     const typedBlob =
-      !blob.type || blob.type === 'application/octet-stream'
-        ? new Blob([blob], { type })
-        : blob;
+      !blob.type || blob.type === 'application/octet-stream' ? new Blob([blob], { type }) : blob;
 
     triggerBlobDownload(typedBlob, safeName);
     return 'blob';
   } catch {
-    triggerDirectDownload(url, safeName);
+    if (options?.isImage) {
+      const viaCanvas = await downloadImageViaCanvas(url, safeName, contentType);
+      if (viaCanvas) return 'blob';
+    }
+
+    triggerDirectDownload(url);
     return 'direct';
   }
 }

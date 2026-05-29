@@ -119,11 +119,11 @@ function DocumentListItem({
   const showImage = Boolean(thumbUrl);
 
   const preview = (
-    <div className="shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-xl border border-border/50 bg-secondary/40 overflow-hidden flex items-center justify-center">
+    <div className="shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-xl border border-border/50 bg-secondary/40 overflow-hidden flex items-center justify-center self-center">
       {showImage ? (
         <img src={thumbUrl!} alt="" className="w-full h-full object-cover" loading="lazy" />
       ) : (
-        <FileText className="w-6 h-6 sm:w-7 sm:h-7 text-muted-foreground" />
+        <FileText className="w-7 h-7 sm:w-8 sm:h-8 text-muted-foreground" />
       )}
     </div>
   );
@@ -150,7 +150,7 @@ function DocumentListItem({
   );
 
   const mainContentClass = cn(
-    'flex flex-1 min-w-0 gap-3 sm:gap-3.5 rounded-xl -m-1 p-1 transition-colors',
+    'flex flex-1 min-w-0 items-center gap-3 sm:gap-3.5 rounded-xl -m-1 p-1 transition-colors',
     url && 'hover:bg-secondary/40 cursor-pointer'
   );
 
@@ -162,7 +162,7 @@ function DocumentListItem({
       )}
     >
       <CardContent className="p-3 sm:p-4">
-        <div className="flex items-start gap-2 sm:gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {url ? (
             <button
               type="button"
