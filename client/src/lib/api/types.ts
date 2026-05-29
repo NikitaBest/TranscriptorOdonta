@@ -278,6 +278,62 @@ export interface ApiResponse<T> {
   error: string | null;
 }
 
+/** Файл, прикреплённый к документу клиента */
+export interface ClientDocumentFile {
+  id: string;
+  fileName?: string;
+  contentType?: string | null;
+  sizeBytes?: number;
+  extension?: string;
+  url?: string;
+  createdAt?: string;
+}
+
+/** Документ клиента (POST /client/document, GET /client/document/get) */
+export interface ClientDocument {
+  id: string;
+  createdAt?: string;
+  tenantId?: string;
+  clientId?: string;
+  consultationId?: string | null;
+  title?: string | null;
+  description?: string | null;
+  comment?: string | null;
+  fileId?: string;
+  file?: ClientDocumentFile | null;
+}
+
+/** Параметры создания документа (multipart/form-data) */
+export interface CreateClientDocumentParams {
+  clientId: string;
+  consultationId?: string;
+  title?: string;
+  description?: string;
+  comment?: string;
+  file: File;
+}
+
+/** Запрос POST /client/document/get */
+export interface GetClientDocumentsRequest {
+  clientId?: string;
+  search?: string;
+  order?: string;
+  page?: number;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+/** Ответ POST /client/document/get (value) */
+export interface GetClientDocumentsResponse {
+  currentPage: number;
+  totalPages: number;
+  pageSize: number;
+  totalCount: number;
+  hasPrevious: boolean;
+  hasNext: boolean;
+  data: ClientDocument[];
+}
+
 /**
  * Свойство консультации (динамическое поле)
  */

@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Mic, ArrowLeft, Phone, Calendar, FileText, Play, Loader2, Check, AlertCircle, Copy, Plus, Trash2, Pencil, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Mic, ArrowLeft, Phone, Calendar, FileText, Play, Loader2, Check, AlertCircle, Copy, Plus, Trash2, Pencil, X, ChevronDown, ChevronUp, Paperclip } from 'lucide-react';
+import { PatientDocumentsTab } from '@/components/patient-documents-tab';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { Textarea } from '@/components/ui/textarea';
@@ -40,7 +41,7 @@ export default function PatientProfile() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [comment, setComment] = useState('');
-  const [activeTab, setActiveTab] = useState<'consultations' | 'medical-record'>('consultations');
+  const [activeTab, setActiveTab] = useState<'consultations' | 'medical-record' | 'documents'>('consultations');
   const [backHref, setBackHref] = useState<string>('/dashboard');
 
   const handleCopyPhone = async (phone: string) => {
@@ -123,7 +124,13 @@ export default function PatientProfile() {
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
     const tabParam = params.get('tab');
-    setActiveTab(tabParam === 'medical-record' ? 'medical-record' : 'consultations');
+    if (tabParam === 'medical-record') {
+      setActiveTab('medical-record');
+    } else if (tabParam === 'documents') {
+      setActiveTab('documents');
+    } else {
+      setActiveTab('consultations');
+    }
     const fromParam = params.get('from');
     setBackHref(fromParam && fromParam.startsWith('/') ? fromParam : '/dashboard');
   }, [id]);
@@ -849,23 +856,32 @@ export default function PatientProfile() {
           <div className="min-w-0 flex-1 order-2 md:order-none">
         <Tabs
           value={activeTab}
-          onValueChange={(val) => setActiveTab(val as 'consultations' | 'medical-record')}
+          onValueChange={(val) => setActiveTab(val as 'consultations' | 'medical-record' | 'documents')}
           className="w-full"
         >
           {/* На мобильных вкладки растянуты с тем же отступом, что и блок о пациенте */}
           <div className="-mx-6 sm:mx-0 mb-4 md:mb-6">
-          <TabsList className="grid w-full sm:max-w-md grid-cols-2 h-10 md:h-11 p-0 rounded-2xl sm:rounded-full bg-background text-muted-foreground shadow-sm overflow-hidden border border-border/50">
+          <TabsList className="grid w-full sm:max-w-2xl grid-cols-3 h-10 md:h-11 p-0 rounded-2xl sm:rounded-full bg-background text-muted-foreground shadow-sm overflow-hidden border border-border/50">
             <TabsTrigger
               value="consultations"
-              className="h-full rounded-2xl sm:rounded-full px-3 sm:px-4 md:px-6 py-0 sm:py-1.5 md:py-2 text-xs sm:text-sm md:text-base font-medium whitespace-nowrap transition-all data-[state=active]:bg-secondary data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+              className="h-full rounded-2xl sm:rounded-full px-2 sm:px-3 md:px-4 py-0 sm:py-1.5 md:py-2 text-[10px] sm:text-xs md:text-sm font-medium transition-all data-[state=active]:bg-secondary data-[state=active]:text-foreground data-[state=active]:shadow-sm"
             >
-              История консультаций
+              <span className="hidden sm:inline">История консультаций</span>
+              <span className="sm:hidden">История</span>
             </TabsTrigger>
             <TabsTrigger
               value="medical-record"
-              className="h-full rounded-2xl sm:rounded-full px-3 sm:px-4 md:px-6 py-0 sm:py-1.5 md:py-2 text-xs sm:text-sm md:text-base font-medium whitespace-nowrap transition-all data-[state=active]:bg-secondary data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+              className="h-full rounded-2xl sm:rounded-full px-2 sm:px-3 md:px-4 py-0 sm:py-1.5 md:py-2 text-[10px] sm:text-xs md:text-sm font-medium transition-all data-[state=active]:bg-secondary data-[state=active]:text-foreground data-[state=active]:shadow-sm"
             >
-              Карта пациента
+              <span className="hidden sm:inline">Карта пациента</span>
+              <span className="sm:hidden">Карта</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="documents"
+              className="h-full rounded-2xl sm:rounded-full px-2 sm:px-3 md:px-4 py-0 sm:py-1.5 md:py-2 text-[10px] sm:text-xs md:text-sm font-medium transition-all data-[state=active]:bg-secondary data-[state=active]:text-foreground data-[state=active]:shadow-sm gap-1"
+            >
+              <Paperclip className="w-3 h-3 sm:hidden shrink-0" />
+              Документы
             </TabsTrigger>
           </TabsList>
           </div>
@@ -1090,6 +1106,15 @@ export default function PatientProfile() {
               </div>
               </div>
             </div>
+          </TabsContent>
+
+          <TabsContent value="documents" className="space-y-4 sm:space-y-6 mt-0">
+            {id && (
+              <PatientDocumentsTab
+                patientId={patientData?.id ?? id}
+                disabled={isLoadingPatient || !patientData}
+              />
+            )}
           </TabsContent>
         </Tabs>
           </div>

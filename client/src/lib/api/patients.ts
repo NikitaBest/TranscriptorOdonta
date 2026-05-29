@@ -1,4 +1,5 @@
 import { ApiClient } from './client';
+import { fileForMultipartUpload, formatClientDocumentUploadError, logFormDataPayload } from './config';
 import type { 
   CreatePatientRequest, 
   CreatePatientResponse,
@@ -12,7 +13,11 @@ import type {
   ConsultationResponse,
   GetConsultationsResponse,
   ApiResponse,
-  ApiError
+  ApiError,
+  ClientDocument,
+  CreateClientDocumentParams,
+  GetClientDocumentsRequest,
+  GetClientDocumentsResponse,
 } from './types';
 
 /**
@@ -299,6 +304,162 @@ export const patientsApi = {
 
     console.warn('Неожиданный формат ответа от сервера при получении консультаций:', response);
     return [];
+  },
+
+  /**
+   * Список документов клиента
+   * POST /client/document/get
+   */
+  async getDocuments(params: GetClientDocumentsRequest): Promise<{
+    data: ClientDocument[];
+    totalCount: number;
+  }> {
+    const pageSize = params.pageSize ?? 50;
+    let pageNumber = params.pageNumber ?? params.page ?? 1;
+    const all: ClientDocument[] = [];
+    let totalCount = 0;
+    let hasNext = true;
+    const maxPages = 20;
+
+    while (hasNext && pageNumber <= maxPages) {
+      const response = await ApiClient.post<ApiResponse<GetClientDocumentsResponse>>(
+        'client/document/get',
+        {
+          clientId: params.clientId,
+          search: params.search?.trim() || undefined,
+          order: params.order || undefined,
+          pageNumber,
+          pageSize,
+        },
+        { requireAuth: true }
+      );
+
+      if (!response.isSuccess || !response.value) {
+        if (all.length === 0) {
+          throw new Error(response.error || 'Не удалось загрузить документы');
+        }
+        break;
+      }
+
+      const page = response.value;
+      totalCount = page.totalCount ?? all.length + (page.data?.length ?? 0);
+
+      if (Array.isArray(page.data)) {
+        all.push(
+          ...page.data.map((doc) => ({
+            ...doc,
+            id: String(doc.id),
+          }))
+        );
+      }
+
+      const moreByFlag = Boolean(page.hasNext);
+      const moreByPage =
+        typeof page.currentPage === 'number' &&
+        typeof page.totalPages === 'number' &&
+        page.currentPage < page.totalPages;
+
+      hasNext = moreByFlag || moreByPage;
+      pageNumber += 1;
+
+      if (!page.data?.length) {
+        break;
+      }
+    }
+
+    return { data: all, totalCount: totalCount || all.length };
+  },
+
+  /**
+   * Создать документ клиента с файлом
+   * POST /client/document (multipart/form-data)
+   * @see API.md — ApplicationModelsClientCreateClientDocumentRequest
+   * Обязательно: file; clientId и/или consultationId
+   */
+  async createDocument(params: CreateClientDocumentParams): Promise<ClientDocument> {
+    const hasClient = Boolean(params.clientId?.trim());
+    const hasConsultation = Boolean(params.consultationId?.trim());
+    if (!hasClient && !hasConsultation) {
+      throw new Error('Укажите clientId или consultationId');
+    }
+    if (!params.file || params.file.size === 0) {
+      throw new Error('Файл пустой или не выбран');
+    }
+    if (params.file.size > 50 * 1024 * 1024) {
+      throw new Error('Размер файла не должен превышать 50 МБ');
+    }
+
+    const formData = new FormData();
+    const title = params.title?.trim() || params.file.name;
+    const { blob: fileBlob, name: fileName } = fileForMultipartUpload(params.file);
+
+    // file — первым (часть ASP.NET/FastEndpoints биндеров чувствительна к порядку)
+    formData.append('file', fileBlob, fileName);
+
+    if (hasClient) {
+      formData.append('clientId', params.clientId.trim());
+    }
+    if (hasConsultation) {
+      formData.append('consultationId', params.consultationId!.trim());
+    }
+    formData.append('title', title);
+    if (params.description?.trim()) {
+      formData.append('description', params.description.trim());
+    }
+    if (params.comment?.trim()) {
+      formData.append('comment', params.comment.trim());
+    }
+
+    logFormDataPayload('POST /client/document', formData);
+
+    const fileSizeBytes = params.file.size;
+    const minUploadSpeedKBps = 10;
+    const estimatedUploadTimeSeconds = (fileSizeBytes / 1024) / minUploadSpeedKBps;
+    const timeoutSeconds = Math.max(estimatedUploadTimeSeconds * 1.5 + 60, 120);
+    const timeoutMs = Math.min(timeoutSeconds * 1000, 900000); // до 15 минут
+
+    const response = await ApiClient.request<ApiResponse<ClientDocument>>(
+      'POST',
+      'client/document',
+      formData,
+      {
+        requireAuth: true,
+        isFormData: true,
+        timeout: timeoutMs,
+      }
+    );
+
+    if (response.isSuccess && response.value) {
+      return {
+        ...response.value,
+        id: String(response.value.id),
+      };
+    }
+
+    throw new Error(
+      formatClientDocumentUploadError(response.error || 'Не удалось загрузить документ')
+    );
+  },
+
+  /**
+   * Удалить документ клиента
+   * DELETE /client/document/{documentId}
+   */
+  async deleteDocument(documentId: string): Promise<void> {
+    const id = encodeURIComponent(documentId);
+    const response = await ApiClient.delete<ApiResponse<unknown>>(
+      `client/document/${id}`,
+      { requireAuth: true }
+    );
+
+    if (
+      response &&
+      typeof response === 'object' &&
+      'isSuccess' in response &&
+      response.isSuccess === false
+    ) {
+      throw new Error(response.error || 'Не удалось удалить документ');
+    }
   },
 
   /**

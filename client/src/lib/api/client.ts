@@ -23,6 +23,7 @@ export class ApiClient {
     const minTimeout = 30000;
     const url = getApiUrl(path);
     const headers: Record<string, string> = {
+      Accept: 'application/json',
       ...options?.headers,
     };
 
@@ -49,16 +50,20 @@ export class ApiClient {
     }, timeout);
 
     try {
-      // Логируем размер файла если это FormData
+      // Логируем FormData (все поля)
       if (options?.isFormData && data instanceof FormData) {
-        const file = data.get('file') as File | Blob;
-        if (file) {
-          const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-          console.log(`[API] ${method} ${url} [FormData]`, {
-            fileSize: `${sizeMB} MB`,
-            timeout: `${timeout / 1000}s`,
-          });
-        }
+        const summary: Record<string, string> = {};
+        data.forEach((value, key) => {
+          if (typeof value !== 'string') {
+            summary[key] = `File(${value.name}, ${(value.size / 1024).toFixed(1)} KB, ${value.type || 'no-type'})`;
+          } else {
+            summary[key] = value;
+          }
+        });
+        console.log(`[API] ${method} ${url} [FormData]`, {
+          fields: summary,
+          timeout: `${timeout / 1000}s`,
+        });
       } else {
         console.log(`[API] ${method} ${url}`, options?.isFormData ? '[FormData]' : data ? { body: data } : '');
       }
@@ -163,7 +168,14 @@ export class ApiClient {
       if (contentType && contentType.includes('application/json')) {
         const errorData = await response.json();
         // Бэкенд может возвращать ошибку в поле error (ApiResponse формат)
-        errorMessage = errorData.message || errorData.error || (errorData.value === null && errorData.isSuccess === false ? errorData.error : null) || errorMessage;
+        if (errorData.isSuccess === false && errorData.error) {
+          errorMessage = errorData.error;
+        } else {
+          errorMessage =
+            errorData.message ||
+            errorData.error ||
+            errorMessage;
+        }
         errors = errorData.errors;
       } else {
         const text = await response.text();
