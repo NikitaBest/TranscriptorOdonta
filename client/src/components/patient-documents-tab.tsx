@@ -40,9 +40,6 @@ import {
 const MAX_FILE_BYTES = 50 * 1024 * 1024;
 const DOCUMENTS_QUERY_KEY = 'patient-documents';
 
-const ACCEPTED_FILE_TYPES =
-  'image/*,application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.txt,.rtf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-
 type PendingFile = {
   id: string;
   file: File;
@@ -242,10 +239,12 @@ export function PatientDocumentsTab({ patientId, disabled }: PatientDocumentsTab
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dragCounterRef = useRef(0);
 
   const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
+  const [isDragOver, setIsDragOver] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [comment, setComment] = useState('');
@@ -476,13 +475,50 @@ export function PatientDocumentsTab({ patientId, disabled }: PatientDocumentsTab
 
   const isUploading = uploadMutation.isPending;
   const fileCount = pendingFiles.length;
+  const canAddFiles = !disabled && !isUploading;
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!canAddFiles) return;
+    dragCounterRef.current += 1;
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current -= 1;
+    if (dragCounterRef.current <= 0) {
+      dragCounterRef.current = 0;
+      setIsDragOver(false);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current = 0;
+    setIsDragOver(false);
+    if (!canAddFiles) return;
+    if (e.dataTransfer.files?.length) addFiles(e.dataTransfer.files);
+  };
+
+  const openFilePicker = () => {
+    if (canAddFiles) fileInputRef.current?.click();
+  };
 
   return (
     <div className="space-y-6 sm:space-y-8">
       <div className="-mx-4 sm:-mx-6 sm:mx-0 px-4 sm:px-0">
         <h2 className="text-base sm:text-lg md:text-xl font-display font-bold">Документы</h2>
         <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-          Файлы и снимки пациента — до 50 МБ на файл
+          Файлы пациента — до 50 МБ на файл, любой формат
         </p>
       </div>
 
@@ -491,13 +527,29 @@ export function PatientDocumentsTab({ patientId, disabled }: PatientDocumentsTab
         <h3 className="text-sm font-semibold mb-4">Добавить документ</h3>
 
         <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
-          <Card className="border-dashed border-2 border-border/60 rounded-2xl sm:rounded-3xl overflow-hidden shadow-none">
+          <Card
+            className={cn(
+              'border-dashed border-2 rounded-2xl sm:rounded-3xl overflow-hidden shadow-none transition-colors',
+              isDragOver
+                ? 'border-primary bg-primary/5'
+                : 'border-border/60',
+              canAddFiles && 'cursor-pointer'
+            )}
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+            onClick={(e) => {
+              if (!canAddFiles || fileCount > 0) return;
+              if ((e.target as HTMLElement).closest('button')) return;
+              openFilePicker();
+            }}
+          >
             <CardContent className="p-4 sm:p-6 space-y-4">
               <input
                 ref={fileInputRef}
                 type="file"
                 multiple
-                accept={ACCEPTED_FILE_TYPES}
                 className="sr-only"
                 disabled={disabled || isUploading}
                 onChange={(e) => {
@@ -506,22 +558,37 @@ export function PatientDocumentsTab({ patientId, disabled }: PatientDocumentsTab
               />
 
               {fileCount === 0 ? (
-                <div className="flex flex-col items-center text-center py-4 sm:py-6 gap-4">
-                  <div className="w-14 h-14 rounded-2xl bg-secondary flex items-center justify-center">
-                    <Upload className="w-7 h-7 text-muted-foreground" />
+                <div className="flex flex-col items-center text-center py-4 sm:py-6 gap-4 pointer-events-none">
+                  <div
+                    className={cn(
+                      'w-14 h-14 rounded-2xl flex items-center justify-center transition-colors',
+                      isDragOver ? 'bg-primary/10' : 'bg-secondary'
+                    )}
+                  >
+                    <Upload
+                      className={cn(
+                        'w-7 h-7 transition-colors',
+                        isDragOver ? 'text-primary' : 'text-muted-foreground'
+                      )}
+                    />
                   </div>
                   <div className="space-y-1 max-w-sm">
-                    <p className="font-medium text-sm sm:text-base">Выберите файлы</p>
+                    <p className="font-medium text-sm sm:text-base">
+                      {isDragOver ? 'Отпустите файлы' : 'Перетащите файлы сюда'}
+                    </p>
                     <p className="text-xs sm:text-sm text-muted-foreground">
-                      PDF, Word, Excel, изображения
+                      или выберите на устройстве · любой формат, до 50 МБ
                     </p>
                   </div>
                   <Button
                     type="button"
                     variant="outline"
-                    className="rounded-full h-10 gap-2 w-full max-w-xs px-6"
+                    className="rounded-full h-10 gap-2 w-full max-w-xs px-6 pointer-events-auto"
                     disabled={disabled || isUploading}
-                    onClick={() => fileInputRef.current?.click()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openFilePicker();
+                    }}
                   >
                     <FileText className="w-4 h-4" />
                     Выбрать файлы
@@ -529,6 +596,11 @@ export function PatientDocumentsTab({ patientId, disabled }: PatientDocumentsTab
                 </div>
               ) : (
                 <div className="space-y-3">
+                  {isDragOver && (
+                    <div className="rounded-xl border border-primary/40 bg-primary/5 px-3 py-2 text-center text-xs sm:text-sm text-primary">
+                      Отпустите, чтобы добавить файлы
+                    </div>
+                  )}
                   <ul className="space-y-2 max-h-[240px] overflow-y-auto pr-1">
                     {pendingFiles.map((item) => (
                       <li
@@ -573,7 +645,10 @@ export function PatientDocumentsTab({ patientId, disabled }: PatientDocumentsTab
                       size="sm"
                       className="rounded-lg gap-1.5"
                       disabled={disabled || isUploading}
-                      onClick={() => fileInputRef.current?.click()}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openFilePicker();
+                      }}
                     >
                       <Plus className="w-3.5 h-3.5" />
                       Добавить ещё
@@ -657,7 +732,7 @@ export function PatientDocumentsTab({ patientId, disabled }: PatientDocumentsTab
             ) : (
               <>
                 <Upload className="w-4 h-4" />
-                {fileCount <= 1 ? 'Загрузить документ' : `Загрузить ${fileCount} документов`}
+                {fileCount <= 1 ? 'Загрузить' : `Загрузить ${fileCount} документов`}
               </>
             )}
           </Button>

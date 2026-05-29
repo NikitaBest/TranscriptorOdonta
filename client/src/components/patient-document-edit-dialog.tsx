@@ -17,9 +17,6 @@ import type { ApiError, ClientDocument } from '@/lib/api/types';
 import { formatClientDocumentUploadError } from '@/lib/api/config';
 import { FileText, Loader2, X } from 'lucide-react';
 
-const ACCEPTED_FILE_TYPES =
-  'image/*,application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.txt,.rtf';
-
 const MAX_FILE_BYTES = 50 * 1024 * 1024;
 
 function formatFileSize(bytes: number): string {
@@ -158,7 +155,6 @@ export function PatientDocumentEditDialog({
             <input
               ref={fileInputRef}
               type="file"
-              accept={ACCEPTED_FILE_TYPES}
               className="sr-only"
               disabled={saveMutation.isPending}
               onChange={(e) => handlePickFile(e.target.files?.[0] ?? null)}
