@@ -241,7 +241,7 @@ export class ApiClient {
   static put<T>(
     path: string,
     data?: unknown,
-    options?: { requireAuth?: boolean }
+    options?: { requireAuth?: boolean; isFormData?: boolean; timeout?: number }
   ): Promise<T> {
     return this.request<T>('PUT', path, data, options);
   }

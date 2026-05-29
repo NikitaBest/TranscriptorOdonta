@@ -313,6 +313,18 @@ export interface CreateClientDocumentParams {
   file: File;
 }
 
+/** Параметры обновления документа PUT /client/document/{id} (multipart/form-data) */
+export interface UpdateClientDocumentParams {
+  clientId?: string;
+  /** Пустая строка снимает привязку к консультации */
+  consultationId?: string | null;
+  title?: string;
+  description?: string;
+  comment?: string;
+  /** Новый файл — замена содержимого */
+  file?: File;
+}
+
 /** Запрос POST /client/document/get */
 export interface GetClientDocumentsRequest {
   clientId?: string;

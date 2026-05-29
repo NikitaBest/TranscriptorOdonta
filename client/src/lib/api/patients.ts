@@ -16,6 +16,7 @@ import type {
   ApiError,
   ClientDocument,
   CreateClientDocumentParams,
+  UpdateClientDocumentParams,
   GetClientDocumentsRequest,
   GetClientDocumentsResponse,
 } from './types';
@@ -439,6 +440,73 @@ export const patientsApi = {
     throw new Error(
       formatClientDocumentUploadError(response.error || 'Не удалось загрузить документ')
     );
+  },
+
+  /**
+   * Обновить документ клиента
+   * PUT /client/document/{id} (multipart/form-data)
+   */
+  async updateDocument(
+    documentId: string,
+    params: UpdateClientDocumentParams
+  ): Promise<ClientDocument> {
+    const formData = new FormData();
+
+    if (params.file) {
+      if (params.file.size === 0) {
+        throw new Error('Файл пустой');
+      }
+      if (params.file.size > 50 * 1024 * 1024) {
+        throw new Error('Размер файла не должен превышать 50 МБ');
+      }
+      const { blob: fileBlob, name: fileName } = fileForMultipartUpload(params.file);
+      formData.append('file', fileBlob, fileName);
+    }
+
+    if (params.clientId?.trim()) {
+      formData.append('clientId', params.clientId.trim());
+    }
+    if (params.consultationId !== undefined && params.consultationId !== null) {
+      formData.append('consultationId', params.consultationId);
+    }
+    if (params.title !== undefined) {
+      formData.append('title', params.title);
+    }
+    if (params.description !== undefined) {
+      formData.append('description', params.description);
+    }
+    if (params.comment !== undefined) {
+      formData.append('comment', params.comment);
+    }
+
+    logFormDataPayload(`PUT /client/document/${documentId}`, formData);
+
+    const timeoutMs = params.file
+      ? Math.min(
+          Math.max(((params.file.size / 1024) / 10) * 1.5 + 60, 120) * 1000,
+          900000
+        )
+      : 60000;
+
+    const response = await ApiClient.request<ApiResponse<ClientDocument>>(
+      'PUT',
+      `client/document/${encodeURIComponent(documentId)}`,
+      formData,
+      {
+        requireAuth: true,
+        isFormData: true,
+        timeout: timeoutMs,
+      }
+    );
+
+    if (response.isSuccess && response.value) {
+      return {
+        ...response.value,
+        id: String(response.value.id),
+      };
+    }
+
+    throw new Error(response.error || 'Не удалось сохранить изменения');
   },
 
   /**

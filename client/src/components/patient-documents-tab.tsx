@@ -22,6 +22,7 @@ import { patientsApi } from '@/lib/api/patients';
 import { useToast } from '@/hooks/use-toast';
 import type { ApiError, ClientDocument } from '@/lib/api/types';
 import { formatClientDocumentUploadError } from '@/lib/api/config';
+import { PatientDocumentEditDialog } from '@/components/patient-document-edit-dialog';
 import { cn } from '@/lib/utils';
 import {
   Upload,
@@ -33,6 +34,7 @@ import {
   ExternalLink,
   AlertCircle,
   Trash2,
+  Pencil,
 } from 'lucide-react';
 
 const MAX_FILE_BYTES = 50 * 1024 * 1024;
@@ -109,6 +111,7 @@ function DocumentListItem({
   isDeleteDialogOpen,
   onDeleteDialogOpenChange,
   onConfirmDelete,
+  onEdit,
 }: {
   doc: ClientDocument;
   disabled?: boolean;
@@ -116,6 +119,7 @@ function DocumentListItem({
   isDeleteDialogOpen: boolean;
   onDeleteDialogOpenChange: (open: boolean) => void;
   onConfirmDelete: (doc: ClientDocument) => void;
+  onEdit: (doc: ClientDocument) => void;
 }) {
   const url = getDocumentFileUrl(doc);
   const title = getDocumentTitle(doc);
@@ -154,6 +158,17 @@ function DocumentListItem({
             )}
           </div>
           <div className="flex flex-col gap-1.5 shrink-0 self-start">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="rounded-lg h-9 gap-1.5"
+              disabled={disabled || isDeleting}
+              onClick={() => onEdit(doc)}
+            >
+              <Pencil className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Изменить</span>
+            </Button>
             {url && (
               <Button
                 type="button"
@@ -262,6 +277,7 @@ export function PatientDocumentsTab({ patientId, disabled }: PatientDocumentsTab
   const documents = documentsResult?.data ?? [];
   const [deletingDocumentId, setDeletingDocumentId] = useState<string | null>(null);
   const [deleteDialogId, setDeleteDialogId] = useState<string | null>(null);
+  const [editingDocument, setEditingDocument] = useState<ClientDocument | null>(null);
 
   const deleteMutation = useMutation({
     mutationFn: (documentId: string) => patientsApi.deleteDocument(documentId),
@@ -708,12 +724,25 @@ export function PatientDocumentsTab({ patientId, disabled }: PatientDocumentsTab
                     setDeleteDialogId(open ? doc.id : null);
                   }}
                   onConfirmDelete={handleConfirmDelete}
+                  onEdit={setEditingDocument}
                 />
               </li>
             ))}
           </ul>
         )}
       </section>
+
+      <PatientDocumentEditDialog
+        open={editingDocument != null}
+        onOpenChange={(open) => {
+          if (!open) setEditingDocument(null);
+        }}
+        document={editingDocument}
+        patientId={patientId}
+        onSaved={() => {
+          queryClient.invalidateQueries({ queryKey: [DOCUMENTS_QUERY_KEY, patientId] });
+        }}
+      />
     </div>
   );
 }
