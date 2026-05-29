@@ -18,6 +18,7 @@ import {
   formatDocumentFileSize,
   getDocumentDownloadFileName,
   getDocumentFileUrl,
+  getDocumentPreviewImageUrl,
   getDocumentPreviewKind,
   getDocumentTitle,
   getEmbeddedViewerUrl,
@@ -43,6 +44,8 @@ export function PatientDocumentViewerDialog({
   const remoteUrl = getDocumentFileUrl(doc);
   const title = doc ? getDocumentTitle(doc) : '';
   const kind = doc ? getDocumentPreviewKind(doc) : 'iframe';
+  const imageDisplayUrl =
+    kind === 'image' ? getDocumentPreviewImageUrl(doc) ?? remoteUrl : remoteUrl;
   const ext = doc ? getFileExtension(doc) : '';
   const contentType = doc ? resolveDocumentContentType(doc) : '';
   const sizeLabel =
@@ -148,10 +151,12 @@ export function PatientDocumentViewerDialog({
     }
 
     if (kind === 'image') {
+      const src = imageDisplayUrl || remoteUrl;
+      if (!src) return null;
       return (
         <div className="flex items-center justify-center h-full min-h-[240px] max-h-[70vh] p-4 sm:p-6">
           <img
-            src={remoteUrl}
+            src={src}
             alt={title}
             className="max-w-full max-h-[68vh] object-contain rounded-lg shadow-sm"
             referrerPolicy="no-referrer"

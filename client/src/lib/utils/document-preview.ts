@@ -1,6 +1,7 @@
 import { ApiClient } from '@/lib/api/client';
 import { API_CONFIG, mimeTypeForFileName } from '@/lib/api/config';
-import type { ClientDocument } from '@/lib/api/types';
+import type { ClientDocument, ClientDocumentFile } from '@/lib/api/types';
+import { FileVariantKind, FileVariantStatus } from '@/lib/api/types';
 
 export type DocumentPreviewKind =
   | 'image'
@@ -14,6 +15,49 @@ export type DocumentPreviewKind =
 export function getDocumentFileUrl(doc: ClientDocument | null): string | null {
   const url = doc?.file?.url?.trim();
   return url || null;
+}
+
+function getReadyVariantUrl(
+  file: ClientDocumentFile | null | undefined,
+  kind: FileVariantKind
+): string | null {
+  const variant = file?.variants?.find(
+    (v) => v.kind === kind && v.status === FileVariantStatus.Ready && v.url?.trim()
+  );
+  return variant?.url?.trim() || null;
+}
+
+/** Миниатюра для списка (Thumb, ~200px). */
+export function getDocumentThumbUrl(doc: ClientDocument | null): string | null {
+  if (!doc) return null;
+  const thumb = getReadyVariantUrl(doc.file, FileVariantKind.Thumb);
+  if (thumb) return thumb;
+  if (isDocumentImageFile(doc.file)) {
+    return getDocumentFileUrl(doc);
+  }
+  return null;
+}
+
+/** Уменьшенная версия для просмотра в модалке (Preview). Скачивание — всегда оригинал. */
+export function getDocumentPreviewImageUrl(doc: ClientDocument | null): string | null {
+  if (!doc) return null;
+  const preview = getReadyVariantUrl(doc.file, FileVariantKind.Preview);
+  if (preview) return preview;
+  return getDocumentFileUrl(doc);
+}
+
+export function isVariantGenerating(doc: ClientDocument | null): boolean {
+  const statuses = doc?.file?.variants?.map((v) => v.status) ?? [];
+  return statuses.some(
+    (s) => s === FileVariantStatus.Pending || s === FileVariantStatus.Processing
+  );
+}
+
+function isDocumentImageFile(file: ClientDocumentFile | null | undefined): boolean {
+  const type = file?.contentType || '';
+  if (type.startsWith('image/')) return true;
+  const ext = (file?.extension || file?.fileName || '').toLowerCase();
+  return /\.(jpe?g|png|gif|webp|heic|bmp|svg|avif)$/i.test(ext);
 }
 
 export function getDocumentTitle(doc: ClientDocument): string {

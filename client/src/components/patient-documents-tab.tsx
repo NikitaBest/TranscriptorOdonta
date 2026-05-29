@@ -71,21 +71,11 @@ function createPendingFile(file: File): PendingFile {
   };
 }
 
-function getDocumentTitle(doc: ClientDocument): string {
-  return doc.title?.trim() || doc.file?.fileName || 'Без названия';
-}
-
-function getDocumentFileUrl(doc: ClientDocument): string | null {
-  const url = doc.file?.url?.trim();
-  return url || null;
-}
-
-function isDocumentImage(doc: ClientDocument): boolean {
-  const type = doc.file?.contentType || '';
-  if (type.startsWith('image/')) return true;
-  const ext = (doc.file?.extension || doc.file?.fileName || '').toLowerCase();
-  return /\.(jpe?g|png|gif|webp|heic|bmp)$/i.test(ext) || ext.endsWith('jpg');
-}
+import {
+  getDocumentFileUrl,
+  getDocumentThumbUrl,
+  getDocumentTitle,
+} from '@/lib/utils/document-preview';
 
 function formatDocumentDate(createdAt?: string): string | null {
   if (!createdAt) return null;
@@ -121,16 +111,17 @@ function DocumentListItem({
   onOpen: (doc: ClientDocument) => void;
 }) {
   const url = getDocumentFileUrl(doc);
+  const thumbUrl = getDocumentThumbUrl(doc);
   const title = getDocumentTitle(doc);
   const dateLabel = formatDocumentDate(doc.createdAt);
   const sizeLabel =
     doc.file?.sizeBytes != null ? formatFileSize(Number(doc.file.sizeBytes)) : null;
-  const showImage = isDocumentImage(doc) && url;
+  const showImage = Boolean(thumbUrl);
 
   const preview = (
     <div className="shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-xl border border-border/50 bg-secondary/40 overflow-hidden flex items-center justify-center">
       {showImage ? (
-        <img src={url!} alt="" className="w-full h-full object-cover" />
+        <img src={thumbUrl!} alt="" className="w-full h-full object-cover" loading="lazy" />
       ) : (
         <FileText className="w-6 h-6 sm:w-7 sm:h-7 text-muted-foreground" />
       )}

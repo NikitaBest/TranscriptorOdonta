@@ -279,6 +279,36 @@ export interface ApiResponse<T> {
 }
 
 /** Файл, прикреплённый к документу клиента */
+export enum FileVariantKind {
+  None = 0,
+  Thumb = 1,
+  Preview = 2,
+}
+
+export enum FileVariantStatus {
+  NotApplicable = 0,
+  Pending = 1,
+  Processing = 2,
+  Ready = 3,
+  Failed = 4,
+}
+
+export interface ClientDocumentFileVariant {
+  id?: string;
+  fileId?: string;
+  kind?: FileVariantKind | number;
+  status?: FileVariantStatus | number;
+  contentType?: string | null;
+  sizeBytes?: number | null;
+  width?: number | null;
+  height?: number | null;
+  extension?: string | null;
+  url?: string | null;
+  sourceVersion?: number;
+  attemptCount?: number;
+  lastError?: string | null;
+}
+
 export interface ClientDocumentFile {
   id: string;
   fileName?: string;
@@ -287,6 +317,8 @@ export interface ClientDocumentFile {
   extension?: string;
   url?: string;
   createdAt?: string;
+  contentVersion?: number;
+  variants?: ClientDocumentFileVariant[] | null;
 }
 
 /** Документ клиента (POST /client/document, GET /client/document/get) */
