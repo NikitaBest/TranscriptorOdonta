@@ -23,6 +23,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { ApiError, ClientDocument } from '@/lib/api/types';
 import { formatClientDocumentUploadError } from '@/lib/api/config';
 import { PatientDocumentEditDialog } from '@/components/patient-document-edit-dialog';
+import { PatientDocumentViewerDialog } from '@/components/patient-document-viewer-dialog';
 import { cn } from '@/lib/utils';
 import {
   Upload,
@@ -108,6 +109,7 @@ function DocumentListItem({
   onDeleteDialogOpenChange,
   onConfirmDelete,
   onEdit,
+  onOpen,
 }: {
   doc: ClientDocument;
   disabled?: boolean;
@@ -116,6 +118,7 @@ function DocumentListItem({
   onDeleteDialogOpenChange: (open: boolean) => void;
   onConfirmDelete: (doc: ClientDocument) => void;
   onEdit: (doc: ClientDocument) => void;
+  onOpen: (doc: ClientDocument) => void;
 }) {
   const url = getDocumentFileUrl(doc);
   const title = getDocumentTitle(doc);
@@ -170,16 +173,15 @@ function DocumentListItem({
       <CardContent className="p-3 sm:p-4">
         <div className="flex items-start gap-2 sm:gap-3">
           {url ? (
-            <a
-              href={url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={mainContentClass}
+            <button
+              type="button"
+              className={cn(mainContentClass, 'text-left w-full border-0 bg-transparent')}
               aria-label={`Открыть «${title}»`}
+              onClick={() => onOpen(doc)}
             >
               {preview}
               {body}
-            </a>
+            </button>
           ) : (
             <div className={mainContentClass}>{preview}{body}</div>
           )}
@@ -292,6 +294,7 @@ export function PatientDocumentsTab({ patientId, disabled }: PatientDocumentsTab
   const [deletingDocumentId, setDeletingDocumentId] = useState<string | null>(null);
   const [deleteDialogId, setDeleteDialogId] = useState<string | null>(null);
   const [editingDocument, setEditingDocument] = useState<ClientDocument | null>(null);
+  const [viewingDocument, setViewingDocument] = useState<ClientDocument | null>(null);
 
   const deleteMutation = useMutation({
     mutationFn: (documentId: string) => patientsApi.deleteDocument(documentId),
@@ -815,12 +818,21 @@ export function PatientDocumentsTab({ patientId, disabled }: PatientDocumentsTab
                   }}
                   onConfirmDelete={handleConfirmDelete}
                   onEdit={setEditingDocument}
+                  onOpen={setViewingDocument}
                 />
               </li>
             ))}
           </ul>
         )}
       </section>
+
+      <PatientDocumentViewerDialog
+        open={viewingDocument != null}
+        onOpenChange={(open) => {
+          if (!open) setViewingDocument(null);
+        }}
+        document={viewingDocument}
+      />
 
       <PatientDocumentEditDialog
         open={editingDocument != null}
