@@ -130,8 +130,8 @@ function DocumentListItem({
 
   return (
     <Card className="border-border/50 rounded-2xl overflow-hidden shadow-none hover:border-primary/20 transition-colors">
-      <CardContent className="p-3 sm:p-4">
-        <div className="flex gap-3 sm:gap-4">
+      <CardContent className="p-3 sm:p-4 space-y-3">
+        <div className="flex gap-3 sm:gap-4 min-w-0">
           <div className="shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-xl border border-border/50 bg-secondary/40 overflow-hidden flex items-center justify-center">
             {showImage ? (
               <img src={url} alt="" className="w-full h-full object-cover" />
@@ -157,80 +157,81 @@ function DocumentListItem({
               </p>
             )}
           </div>
-          <div className="flex flex-col gap-1.5 shrink-0 self-start">
+        </div>
+
+        <div className="flex flex-wrap gap-1.5 sm:gap-2 pt-3 border-t border-border/50">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="rounded-lg h-8 sm:h-9 gap-1 sm:gap-1.5 flex-1 sm:flex-none min-w-0 px-1.5 sm:px-3 text-[10px] sm:text-sm leading-tight"
+            disabled={disabled || isDeleting}
+            onClick={() => onEdit(doc)}
+          >
+            <Pencil className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
+            <span className="whitespace-nowrap">Изменить</span>
+          </Button>
+          {url && (
             <Button
               type="button"
               variant="outline"
               size="sm"
-              className="rounded-lg h-9 gap-1.5"
-              disabled={disabled || isDeleting}
-              onClick={() => onEdit(doc)}
+              className="rounded-lg h-8 sm:h-9 gap-1 sm:gap-1.5 flex-1 sm:flex-none min-w-0 px-1.5 sm:px-3 text-[10px] sm:text-sm leading-tight"
+              asChild
             >
-              <Pencil className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Изменить</span>
+              <a href={url} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
+                <span className="whitespace-nowrap">Открыть</span>
+              </a>
             </Button>
-            {url && (
+          )}
+          <AlertDialog open={isDeleteDialogOpen} onOpenChange={onDeleteDialogOpenChange}>
+            <AlertDialogTrigger asChild>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                className="rounded-lg h-9 gap-1.5"
-                asChild
+                className="rounded-lg h-8 sm:h-9 gap-1 sm:gap-1.5 flex-1 sm:flex-none min-w-0 px-1.5 sm:px-3 text-[10px] sm:text-sm leading-tight text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
+                disabled={disabled || isDeleting}
+                aria-label="Удалить документ"
               >
-                <a href={url} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Открыть</span>
-                </a>
+                {isDeleting ? (
+                  <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-spin shrink-0" />
+                ) : (
+                  <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
+                )}
+                <span className="whitespace-nowrap">Удалить</span>
               </Button>
-            )}
-            <AlertDialog open={isDeleteDialogOpen} onOpenChange={onDeleteDialogOpenChange}>
-              <AlertDialogTrigger asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="rounded-lg h-9 gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
-                  disabled={disabled || isDeleting}
-                  aria-label="Удалить документ"
+            </AlertDialogTrigger>
+            <AlertDialogContent className="rounded-2xl">
+              <AlertDialogHeader>
+                <AlertDialogTitle>Удалить документ?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  «{title}» будет удалён безвозвратно вместе с файлом на сервере.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel className="rounded-xl">Отмена</AlertDialogCancel>
+                <AlertDialogAction
+                  className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  disabled={isDeleting}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onConfirmDelete(doc);
+                  }}
                 >
                   {isDeleting ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      Удаление…
+                    </>
                   ) : (
-                    <Trash2 className="w-3.5 h-3.5" />
+                    'Удалить'
                   )}
-                  <span className="hidden sm:inline">Удалить</span>
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent className="rounded-2xl">
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Удалить документ?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    «{title}» будет удалён безвозвратно вместе с файлом на сервере.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel className="rounded-xl">Отмена</AlertDialogCancel>
-                  <AlertDialogAction
-                    className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    disabled={isDeleting}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      onConfirmDelete(doc);
-                    }}
-                  >
-                    {isDeleting ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                        Удаление…
-                      </>
-                    ) : (
-                      'Удалить'
-                    )}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </CardContent>
     </Card>
