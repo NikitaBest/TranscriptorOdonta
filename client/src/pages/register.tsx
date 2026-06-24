@@ -22,7 +22,33 @@ import {
 import { authApi } from "@/lib/api/auth";
 import { useToast } from "@/hooks/use-toast";
 import type { ApiError } from "@/lib/api/types";
+import { PrivacyPolicyViewer } from "@/components/privacy-policy-viewer";
+import { LegalDocumentViewer } from "@/components/legal-document-viewer";
+import { PERSONAL_DATA_CONSENT_TEXT } from "@/lib/documents/personal-data-consent-content";
+import { ADVERTISING_MAILING_CONSENT_TEXT } from "@/lib/documents/advertising-mailing-consent-content";
 import { Eye, EyeOff, Mail } from "lucide-react";
+
+function LegalDocLink({
+  children,
+  onOpen,
+}: {
+  children: React.ReactNode;
+  onOpen: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onOpen();
+      }}
+      className="text-blue-600 underline font-medium hover:text-blue-700"
+    >
+      {children}
+    </button>
+  );
+}
 
 export default function RegisterPage() {
   const [, setLocation] = useLocation();
@@ -35,6 +61,9 @@ export default function RegisterPage() {
   const [marketingConsentAccepted, setMarketingConsentAccepted] = useState(false);
   const [showEmailConfirmationDialog, setShowEmailConfirmationDialog] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState<string>("");
+  const [privacyPolicyOpen, setPrivacyPolicyOpen] = useState(false);
+  const [personalDataConsentOpen, setPersonalDataConsentOpen] = useState(false);
+  const [advertisingMailingConsentOpen, setAdvertisingMailingConsentOpen] = useState(false);
 
   const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -301,23 +330,13 @@ export default function RegisterPage() {
                     className="text-sm font-normal leading-relaxed cursor-pointer"
                   >
                     Я даю{" "}
-                    <a
-                      href="https://disk.yandex.ru/i/v_4_gmraHoTdJA"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 underline font-medium hover:text-blue-700"
-                    >
+                    <LegalDocLink onOpen={() => setPersonalDataConsentOpen(true)}>
                       согласие
-                    </a>
+                    </LegalDocLink>
                     {" "}на обработку моих персональных данных согласно{" "}
-                    <a
-                      href="https://disk.yandex.ru/i/AsAMtZQ5NgcdBA"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 underline font-medium hover:text-blue-700"
-                    >
+                    <LegalDocLink onOpen={() => setPrivacyPolicyOpen(true)}>
                       Политике
-                    </a>
+                    </LegalDocLink>
                   </Label>
                 </div>
 
@@ -333,14 +352,9 @@ export default function RegisterPage() {
                     className="text-sm font-normal leading-relaxed cursor-pointer"
                   >
                     Я даю{" "}
-                    <a
-                      href="https://disk.yandex.ru/i/AsAMtZQ5NgcdBA"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 underline font-medium hover:text-blue-700"
-                    >
+                    <LegalDocLink onOpen={() => setAdvertisingMailingConsentOpen(true)}>
                       согласие
-                    </a>
+                    </LegalDocLink>
                     {" "}на рекламную рассылку <span className="text-muted-foreground">(необязательно)</span>
                   </Label>
                 </div>
@@ -382,6 +396,20 @@ export default function RegisterPage() {
           </p>
         </div>
       </div>
+
+      <PrivacyPolicyViewer open={privacyPolicyOpen} onOpenChange={setPrivacyPolicyOpen} />
+      <LegalDocumentViewer
+        open={personalDataConsentOpen}
+        onOpenChange={setPersonalDataConsentOpen}
+        title="Согласие на обработку персональных данных"
+        text={PERSONAL_DATA_CONSENT_TEXT}
+      />
+      <LegalDocumentViewer
+        open={advertisingMailingConsentOpen}
+        onOpenChange={setAdvertisingMailingConsentOpen}
+        title="Согласие на рекламную рассылку"
+        text={ADVERTISING_MAILING_CONSENT_TEXT}
+      />
 
       {/* Dialog для подтверждения email */}
       <Dialog open={showEmailConfirmationDialog} onOpenChange={() => {
