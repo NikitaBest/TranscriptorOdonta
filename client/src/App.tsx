@@ -31,10 +31,19 @@ import ResetPasswordPage from "@/pages/reset-password";
 import SettingsPage from "@/pages/settings";
 import WalletPage from "@/pages/wallet";
 import DocumentsPage from "@/pages/documents";
+import MincifryDocumentsPage from "@/pages/mincifry-documents";
 import SupportPage from "@/pages/support";
 
 // Публичные маршруты, которые не требуют авторизации
-const PUBLIC_ROUTES = ['/auth', '/register', '/share', '/confirm-email', '/forgot-password', '/reset-password'];
+const PUBLIC_ROUTES = [
+  '/auth',
+  '/register',
+  '/share',
+  '/confirm-email',
+  '/forgot-password',
+  '/reset-password',
+  '/reg/mincifry',
+];
 
 // Вспомогательная функция для извлечения exp (в мс) из JWT токена
 function getTokenExpMs(token: string | null): number | null {
@@ -171,6 +180,7 @@ function Router() {
         <Route path="/settings" component={SettingsPage} />
         <Route path="/share/consultation/:id" component={ShareConsultationPage} />
         <Route path="/share/consultation/:id/:token" component={ShareConsultationPage} />
+        <Route path="/reg/mincifry" component={MincifryDocumentsPage} />
         
         <Route component={NotFound} />
       </Switch>
