@@ -29,6 +29,13 @@ const ODONTA_DOCUMENTS = [
   },
 ] as const;
 
+const DOCUMENT_CARD_CLASS =
+  'border-border/60 bg-card/70 backdrop-blur-sm rounded-2xl sm:rounded-3xl h-full flex flex-col';
+
+const DOCUMENT_GRID_CLASS = 'grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5 items-stretch';
+
+const PDF_GRID_CLASS = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 items-stretch';
+
 function getPublicDocumentUrl(fileName: string): string {
   return `/documents/${encodeURIComponent(fileName)}`;
 }
@@ -58,8 +65,7 @@ export default function DocumentsPage() {
 
   return (
     <Layout>
-      <div className="max-w-2xl mx-auto px-3 sm:px-4 space-y-4 sm:space-y-6 pb-4">
-        {/* Заголовок */}
+      <div className="w-full max-w-2xl md:max-w-5xl mx-auto px-3 sm:px-4 space-y-4 sm:space-y-6 pb-4">
         <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
           <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-secondary flex items-center justify-center overflow-hidden shrink-0">
             <img
@@ -70,105 +76,105 @@ export default function DocumentsPage() {
           </div>
           <div className="space-y-0.5 min-w-0">
             <h1 className="text-xl sm:text-2xl md:text-3xl font-display font-bold tracking-tight">Документы</h1>
-            <p className="text-xs sm:text-sm md:text-base text-muted-foreground line-clamp-2">
+            <p className="text-xs sm:text-sm md:text-base text-muted-foreground">
               Шаблоны и документы для работы с пациентами.
             </p>
           </div>
         </div>
 
-        <Card className="border-border/60 bg-card/70 backdrop-blur-sm rounded-2xl sm:rounded-3xl">
-          <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
-            <CardTitle className="text-base sm:text-lg md:text-xl font-display font-bold tracking-tight">
-              Шаблон документа о персональных данных
-            </CardTitle>
-            <CardDescription className="text-xs sm:text-sm">
-              Пожалуйста, распечатайте и подпишите документ перед началом консультации, чтобы зафиксировать согласие пациента
-              на обработку персональных данных.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6 pt-0">
-            <Button
-              onClick={handlePersonalDataDownload}
-              className="w-full h-12 min-h-[48px] rounded-xl sm:rounded-2xl text-base font-medium touch-manipulation"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Скачать .docx
-            </Button>
-          </CardContent>
-        </Card>
+        <div className={DOCUMENT_GRID_CLASS}>
+          <Card className={DOCUMENT_CARD_CLASS}>
+            <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3 flex-1">
+              <CardTitle className="text-base sm:text-lg md:text-xl font-display font-bold tracking-tight">
+                Шаблон документа о персональных данных
+              </CardTitle>
+              <CardDescription className="text-xs sm:text-sm">
+                Пожалуйста, распечатайте и подпишите документ перед началом консультации, чтобы зафиксировать согласие пациента
+                на обработку персональных данных.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6 pt-0 mt-auto">
+              <Button
+                onClick={handlePersonalDataDownload}
+                className="w-full h-12 min-h-[48px] rounded-xl sm:rounded-2xl text-base font-medium touch-manipulation"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Скачать .docx
+              </Button>
+            </CardContent>
+          </Card>
 
-        <Card className="border-border/60 bg-card/70 backdrop-blur-sm rounded-2xl sm:rounded-3xl">
-          <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
-            <CardTitle className="text-base sm:text-lg md:text-xl font-display font-bold tracking-tight leading-snug">
-              Политика обработки персональных данных
-            </CardTitle>
-            <CardDescription className="text-xs sm:text-sm leading-relaxed">
-              Политика в отношении обработки и защиты персональных данных. Редакция от 11 декабря 2025 г.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6 pt-0">
-            <Button
-              variant="outline"
-              onClick={() => setPrivacyPolicyOpen(true)}
-              className="w-full h-12 min-h-[48px] rounded-xl sm:rounded-2xl text-sm sm:text-base font-medium touch-manipulation"
-            >
-              <FileText className="w-4 h-4 mr-2 shrink-0" />
-              Читать
-            </Button>
-          </CardContent>
-        </Card>
+          <Card className={DOCUMENT_CARD_CLASS}>
+            <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3 flex-1">
+              <CardTitle className="text-base sm:text-lg font-display font-bold tracking-tight leading-snug">
+                Политика обработки персональных данных
+              </CardTitle>
+              <CardDescription className="text-xs sm:text-sm leading-relaxed">
+                Политика в отношении обработки и защиты персональных данных. Редакция от 11 декабря 2025 г.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6 pt-0 mt-auto">
+              <Button
+                variant="outline"
+                onClick={() => setPrivacyPolicyOpen(true)}
+                className="w-full h-12 min-h-[48px] rounded-xl sm:rounded-2xl text-sm sm:text-base font-medium touch-manipulation"
+              >
+                <FileText className="w-4 h-4 mr-2 shrink-0" />
+                Читать
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className={DOCUMENT_CARD_CLASS}>
+            <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3 flex-1">
+              <CardTitle className="text-base sm:text-lg font-display font-bold tracking-tight leading-snug">
+                Согласие на обработку персональных данных
+              </CardTitle>
+              <CardDescription className="text-xs sm:text-sm leading-relaxed">
+                Согласие субъекта персональных данных на обработку данных при использовании сайта и сервисов Odonta.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6 pt-0 mt-auto">
+              <Button
+                variant="outline"
+                onClick={() => setPersonalDataConsentOpen(true)}
+                className="w-full h-12 min-h-[48px] rounded-xl sm:rounded-2xl text-sm sm:text-base font-medium touch-manipulation"
+              >
+                <FileText className="w-4 h-4 mr-2 shrink-0" />
+                Читать
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className={DOCUMENT_CARD_CLASS}>
+            <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3 flex-1">
+              <CardTitle className="text-base sm:text-lg font-display font-bold tracking-tight leading-snug">
+                Согласие на рекламную рассылку
+              </CardTitle>
+              <CardDescription className="text-xs sm:text-sm leading-relaxed">
+                Согласие на получение рекламной и информационной рассылки от Odonta.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6 pt-0 mt-auto">
+              <Button
+                variant="outline"
+                onClick={() => setAdvertisingMailingConsentOpen(true)}
+                className="w-full h-12 min-h-[48px] rounded-xl sm:rounded-2xl text-sm sm:text-base font-medium touch-manipulation"
+              >
+                <FileText className="w-4 h-4 mr-2 shrink-0" />
+                Читать
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
 
         <PrivacyPolicyViewer open={privacyPolicyOpen} onOpenChange={setPrivacyPolicyOpen} />
-
-        <Card className="border-border/60 bg-card/70 backdrop-blur-sm rounded-2xl sm:rounded-3xl">
-          <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
-            <CardTitle className="text-base sm:text-lg md:text-xl font-display font-bold tracking-tight leading-snug">
-              Согласие на обработку персональных данных
-            </CardTitle>
-            <CardDescription className="text-xs sm:text-sm leading-relaxed">
-              Согласие субъекта персональных данных на обработку данных при использовании сайта и сервисов Odonta.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6 pt-0">
-            <Button
-              variant="outline"
-              onClick={() => setPersonalDataConsentOpen(true)}
-              className="w-full h-12 min-h-[48px] rounded-xl sm:rounded-2xl text-sm sm:text-base font-medium touch-manipulation"
-            >
-              <FileText className="w-4 h-4 mr-2 shrink-0" />
-              Читать
-            </Button>
-          </CardContent>
-        </Card>
-
         <LegalDocumentViewer
           open={personalDataConsentOpen}
           onOpenChange={setPersonalDataConsentOpen}
           title="Согласие на обработку персональных данных"
           text={PERSONAL_DATA_CONSENT_TEXT}
         />
-
-        <Card className="border-border/60 bg-card/70 backdrop-blur-sm rounded-2xl sm:rounded-3xl">
-          <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
-            <CardTitle className="text-base sm:text-lg md:text-xl font-display font-bold tracking-tight leading-snug">
-              Согласие на рекламную рассылку
-            </CardTitle>
-            <CardDescription className="text-xs sm:text-sm leading-relaxed">
-              Согласие на получение рекламной и информационной рассылки от Odonta.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6 pt-0">
-            <Button
-              variant="outline"
-              onClick={() => setAdvertisingMailingConsentOpen(true)}
-              className="w-full h-12 min-h-[48px] rounded-xl sm:rounded-2xl text-sm sm:text-base font-medium touch-manipulation"
-            >
-              <FileText className="w-4 h-4 mr-2 shrink-0" />
-              Читать
-            </Button>
-          </CardContent>
-        </Card>
-
         <LegalDocumentViewer
           open={advertisingMailingConsentOpen}
           onOpenChange={setAdvertisingMailingConsentOpen}
@@ -176,7 +182,7 @@ export default function DocumentsPage() {
           text={ADVERTISING_MAILING_CONSENT_TEXT}
         />
 
-        <div className="space-y-1 px-1">
+        <div className="space-y-1 px-1 pt-1">
           <h2 className="text-sm sm:text-base font-display font-semibold tracking-tight">
             Документация Odonta AI
           </h2>
@@ -185,36 +191,33 @@ export default function DocumentsPage() {
           </p>
         </div>
 
-        <div className="space-y-4 sm:space-y-5">
+        <div className={PDF_GRID_CLASS}>
           {ODONTA_DOCUMENTS.map((doc) => {
             const url = getPublicDocumentUrl(doc.fileName);
 
             return (
-              <Card
-                key={doc.fileName}
-                className="border-border/60 bg-card/70 backdrop-blur-sm rounded-2xl sm:rounded-3xl"
-              >
-                <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
-                  <CardTitle className="text-base sm:text-lg md:text-xl font-display font-bold tracking-tight leading-snug">
+              <Card key={doc.fileName} className={DOCUMENT_CARD_CLASS}>
+                <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3 flex-1">
+                  <CardTitle className="text-base sm:text-lg font-display font-bold tracking-tight leading-snug">
                     {doc.title}
                   </CardTitle>
                   <CardDescription className="text-xs sm:text-sm leading-relaxed">
                     {doc.description}
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6 pt-0">
-                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6 pt-0 mt-auto">
+                  <div className="flex flex-col gap-2">
                     <Button
                       variant="outline"
                       onClick={() => openDocument(url)}
-                      className="w-full sm:flex-1 h-12 min-h-[48px] rounded-xl sm:rounded-2xl text-sm sm:text-base font-medium touch-manipulation"
+                      className="w-full h-12 min-h-[48px] rounded-xl sm:rounded-2xl text-sm sm:text-base font-medium touch-manipulation"
                     >
                       <ExternalLink className="w-4 h-4 mr-2 shrink-0" />
                       Открыть
                     </Button>
                     <Button
                       onClick={() => downloadDocument(url, doc.fileName)}
-                      className="w-full sm:flex-1 h-12 min-h-[48px] rounded-xl sm:rounded-2xl text-sm sm:text-base font-medium touch-manipulation"
+                      className="w-full h-12 min-h-[48px] rounded-xl sm:rounded-2xl text-sm sm:text-base font-medium touch-manipulation"
                     >
                       <Download className="w-4 h-4 mr-2 shrink-0" />
                       Скачать PDF
@@ -243,4 +246,3 @@ export default function DocumentsPage() {
     </Layout>
   );
 }
-
