@@ -4,7 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="убраны фильтры" />
+    <list default="true" id="c92c8a1c-a285-4d50-9081-110885f61a11" name="Changes" comment="редакт">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -98,70 +100,7 @@
       <workItem from="1775808825931" duration="1000" />
       <workItem from="1776415200148" duration="2374000" />
       <workItem from="1776432737058" duration="485000" />
-    </task>
-    <task id="LOCAL-00098" summary="работа с аудио на мобилке">
-      <option name="closed" value="true" />
-      <created>1770930086554</created>
-      <option name="number" value="00098" />
-      <option name="presentableId" value="LOCAL-00098" />
-      <option name="project" value="LOCAL" />
-      <updated>1770930086554</updated>
-    </task>
-    <task id="LOCAL-00099" summary="после записи переходит на отчет">
-      <option name="closed" value="true" />
-      <created>1770966305092</created>
-      <option name="number" value="00099" />
-      <option name="presentableId" value="LOCAL-00099" />
-      <option name="project" value="LOCAL" />
-      <updated>1770966305092</updated>
-    </task>
-    <task id="LOCAL-00100" summary="работа по туду листу">
-      <option name="closed" value="true" />
-      <created>1771009668737</created>
-      <option name="number" value="00100" />
-      <option name="presentableId" value="LOCAL-00100" />
-      <option name="project" value="LOCAL" />
-      <updated>1771009668737</updated>
-    </task>
-    <task id="LOCAL-00101" summary="заметки выше истории">
-      <option name="closed" value="true" />
-      <created>1771011777228</created>
-      <option name="number" value="00101" />
-      <option name="presentableId" value="LOCAL-00101" />
-      <option name="project" value="LOCAL" />
-      <updated>1771011777228</updated>
-    </task>
-    <task id="LOCAL-00102" summary="заметки под мобилку">
-      <option name="closed" value="true" />
-      <created>1771013027976</created>
-      <option name="number" value="00102" />
-      <option name="presentableId" value="LOCAL-00102" />
-      <option name="project" value="LOCAL" />
-      <updated>1771013027976</updated>
-    </task>
-    <task id="LOCAL-00103" summary="заметки связь с беком">
-      <option name="closed" value="true" />
-      <created>1771014108962</created>
-      <option name="number" value="00103" />
-      <option name="presentableId" value="LOCAL-00103" />
-      <option name="project" value="LOCAL" />
-      <updated>1771014108962</updated>
-    </task>
-    <task id="LOCAL-00104" summary="блок о пациенте адаптация мобилка">
-      <option name="closed" value="true" />
-      <created>1771014692197</created>
-      <option name="number" value="00104" />
-      <option name="presentableId" value="LOCAL-00104" />
-      <option name="project" value="LOCAL" />
-      <updated>1771014692197</updated>
-    </task>
-    <task id="LOCAL-00105" summary="заметки адаптация мобилка">
-      <option name="closed" value="true" />
-      <created>1771014895150</created>
-      <option name="number" value="00105" />
-      <option name="presentableId" value="LOCAL-00105" />
-      <option name="project" value="LOCAL" />
-      <updated>1771014895150</updated>
+      <workItem from="1781181019033" duration="10387000" />
     </task>
     <task id="LOCAL-00106" summary="карта пациента блоки адаптация мобилка">
       <option name="closed" value="true" />
@@ -491,21 +430,77 @@
       <option name="project" value="LOCAL" />
       <updated>1776432746863</updated>
     </task>
-    <option name="localTasksCounter" value="147" />
+    <task id="LOCAL-00147" summary="добавление документов">
+      <option name="closed" value="true" />
+      <created>1780054697580</created>
+      <option name="number" value="00147" />
+      <option name="presentableId" value="LOCAL-00147" />
+      <option name="project" value="LOCAL" />
+      <updated>1780054697580</updated>
+    </task>
+    <task id="LOCAL-00148" summary="редактирование доков">
+      <option name="closed" value="true" />
+      <created>1780054926855</created>
+      <option name="number" value="00148" />
+      <option name="presentableId" value="LOCAL-00148" />
+      <option name="project" value="LOCAL" />
+      <updated>1780054926855</updated>
+    </task>
+    <task id="LOCAL-00149" summary="редактирование кнопок управления документами">
+      <option name="closed" value="true" />
+      <created>1780055390491</created>
+      <option name="number" value="00149" />
+      <option name="presentableId" value="LOCAL-00149" />
+      <option name="project" value="LOCAL" />
+      <updated>1780055390491</updated>
+    </task>
+    <task id="LOCAL-00150" summary="перетягивание файла">
+      <option name="closed" value="true" />
+      <created>1780061126631</created>
+      <option name="number" value="00150" />
+      <option name="presentableId" value="LOCAL-00150" />
+      <option name="project" value="LOCAL" />
+      <updated>1780061126632</updated>
+    </task>
+    <task id="LOCAL-00151" summary="ретактирование карточки">
+      <option name="closed" value="true" />
+      <created>1780063647354</created>
+      <option name="number" value="00151" />
+      <option name="presentableId" value="LOCAL-00151" />
+      <option name="project" value="LOCAL" />
+      <updated>1780063647354</updated>
+    </task>
+    <task id="LOCAL-00152" summary="открытие доков">
+      <option name="closed" value="true" />
+      <created>1780067693629</created>
+      <option name="number" value="00152" />
+      <option name="presentableId" value="LOCAL-00152" />
+      <option name="project" value="LOCAL" />
+      <updated>1780067693629</updated>
+    </task>
+    <task id="LOCAL-00153" summary="доп бек">
+      <option name="closed" value="true" />
+      <created>1780069421492</created>
+      <option name="number" value="00153" />
+      <option name="presentableId" value="LOCAL-00153" />
+      <option name="project" value="LOCAL" />
+      <updated>1780069421492</updated>
+    </task>
+    <task id="LOCAL-00154" summary="редакт">
+      <option name="closed" value="true" />
+      <created>1780072892775</created>
+      <option name="number" value="00154" />
+      <option name="presentableId" value="LOCAL-00154" />
+      <option name="project" value="LOCAL" />
+      <updated>1780072892775</updated>
+    </task>
+    <option name="localTasksCounter" value="155" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="создание страницы баланса" />
-    <MESSAGE value="связка с бекендом по эндпоинтам" />
-    <MESSAGE value="показ тарифов пользователю" />
-    <MESSAGE value="добавлены вкладки историй в кошелек" />
-    <MESSAGE value="адаптация под мобильные экраны кошелька" />
-    <MESSAGE value="в истории показываем полною сумму , смена версии" />
-    <MESSAGE value="добавлен возврат с отчета к истории" />
-    <MESSAGE value="перенос баланса" />
     <MESSAGE value="смена версии работа с балансом , для мобиоки" />
     <MESSAGE value="проверка отрицательного баланса" />
     <MESSAGE value="инструкция по балансу" />
@@ -523,6 +518,14 @@
     <MESSAGE value="добавлены фильтры для пациентов консультац" />
     <MESSAGE value="кнопка фильтры" />
     <MESSAGE value="фильтр конс" />
-    <option name="LAST_COMMIT_MESSAGE" value="фильтр конс" />
+    <MESSAGE value="добавление документов" />
+    <MESSAGE value="редактирование доков" />
+    <MESSAGE value="редактирование кнопок управления документами" />
+    <MESSAGE value="перетягивание файла" />
+    <MESSAGE value="ретактирование карточки" />
+    <MESSAGE value="открытие доков" />
+    <MESSAGE value="доп бек" />
+    <MESSAGE value="редакт" />
+    <option name="LAST_COMMIT_MESSAGE" value="редакт" />
   </component>
 </project>
